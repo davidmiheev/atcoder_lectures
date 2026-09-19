@@ -1,0 +1,302 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Prime Sieves}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Number Theory}{Prime Sieves}{3}
+
+\section{Overview}
+Testing one integer for primality is cheap. Testing \emph{every} integer up to
+$N$ one at a time is not: trial division alone costs $\Theta(\sqrt{n})$ per
+number. The insight behind sieving is to invert the question. Instead of
+asking ``is $n$ prime?'' for each $n$, we start from the primes we have
+already found and strike out their multiples wholesale. Each composite is
+then eliminated by the primes dividing it, and whatever survives is prime.
+
+This lecture covers:
+\begin{itemize}[leftmargin=1.5em]
+  \item the \textbf{sieve of Eratosthenes}, enumerating all primes $\le N$ in
+        $O(N \log\log N)$ time;
+  \item the \textbf{smallest prime factor table}, which turns factorization of
+        any $n \le N$ into an $O(\log n)$ lookup loop;
+  \item the \textbf{linear sieve}, which touches each composite exactly once
+        and so runs in $O(N)$;
+  \item bulk evaluation of \textbf{multiplicative functions}
+        ($d(n)$, $\sigma(n)$, $\varphi(n)$) over $1 \ldots N$;
+  \item the \textbf{segmented sieve}, for primes in a narrow window $[L, R]$
+        where $R$ is far too large to sieve from $1$.
+\end{itemize}
+
+\section{The Sieve of Eratosthenes}
+
+\subsection{The algorithm}
+Keep a boolean array $\mathrm{isPrime}[0 \ldots N]$, initially all true except
+indices $0$ and $1$. Walk $n$ upwards. Whenever $\mathrm{isPrime}[n]$ is still
+true, $n$ has survived every earlier strike-out, so it is prime --- and we
+then mark $2n, 3n, 4n, \ldots$ as composite. By the time the walk reaches $n$,
+every composite below $n$ has already been struck out by one of its prime
+divisors, so the test ``still true'' is exactly the test ``prime''.
+
+\begin{theorembox}[(Correctness)]
+After the sweep, $\mathrm{isPrime}[n]$ is true if and only if $n$ is prime.
+
+\emph{Proof sketch.} If $n$ is prime, nothing can mark it: a mark on index $n$
+is only ever written while processing some $m$ with $2 \le m < n$ and $m \mid
+n$, and a prime has no such divisor. Conversely if $n \ge 2$ is composite,
+write $n = mp$ with $p$ its smallest prime factor; then $p < n$, and
+$\mathrm{isPrime}[p]$ was still true when the walk reached $p$, so the inner
+loop for $p$ ran and marked the multiple $n$. \qed
+\end{theorembox}
+
+\subsection{Complexity}
+The inner loop for a prime $p$ performs $\lfloor N/p \rfloor$ writes, so the
+total work is
+\[
+  O\!\left(N + \sum_{p \le N} \frac{N}{p}\right)
+  \;=\; O\!\left(N \sum_{p \le N} \frac{1}{p}\right).
+\]
+The sum of reciprocals of primes grows like $\log\log N$ --- this is Mertens'
+second theorem, $\sum_{p \le N} 1/p = \log\log N + M + o(1)$ --- giving a total
+of
+\[
+  O(N \log\log N).
+\]
+For practical purposes $\log\log N$ is a small constant (under $4$ for
+$N = 10^9$), so the sieve behaves close to linearly.
+
+\begin{notebox}
+It is a common slip to quote the sieve as $O(N \log N)$. That would be the
+bound if we summed $N/k$ over \emph{all} $k \le N$ (the harmonic series).
+Restricting to primes is what buys the improvement from $\log N$ to
+$\log\log N$.
+\end{notebox}
+
+\subsection{A worthwhile constant-factor refinement}
+Two easy observations shrink the work substantially:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Start striking at $p^2$, not $2p$.} Any composite multiple
+        $kp$ with $k < p$ has a prime factor smaller than $p$, so it was
+        already struck out during an earlier round. The first multiple that
+        can still be unmarked is $p \cdot p$.
+  \item \textbf{Only sieve with $p \le \sqrt{N}$.} If $p > \sqrt{N}$ then
+        $p^2 > N$, so by the previous point there is nothing left in range to
+        strike. The outer loop may stop as soon as $p^2 > N$.
+\end{enumerate}
+
+Neither changes the asymptotic bound, but together they remove a large amount
+of redundant writing, and the second removes the outer loop's tail entirely.
+
+\section{Smallest Prime Factors}
+
+\begin{definitionbox}
+For an integer $n \ge 2$, the \emph{smallest prime factor} $\mathrm{spf}(n)$ is
+the least prime dividing $n$. A prime $p$ has $\mathrm{spf}(p) = p$.
+\end{definitionbox}
+
+A sieve can record more than a single bit. If, instead of writing ``false'',
+each strike records \emph{which} prime did the striking, the array becomes a
+factorization oracle. Care is needed to keep the \emph{smallest} such prime:
+either write only when the slot is still empty, or process primes in
+decreasing order so that the smallest prime writes last.
+
+Given the table, factorizing is a short loop --- repeatedly divide out
+$\mathrm{spf}(n)$:
+\[
+  n \;\longrightarrow\; n / \mathrm{spf}(n) \;\longrightarrow\; \cdots
+  \;\longrightarrow\; 1 .
+\]
+Each step strips one prime factor, so the loop runs $\Omega(n)$ times where
+$\Omega(n)$ is the number of prime factors with multiplicity --- at most
+$\log_2 n$, since every factor is $\ge 2$.
+
+\begin{notebox}
+Factorizing \emph{all} of $1, 2, \ldots, N$ this way costs
+$O(N \log\log N)$ in total, not $O(N \log N)$. The total number of prime
+factors with multiplicity is $\sum_p (\lfloor N/p \rfloor + \lfloor N/p^2
+\rfloor + \cdots)$; the first terms contribute $N \log\log N + O(N)$ as above,
+and the higher powers contribute only $N \sum_p \frac{1}{p(p-1)} = O(N)$.
+\end{notebox}
+
+\section{The Linear Sieve}
+
+In the sieve of Eratosthenes a composite is visited once per distinct prime
+factor: $30$ gets struck three times, by $2$, $3$ and $5$. If we arrange for
+each composite to be struck \emph{exactly once} --- by its smallest prime
+factor --- the total work drops to $O(N)$.
+
+\subsection{The rule}
+Walk $n$ from $2$ to $N$, maintaining the list of primes found so far and the
+table $\mathrm{spf}$. At each $n$:
+\begin{itemize}[leftmargin=1.5em]
+  \item If $\mathrm{spf}(n)$ is still unset, nothing below $n$ divides $n$, so
+        $n$ is prime: set $\mathrm{spf}(n) = n$ and append $n$ to the list.
+  \item Then, for each known prime $p$ in increasing order with
+        $p \le \mathrm{spf}(n)$ and $np \le N$, set $\mathrm{spf}(np) = p$.
+\end{itemize}
+The guard $p \le \mathrm{spf}(n)$ is the whole trick.
+
+\begin{theorembox}[(Each composite is produced exactly once)]
+Let $m \le N$ be composite, $p = \mathrm{spf}(m)$ and $n = m/p$. Then the pair
+$(n, p)$ satisfies the guard, and it is the \emph{only} pair that generates
+$m$.
+
+\emph{Why the guard holds.} If $n$ had a prime factor $q < p$, then $q$ would
+divide $m = np$ as well, contradicting $p = \mathrm{spf}(m)$. Hence
+$p \le \mathrm{spf}(n)$ and the inner loop does reach $p$ while processing $n$.
+
+\emph{Why it is unique.} Suppose the algorithm writes $m = n'p'$ for some
+other pair. The guard forces $p' \le \mathrm{spf}(n')$, so $p'$ is no larger
+than any prime factor of $n'$, making $p'$ the smallest prime factor of
+$n'p' = m$. Thus $p' = p$, and then $n' = m/p' = n$. \qed
+\end{theorembox}
+
+Since each of the $O(N)$ composites receives exactly one write, and the prime
+list scan is charged to those writes, the whole sieve runs in $O(N)$ time.
+
+\begin{notebox}
+Asymptotically superior does not mean faster in practice. At the sizes typical
+in contests ($N \le 10^8$), the sieve of Eratosthenes often wins: it writes to
+memory in long regular strides that the hardware prefetcher handles well,
+while the linear sieve chases the prime list and writes to scattered indices,
+and it must store an integer per slot rather than a bit. Prefer the linear
+sieve when you genuinely need $\mathrm{spf}$ or a multiplicative function; a
+plain bitset Eratosthenes is usually the faster way just to list primes.
+\end{notebox}
+
+\section{Multiplicative Functions in Bulk}
+
+\begin{definitionbox}
+$f$ defined on the positive integers is \emph{multiplicative} if $f(1) = 1$ and
+$f(ab) = f(a)f(b)$ whenever $\gcd(a, b) = 1$. It is \emph{completely
+multiplicative} if $f(ab) = f(a)f(b)$ for all $a, b$, coprime or not.
+\end{definitionbox}
+
+A multiplicative $f$ is determined by its values on prime powers. Splitting off
+the full power of the smallest prime, $n = m \cdot p^{e}$ with
+$p = \mathrm{spf}(n)$ and $p \nmid m$, the parts are coprime, so
+\[
+  f(n) \;=\; f(m) \cdot f(p^{e}),
+\]
+and since $m < n$ the value $f(m)$ is already known. One left-to-right pass
+therefore fills the whole table, provided $f(p^e)$ is cheap to evaluate. The
+total cost of peeling off the exponents is $O(N)$, because
+$\sum_{n \le N} v_p(n) \le N + N\sum_p \frac{1}{p(p-1)} = O(N)$.
+
+Three standard instantiations:
+
+\begin{examplebox}[: divisor count $d(n)$]
+The number of divisors is multiplicative with $d(p^e) = e + 1$ (choose the
+exponent of $p$ freely between $0$ and $e$). So $d(n) = d(m)\,(e+1)$.
+\end{examplebox}
+
+\begin{examplebox}[: divisor sum $\sigma(n)$]
+The sum of divisors is multiplicative with
+$\sigma(p^e) = 1 + p + \cdots + p^{e}$, evaluable by Horner's rule in $O(e)$.
+\end{examplebox}
+
+\begin{examplebox}[: Euler's totient $\varphi(n)$]
+$\varphi(n)$ counts the integers in $[1, n]$ coprime to $n$. It is
+multiplicative, with $\varphi(p^e) = p^{e-1}(p-1)$: among $1 \ldots p^e$ exactly
+the $p^{e-1}$ multiples of $p$ fail to be coprime.
+\end{examplebox}
+
+A completely multiplicative $f$ needs even less: $f(n) = f(n/p) \cdot f(p)$ for
+\emph{any} prime factor $p$, with no exponent bookkeeping. For example
+$f(n) = n^{k} \bmod M$ can be tabulated by computing $p^{k} \bmod M$ by fast
+exponentiation at primes only, and a single multiplication at composites. With
+$\pi(N) = O(N / \log N)$ primes below $N$, that is
+$O\!\left(N + \frac{N \log k}{\log N}\right)$ overall, beating the naive
+$O(N \log k)$.
+
+\section{The Segmented Sieve}
+
+Now suppose we want the primes in $[L, R]$ where $R$ may be as large as
+$10^{12}$ but the window $R - L + 1$ is manageable (say $\le 10^7$). Sieving
+from $1$ is hopeless --- we cannot allocate $10^{12}$ slots --- but we do not
+need to.
+
+The key fact is that any composite $x \le R$ has a prime factor at most
+$\sqrt{x} \le \sqrt{R}$. So it suffices to:
+\begin{enumerate}[leftmargin=1.5em]
+  \item sieve the small primes up to $\lfloor \sqrt{R} \rfloor$ normally
+        (only $10^6$ slots when $R = 10^{12}$);
+  \item allocate one boolean per element of the window, indexing $x$ at
+        position $x - L$;
+  \item for each base prime $p$, strike its multiples inside the window,
+        starting from the first multiple of $p$ that is $\ge L$ (and
+        $\ge p^2$, since smaller multiples of $p$ are either out of range or
+        already handled).
+\end{enumerate}
+Whatever survives in the window is prime. The cost is
+$O\!\left(\sqrt{R}\log\log R + (R - L + 1)\log\log R\right)$, and the memory is
+proportional to the window plus $\sqrt{R}$.
+
+\begin{notebox}
+The same scaffolding factorizes an entire window: instead of one bit per slot,
+store the residual cofactor, dividing out each base prime as it strikes.
+Whatever is left above $1$ at the end is a single large prime factor, since a
+number $\le R$ has at most one prime factor exceeding $\sqrt{R}$.
+\end{notebox}
+
+\section{Complexity Summary}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Task} & \textbf{Time} & \textbf{Space} \\
+\midrule
+Primes up to $N$ (Eratosthenes)      & $O(N \log\log N)$ & $N$ bits \\
+Primes and $\mathrm{spf}$ (linear)   & $O(N)$            & $N$ words \\
+Factorize one $n$ given spf          & $O(\log n)$       & --- \\
+Factorize all of $1 \ldots N$        & $O(N \log\log N)$ & --- \\
+Multiplicative $f$ over $1 \ldots N$ & $O(N)$            & $N$ words \\
+Primes in $[L, R]$ (segmented)       & $O((\sqrt R + R - L)\log\log R)$ & $\sqrt R + (R-L)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reference Implementations}
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Run the linear sieve to $N = 12$. Processing $n = 2$: $\mathrm{spf}(2)$ is
+unset, so $2$ is prime; the inner loop sets $\mathrm{spf}(4) = 2$. At $n = 3$:
+prime, and we set $\mathrm{spf}(6) = 2$ (from $p = 2 \le \mathrm{spf}(3) = 3$)
+and $\mathrm{spf}(9) = 3$. At $n = 4$: $\mathrm{spf}(4) = 2$ is already set, so
+$4$ is composite; the inner loop runs only for $p = 2$, since $p = 3$ exceeds
+$\mathrm{spf}(4) = 2$ --- this is precisely the guard preventing $12$ from
+being struck here as $4 \times 3$. Instead $12$ is struck later at $n = 6$,
+$p = 2$, matching $\mathrm{spf}(12) = 2$.
+
+Factorizing $360$ with the table: $\mathrm{spf}(360) = 2 \Rightarrow 180
+\Rightarrow 90 \Rightarrow 45$; then $\mathrm{spf}(45) = 3 \Rightarrow 15
+\Rightarrow 5$; then $5$ is prime. So $360 = 2^3 \cdot 3^2 \cdot 5$, and for
+instance $d(360) = 4 \cdot 3 \cdot 2 = 24$ and
+$\varphi(360) = 2^2(2{-}1) \cdot 3(3{-}1) \cdot (5{-}1) = 4 \cdot 6 \cdot 4 = 96$.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item cp-algorithms, \emph{Sieve of Eratosthenes}:
+        \url{https://cp-algorithms.com/algebra/sieve-of-eratosthenes.html}
+  \item cp-algorithms, \emph{Linear Sieve}:
+        \url{https://cp-algorithms.com/algebra/prime-sieve-linear.html}
+  \item P. Pritchard, ``Linear Prime-Number Sieves: a Family Tree'',
+        \emph{Science of Computer Programming} 9(1), 1987, pp. 17--35.
+\end{itemize}
+
+\end{document}
