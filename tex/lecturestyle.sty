@@ -8,10 +8,14 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{lecturestyle}[2026/01/01 Lecture note style]
 
-\RequirePackage[T1]{fontenc}
-\RequirePackage{lmodern}
+\RequirePackage{fontspec}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}[Scale=0.88]
 \RequirePackage[a4paper,margin=2.2cm]{geometry}
 \RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{unicode-math}
+\setmathfont{TeX Gyre Termes Math}
 \RequirePackage{mathtools}
 \RequirePackage{xcolor}
 \RequirePackage{tcolorbox}
@@ -40,8 +44,8 @@
 }
 
 % ---- title band ----
-\newcommand{\lecturetitleband}[4]{%
-  % #1 = category  #2 = title  #3 = difficulty (1-9)  #4 = source URL slug
+\newcommand{\lecturetitleband}[3]{%
+  % #1 = category  #2 = title  #3 = difficulty (1-9)
   \begin{tcolorbox}[colback=lectureaccent,colframe=lectureaccent,
       sharp corners,boxrule=0pt,left=10pt,right=10pt,top=8pt,bottom=8pt]
     {\color{white}\small\sffamily #1 \hfill Difficulty: #3/9}\\[4pt]
@@ -49,7 +53,7 @@
   \end{tcolorbox}
   \vspace{2pt}
   {\small\color{lectureink!70} Topic based on the AtCoder Algorithm Lectures
-   series (\url{https://info.atcoder.jp/entry/algorithm_lectures/#4}).
+   series index (\url{https://info.atcoder.jp/entry/algorithm_lectures/index}).
    This document is an independent, original set of notes covering the same
    subject and is not a translation of, or affiliated with, AtCoder Inc.}
   \vspace{6pt}

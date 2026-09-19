@@ -1,0 +1,105 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Sparse Table}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Data Structures}{Sparse Table}{3}
+
+\section{Overview}
+A \emph{sparse table} answers range queries such as ``what is the minimum
+element of $a[l..r)$?'' in $O(1)$ time after an $O(n\log n)$ preprocessing
+step, provided the underlying operation is \emph{idempotent}
+($x \oplus x = x$), as is the case for $\min$, $\max$, $\gcd$, bitwise
+\texttt{AND}, and bitwise \texttt{OR}. Unlike a segment tree, a sparse table
+supports no updates: the array must be fixed before queries begin. In
+exchange, queries are simpler and touch only two precomputed cells.
+
+\section{Definitions}
+\begin{definitionbox}
+Fix an array $a[0..n)$ and an idempotent, associative, commutative operator
+$\oplus$. For $k \ge 0$ and $0 \le i \le n - 2^k$, define
+\[
+  \mathrm{st}[k][i] \;=\; a[i] \oplus a[i+1] \oplus \cdots \oplus a[i+2^k-1],
+\]
+the $\oplus$-aggregate of the length-$2^k$ window starting at $i$. Row $k=0$
+is just $\mathrm{st}[0][i] = a[i]$.
+\end{definitionbox}
+
+\section{The Technique}
+
+\subsection{Build}
+Each row is built from the previous one by splitting a length-$2^k$ window
+into two length-$2^{k-1}$ halves:
+\[
+  \mathrm{st}[k][i] \;=\; \mathrm{st}[k-1][i] \;\oplus\; \mathrm{st}[k-1][i + 2^{k-1}].
+\]
+There are $O(\log n)$ rows and $O(n)$ entries per row, so the whole table is
+built in $O(n \log n)$ time and space.
+
+\subsection{Query}
+To answer a query on $[l, r)$, let $k = \lfloor \log_2(r-l) \rfloor$, so that
+$2^k \le r - l < 2^{k+1}$. Cover $[l, r)$ with two windows of length $2^k$:
+one starting at $l$, one ending at $r$ (starting at $r - 2^k$). These two
+windows may overlap, but because $\oplus$ is idempotent this does not
+double-count:
+\[
+  \mathrm{answer}(l, r) \;=\; \mathrm{st}[k][l] \;\oplus\; \mathrm{st}[k][r - 2^k].
+\]
+
+\begin{theorembox}
+The query above returns the correct aggregate of $a[l..r)$ in $O(1)$ time,
+using $O(1)$ extra arithmetic beyond computing $k = \lfloor \log_2(r-l)\rfloor$
+(which itself can be precomputed for all lengths in $O(n)$).
+
+\emph{Why it is correct:} both windows lie inside $[l,r)$ and together cover
+it, since the first starts at $l$ and the second ends at $r$ and each has
+length $2^k \ge (r-l)/2$. Their union is exactly $[l,r)$, and their
+intersection (if any) is covered redundantly; idempotence
+($x \oplus x = x$) guarantees that combining two aggregates whose ranges
+overlap still yields the aggregate of the union.
+\end{theorembox}
+
+\begin{notebox}
+Idempotence is essential. For a \emph{non}-idempotent operator such as sum,
+this two-window trick over-counts the overlap, and one needs a different
+structure (e.g. a Fenwick tree or prefix sums for sum queries, or a segment
+tree for point updates).
+\end{notebox}
+
+\section{Complexity}
+\begin{itemize}[leftmargin=1.5em]
+  \item Build: $O(n \log n)$ time, $O(n \log n)$ space.
+  \item Query: $O(1)$ time (after $O(n)$ precomputation of $\lfloor\log_2 x\rfloor$).
+  \item No updates supported.
+\end{itemize}
+
+\section{Reference Implementations}
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Let $a = [5, 2, 4, 7, 1, 3, 6]$ with $\oplus = \min$. To answer a range-min
+query on $[1, 6)$ (values $2,4,7,1,3$, whose minimum is $1$): the length is
+$5$, so $k = \lfloor \log_2 5 \rfloor = 2$, i.e. windows of length $4$. The
+first window starts at $1$: $\mathrm{st}[2][1] = \min(2,4,7,1) = 1$. The
+second window ends at $6$, so it starts at $6-4=2$:
+$\mathrm{st}[2][2] = \min(4,7,1,3) = 1$. Combining, $1 \oplus 1 = 1$, the
+correct answer.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index: \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+\end{itemize}
+
+\end{document}
