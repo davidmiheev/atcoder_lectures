@@ -1,0 +1,215 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Wavelet Matrix (Advanced)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Data Structures}{Wavelet Matrix (Advanced)}{7}
+
+\section{Overview}
+The companion lecture on the basics of the wavelet matrix showed how to
+answer, in $O(H)$ time on a static array $A_0, \ldots, A_{N-1} \in [0,
+2^H)$, the range $k$-th smallest and range count-in-$[a,b)$ queries, by
+treating a query range $[L, R)$ as a node of a binary trie and walking it
+top to bottom with an $O(1)$ child-range formula at every step. That same
+walk generalizes a long way past those two queries. This lecture works
+through the extensions that come up most often in contest problems:
+XOR-shifted order statistics, range aggregates other than plain counting
+(sums, and non-invertible aggregates like max), binary search against a
+running sum, and reducing 2D rectangle queries to the same machinery via
+coordinate compression. Assumes the basics lecture, plus familiarity with
+segment trees and Fenwick trees.
+
+\section{XOR-Shifted Order Statistics}
+
+\begin{definitionbox}
+Given $[L, R)$, $k$, and a mask $x \in [0, 2^H)$, find the $k$-th smallest
+value of $A_i \oplus x$ over $i \in [L, R)$ (0-indexed).
+\end{definitionbox}
+
+Setting $x = 0$ is the plain range $k$-th-smallest query. The bit of $A_i
+\oplus x$ at height $h$ equals the bit of $A_i$ at height $h$ when $x$'s
+bit there is $0$, and its \emph{complement} when $x$'s bit is $1$. So the
+walk is unchanged except at levels where $x$ has a $1$ bit: there, whatever
+would normally be the ``left'' (bit-$0$) child of the node is really the
+\emph{right} branch of the XOR-shifted ordering, and vice versa --- so swap
+the two children's roles before comparing $k$ against the (swapped) left
+child's size. Every step is still $O(1)$, so the whole query remains
+$O(H)$.
+
+\section{Aggregate Values Over a Range}
+
+\subsection{Sums (or any group-valued aggregate)}
+\begin{definitionbox}
+Given $[L, R)$ and $[a, b)$, and an array $X_0, \ldots, X_{N-1}$ (not
+necessarily equal to $A$), find $\sum_{i} X_i$ over $i \in [L, R)$ with
+$a \le A_i < b$.
+\end{definitionbox}
+
+Exactly as range count-in-$[a,b)$ reduces to two count-less-than-$x$ calls,
+range sum-in-$[a,b)$ reduces to two sum-less-than-$x$ calls:
+$\mathrm{sumLess}(b) - \mathrm{sumLess}(a)$. To compute
+$\mathrm{sumLess}(L, R, x)$, augment the wavelet matrix with, at each
+height $h$, a prefix sum of $X$ restricted to the elements that go to the
+$0$-branch at that height (in that height's pre-partition order) --- one
+extra $O(N)$-length array per level, built alongside the existing rank
+table during the same $O(NH)$ construction pass. The query walk is then
+identical in shape to count-less-than: whenever $x$'s bit is $1$, add the
+$0$-branch's $X$-sum over the current range to the answer and descend into
+the $1$-branch; whenever it is $0$, descend into the $0$-branch with no
+addition. Both $X = A$ (summing the values themselves) and an unrelated
+attached array $X$ work identically --- nothing about the argument used
+$X = A$. More generally this needs only that $X$ takes values in an
+\emph{abelian group} (subtraction, i.e.\ the two-call trick, is what
+requires invertibility).
+
+\begin{theorembox}
+Range sum-in-$[a,b)$, or any group-valued range aggregate, is answerable in
+$O(H)$ time after $O(NH)$ preprocessing, by the same two-call
+difference trick used for counting.
+\end{theorembox}
+
+\subsection{Non-invertible aggregates: max}
+\begin{definitionbox}
+Given $[L, R)$ and $[a, b)$, and an array $X$, find $\max_i X_i$ over
+$i \in [L, R)$ with $a \le A_i < b$ (or report that no such $i$ exists).
+\end{definitionbox}
+
+The subtraction trick needs an inverse, and $\max$ has none: knowing
+$\max(S \cup T)$ and $\max(T)$ does not recover $\max(S)$. A different
+reduction is needed.
+
+Think of the query as a search over trie nodes by \emph{value} interval
+rather than by index. A node's value-interval $[c, d)$ (the root has
+$[0, 2^H)$) either lies entirely inside $[a, b)$ (fold its aggregate into
+the answer and stop), is disjoint from $[a, b)$ (prune it), or straddles the
+boundary (split $[c,d)$ at its midpoint and recurse into both children,
+narrowing $[l, r)$ to each child's index range via the same subtree-range
+formula as before). This is precisely the recursion pattern of a segment
+tree range query, and for the same reason it visits only $O(H)$ nodes in
+total.
+
+Realizing this needs a way to get the max of $X$ over an \emph{arbitrary}
+index range at a fixed height $h$ --- not just a prefix, as the sum
+trick needed. Build one auxiliary range-max structure (a segment tree
+is the natural default, since $X$ can change) per height, over $X$
+reordered into that height's array order. A query then costs $O(H)$ trie
+nodes, each needing an $O(\log N)$ segment-tree query, for
+$O(H \log N)$ total, or $O((N + Q)H \log N)$ across construction and $Q$
+queries. Since the array is static, a sparse table or a sqrt tree can
+replace the segment tree at each level if there is no need for updates
+later, at the cost of $\Theta(NH\log N)$ space for a plain sparse table ---
+watch memory here, since it is easy to multiply an already-large $NH$
+structure by another $\log N$.
+
+\subsection{Point updates to X}
+If problems additionally need to change $X_i$ at a single index (leaving
+$A$, and hence the trie structure itself, untouched), nothing about the
+scheme above changes: a segment tree per height supports point updates
+exactly as it supports the range query, so the same $O(H \log N)$ per
+operation applies. When the aggregate is an invertible one (sum, XOR, any
+abelian group), a Fenwick tree per height is a lighter-weight
+substitute. Swapping which auxiliary structure backs each level is where
+a lot of the wavelet matrix's flexibility in practice comes from.
+
+\begin{notebox}
+Changing $A_i$ itself (rather than an attached $X_i$) is a much harder
+problem --- it would mean restructuring which leaf of the trie an element
+belongs to, which cascades through every level. That is out of scope here;
+a balanced BST-based structure is one way to support it, at real
+implementation cost.
+\end{notebox}
+
+\section{Binary Search on a Running Aggregate}
+
+\begin{definitionbox}
+Given $[L, R)$ and a bound $S$, find the largest $x \le 2^H$ such that
+$\sum_i A_i \le S$ over $i \in [L, R)$ with $A_i < x$.
+\end{definitionbox}
+
+The analogous question for \emph{counts} instead of sums is answered
+directly by the range $k$-th-smallest query (find the value at rank $S$,
+or just under it). For a running \emph{sum}, build the same per-level
+prefix-sum tables as in the sum-aggregate case, then binary search is
+unnecessary: walk the trie greedily from the root, and at each node decide
+whether descending fully into the $0$-branch would keep the accumulated
+sum at or below $S$. If yes, take the whole $0$-branch's contribution,
+add it to a running total, and continue into the $1$-branch (since some
+larger values may still fit within budget); if no, discard the $1$-branch
+entirely and continue only into the $0$-branch. This greedy walk visits
+$O(H)$ nodes and yields the same answer a binary search over $x$ would,
+in $O(H)$ time instead of $O(H \log(2^H))$.
+
+A close variant asks for the largest $x$ with
+$\sum_{i} \max(x - A_i, 0) \le S$ over $[L, R)$ --- monotone in $x$, so
+still solvable by walking down while separately tracking, for the value
+range seen so far, both a running count and a running sum; the same
+$O(H)$ greedy descent applies.
+
+\section{Rectangles on a Point Set}
+
+\subsection{Static points, counting}
+\begin{definitionbox}
+Given $N$ points $(A_i, B_i)$ and query rectangles $[L, R) \times [D, U)$,
+count points inside each rectangle.
+\end{definitionbox}
+
+Sort the points by $x$-coordinate and re-index them by sorted position, so
+that ``$L \le A_i < R$'' becomes a condition on a contiguous index range
+(found by binary search on the sorted $x$-coordinates). Coordinate-compress
+the $y$-coordinates to $[0, N)$ (or however many distinct values there
+are). The problem is now exactly range count-in-$[a,b)$ on a static array
+--- the compressed $y$-values, in sorted-by-$x$ order --- answerable by an
+ordinary wavelet matrix of height $\lceil \log_2 N \rceil$. Construction
+and $Q$ queries together cost $O((N + Q)\log N)$.
+
+\subsection{Points with insertions and deletions, offline}
+When points are added and removed over time and queries ask for a maximum
+attached value $X$ over a rectangle, read every query in advance. Each
+point is then alive over a known, fixed time interval; replace its
+insertion/deletion pair with ``its $X$ value applies during this interval,
+and is the aggregate's identity element outside it.'' After
+coordinate-compressing both spatial axes (and the discrete set of
+event times), this is the max-with-point-updates construction from
+earlier applied over an $O(N + Q)$-size compressed universe, giving
+$O((N+Q)\log^2(N+Q))$ overall.
+
+\section{Reference Implementations}
+The examples below implement and cross-check (against brute force, over
+every possible query) three representative techniques: XOR-shifted $k$-th
+smallest, generalized range sum via an attached array, and 2D rectangle
+counting by coordinate compression. The max-with-segment-tree-per-level,
+point-update, binary-search, and offline-dynamic-points extensions above
+follow the same pattern but are left as an implementation exercise, as the
+source material for this curriculum itself suggests.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+With $A = (3,1,2,1,1,0,3,2,2)$ and mask $x = 3$, the range $[2, 7)$ has
+values $2,1,1,0,3$; XORing each with $3$ gives $1,2,2,3,0$, whose sorted
+order is $0,1,2,2,3$. So the $0$-th smallest XOR-shifted value is $0$ and
+the $4$-th is $3$ --- both confirmed by the brute-force cross-check in the
+reference implementations, alongside every other $(l, r, k,
+\mathrm{mask})$ combination on this array.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item F. Claude, G. Navarro, A. Ordóñez Pereira, ``The wavelet matrix: An
+        efficient wavelet tree for large alphabets'', \emph{Information
+        Systems} 47, 2015, pp.\ 15--32.
+\end{itemize}
+
+\end{document}
