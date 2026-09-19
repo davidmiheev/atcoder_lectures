@@ -1,0 +1,53 @@
+% Template for a single lecture note.
+% Copy this file into lectures/<category>/<slug>/notes.tex and fill it in.
+% Compile with: latexmk -xelatex -interaction=nonstopmode notes.tex
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{LECTURE TITLE}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+% #1 category, #2 title, #3 difficulty 1-9, #4 AtCoder slug (used in the source URL)
+\lecturetitleband{CATEGORY NAME}{LECTURE TITLE}{N}{slug}
+
+\section{Overview}
+Short original overview of the problem this technique solves.
+
+\section{Definitions}
+\begin{definitionbox}
+State the key definitions here.
+\end{definitionbox}
+
+\section{The Technique}
+Explain the idea, invariants, and correctness argument in your own words.
+
+\begin{theorembox}
+State and (briefly) justify the main correctness/complexity claim.
+\end{theorembox}
+
+\section{Complexity}
+Time and space complexity discussion.
+
+\section{Reference Implementations}
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Walk through a small concrete input.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index: \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+\end{itemize}
+
+\end{document}
