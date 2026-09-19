@@ -1,0 +1,183 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Degree Sequences of Simple Undirected Graphs}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Graph Theory}{Degree Sequences of Simple Undirected Graphs}{6}
+
+\section{Overview}
+The \emph{degree sequence} of a graph on vertices $1, \ldots, n$ is the
+list $(\deg(1), \ldots, \deg(n))$ of vertex degrees. Given an arbitrary
+list of nonnegative integers, when is it the degree sequence of some
+\emph{simple} (no loops, no multi-edges) undirected graph, and if so, how
+do you build one? The \textbf{Erd\H{o}s--Gallai theorem} answers the first
+question with a clean necessary-and-sufficient condition; the
+\textbf{Havel--Hakimi algorithm} answers the second with a short greedy
+construction. Only familiarity with basic graph terminology (degree,
+simple graph) is assumed.
+
+\section{The Handshake Lemma}
+\begin{theorembox}[(Handshake lemma)]
+In a graph with $m$ edges, $\sum_{i=1}^n \deg(i) = 2m$. In particular, the
+sum of any degree sequence is even.
+
+\emph{Proof.} Adding one edge increases the total degree by exactly $2$
+(each endpoint's degree rises by $1$; a loop, if allowed, raises one
+vertex's degree by $2$). Starting from the empty graph (total degree $0$)
+and adding edges one at a time gives the claim by induction. \qed
+\end{theorembox}
+
+This single fact already rules out many sequences: e.g.\ $(4,3,3,2,2,1)$
+sums to $15$, which is odd, so no simple graph has it as a degree
+sequence --- no deeper argument is needed. But an even sum is not enough on
+its own, as the next section makes precise.
+
+Throughout, sequences are taken in \emph{sorted, non-increasing} order:
+sorting a candidate sequence never changes whether some graph realizes it
+(just relabel vertices), so nothing is lost by fixing an order.
+
+\section{The Erd\H{o}s--Gallai Theorem}
+
+\begin{theorembox}[(Erd\H{o}s--Gallai)]
+A non-increasing sequence of nonnegative integers $d = (d_1, \ldots, d_n)$
+is the degree sequence of some simple graph if and only if:
+\begin{enumerate}[leftmargin=1.5em]
+  \item $\sum_{i=1}^n d_i$ is even, and
+  \item for every $k = 1, \ldots, n$,
+        \[
+          \sum_{i=1}^{k} d_i \;\le\; k(k-1) + \sum_{i=k+1}^{n} \min(d_i, k).
+        \]
+\end{enumerate}
+\end{theorembox}
+
+\subsection{Why the condition is necessary}
+Fix a graph $G$ realizing $d$ and fix $k$. Split the edges counted by
+$\sum_{i \le k} d_i$ into those with both endpoints among
+$\{1, \ldots, k\}$ (each counted twice, say $a$ of them) and those with
+exactly one endpoint there (say $b$ of them): $\sum_{i \le k} d_i = 2a +
+b$. Bound each term from above: $a$ is at most $\binom{k}{2} =
+\tfrac12 k(k-1)$, the number of pairs available among $k$ vertices in a
+simple graph; and for each $i > k$, vertex $i$ contributes at most
+$\min(d_i, k)$ edges back into $\{1, \ldots, k\}$ (it has only $d_i$ edges
+total, and only $k$ possible targets there), so $b \le \sum_{i > k}
+\min(d_i, k)$. Adding the two bounds gives exactly the inequality above.
+Evenness of the total is the handshake lemma.
+
+\subsection{Why it is sufficient}
+The converse direction is the harder one; the idea (full details are a
+nontrivial induction, omitted here) is an \emph{exchange argument}: given
+any graph $G$ that matches $d$ on the first $r-1$ coordinates but falls
+short at coordinate $r$ (and matches or exceeds it after), one can always
+locally rewire two or three edges of $G$ --- swap which of two candidate
+neighbors an edge points to, or reroute one edge through vertex $r$ --- to
+strictly close the gap at $r$ without breaking what was already correct
+before $r$. Repeating this eventually produces a graph matching $d$
+exactly. The Erd\H{o}s--Gallai inequalities are precisely what guarantees
+such a rewiring always exists at every step.
+
+\section{Havel--Hakimi}
+A cleaner route to an actual construction, rather than just an existence
+proof, is the following greedy claim.
+
+\begin{theorembox}[(Havel--Hakimi reduction)]
+If non-increasing $d = (d_1, \ldots, d_n)$ is realized by some simple
+graph, then it is realized by one in which vertex $1$ is adjacent to
+exactly vertices $2, 3, \ldots, d_1 + 1$ --- i.e.\ vertex $1$ connects to
+the $d_1$ \emph{highest-degree} remaining vertices.
+
+\emph{Proof sketch.} Take any realizing graph $G$ and let $S$ be vertex
+$1$'s actual neighbor set. If $S \ne \{2, \ldots, d_1+1\}$, there are
+indices $i < j$ with $i \notin S$, $j \in S$. If $d_i = d_j$, swap the
+labels of $i$ and $j$ (harmless, since they have equal degree). If
+$d_i > d_j$, then $i$ has some neighbor $u$ that $j$ does not (since $i$
+has strictly more edges to place and both avoid double-counting vertex
+$1$); rewiring $1j$ and $iu$ into $1i$ and $ju$ preserves every vertex's
+degree while moving $S$ strictly closer to $\{2, \ldots, d_1+1\}$
+(measuring closeness by, e.g., $\sum_{v \in S} v$). Repeating this
+terminates at $S = \{2, \ldots, d_1+1\}$. \qed
+\end{theorembox}
+
+This immediately gives a construction: connect the current
+highest-degree vertex to the next $d_1$ highest-degree vertices, remove it
+from further consideration, and recurse on what remains --- exactly the
+same problem one vertex smaller. If at any point the current maximum
+degree exceeds the number of remaining candidates, or a degree would be
+decremented below zero, the original sequence was not graphic.
+
+\begin{definitionbox}[(Havel--Hakimi algorithm)]
+Repeat until every remaining degree is $0$: sort remaining vertices by
+degree descending; let vertex $i_1$ have the largest degree $k$; connect
+$i_1$ to the next $k$ vertices in that sorted order, decrementing each of
+their degrees by $1$; set $i_1$'s degree to $0$ (retire it). If $k$ ever
+exceeds the number of other remaining vertices, or a decrement would take
+a degree negative, the sequence is not graphic.
+\end{definitionbox}
+
+Running this to completion (successfully) constructs a witnessing graph;
+having it fail at some step certifies the sequence is \emph{not} graphic
+--- so the algorithm doubles as a realizability test, an alternative to
+checking the Erd\H{o}s--Gallai inequalities directly.
+
+\section{Complexity}
+Checking the Erd\H{o}s--Gallai conditions directly, after sorting, takes
+$O(n)$ time with counting-sort-style bucketing and prefix sums (the
+reference implementations below use a slightly simpler $O(n \log n)$
+version, sorting once and binary-searching each right-hand-side sum).
+Havel--Hakimi, naively re-sorting at every round, costs
+$O\!\left(\left(\sum_i d_i\right) \log n\right)$ or worse; achieving the
+optimal $O\!\left(n + \sum_i d_i\right)$ requires bucket-based
+bookkeeping that keeps the working set sorted incrementally rather than
+re-sorting from scratch each round, which the reference
+implementations do not attempt (see Further Reading for an optimized
+submission).
+
+\section{Reference Implementations}
+Both examples below implement the Erd\H{o}s--Gallai test and the
+Havel--Hakimi construction, verify them against the source lecture's own
+three worked examples, and cross-check the realizability test exhaustively
+against every possible $5$-vertex graph.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+$(4,4,3,2,2,1)$ sums to $16$ (even) and satisfies every Erd\H{o}s--Gallai
+inequality, so it is graphic; Havel--Hakimi constructs an explicit witness
+graph. $(4,3,3,2,2,1)$ sums to $15$ (odd), so it fails immediately by the
+handshake lemma. $(4,4,4,2,1,1)$ sums to $16$ (even) but fails the $k=3$
+inequality: $\sum_{i=1}^3 d_i = 12$, while
+$3\cdot 2 + \min(2,3)+\min(1,3)+\min(1,3) = 6 + 2 + 1 + 1 = 10 < 12$ --- so
+despite having an even sum, no simple graph realizes it. All three match
+the reference implementations' output exactly.
+
+As a related fact needing no computation: for $n \ge 2$, no simple graph
+on $n$ vertices can have all distinct degrees, since the $n$ possible
+degree values $0, \ldots, n-1$ would all have to appear, but a vertex of
+degree $0$ (isolated) and one of degree $n-1$ (connected to everyone,
+including the degree-$0$ vertex) cannot coexist.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item P. Erd\H{o}s, T. Gallai, ``Graphs with prescribed degree of
+        vertices'', Mat. Lapok. 11, 1960, pp.\ 264--274.
+  \item V. Havel, ``A remark on the existence of finite graphs'',
+        \v{C}asopis pro p\v{e}stov\'{a}n\'{i} matematiky 80(4), 1955,
+        pp.\ 477--480.
+  \item S. L. Hakimi, ``On realizability of a set of integers as degrees
+        of the vertices of a linear graph. I'', J. SIAM 10(3), 1962,
+        pp.\ 496--506.
+\end{itemize}
+
+\end{document}
