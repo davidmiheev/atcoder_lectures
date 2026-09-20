@@ -1,0 +1,219 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Zeta \& Mobius Transform (Subset Relations)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Set Operations \& Functions}{Zeta \& M\"obius Transform (Subset Relations)}{4}
+
+\section{Overview}
+This lecture covers the zeta and M\"obius transforms with respect to the
+subset and superset relations on bitmasks. The subset zeta transform is
+also widely known in competitive programming as ``sum over subsets''
+(SOS): given $A_0,\ldots,A_{2^n-1}$ indexed by subsets of
+$\{0,\ldots,n-1\}$, compute for every $T$ the sum of $A_S$ over all
+$S \subseteq T$. Naively this is $O(4^n)$; a submask-enumeration trick
+brings it to $O(3^n)$; and a bit-by-bit technique --- the \emph{fast
+zeta transform} --- computes it (and its inverse, the \emph{fast M\"obius
+transform}) in $O(n\cdot 2^n)$. As an application, this lecture derives
+$O(n\cdot 2^n)$ algorithms for OR-convolution and AND-convolution of two
+length-$2^n$ arrays. Zeta/M\"obius transforms and these bitwise
+convolutions are more generally defined for arbitrary partially ordered
+sets and lattices; this lecture treats only the subset/superset case.
+Assumes representing subsets of $\{0,\ldots,n-1\}$ as bitmasks.
+
+\section{The Subset Zeta Transform}
+\begin{definitionbox}
+For $A=(A_0,\ldots,A_{2^n-1})$, the sequence $B=(B_0,\ldots,B_{2^n-1})$
+defined by
+\[
+  B_T = \sum_{S \subseteq T} A_S
+\]
+is the \emph{subset zeta transform} of $A$ (also called SOS, ``sum over
+subsets'').
+\end{definitionbox}
+
+\begin{examplebox}
+For $A=(3,1,4,1,5,9,2,6)$ (indices $0$ through $7$, i.e.\ $n=3$):
+$B_0=A_0=3$; $B_1=A_0+A_1=4$; $B_3=A_0+A_1+A_2+A_3=9$; and so on, giving
+$B=(3,4,7,9,8,18,14,31)$.
+\end{examplebox}
+
+\subsection{An \texorpdfstring{$O(4^n)$}{O(4\^{}n)} Algorithm}
+The definition itself gives an $O(4^n)$ algorithm: for every pair
+$(S,T)$ with $S \subseteq \{0,\ldots,n-1\}$, $T \subseteq
+\{0,\ldots,n-1\}$, test whether $S \subseteq T$ (as bitmasks, whether
+\texttt{(S \& T) == S}) and if so add $A_S$ into $B_T$. This costs
+$O(4^n)$ since there are $2^n$ choices each for $S$ and $T$.
+
+\subsection{An \texorpdfstring{$O(3^n)$}{O(3\^{}n)} Algorithm}
+Rather than looping over all $S$ and testing $S \subseteq T$, looping
+only over the submasks of $T$ directly (via the standard
+\texttt{for (s = t; ; s = (s - 1) \& t)} idiom, stopping after
+processing $s=0$) computes the same sum in $O(3^n)$ overall.
+
+\begin{theorembox}
+The number of pairs $(S,T)$ with $S \subseteq T \subseteq
+\{0,\ldots,n-1\}$ is $3^n$.
+\end{theorembox}
+\begin{proof}
+Building such a pair amounts to choosing, independently for each
+$i=0,\ldots,n-1$, one of three options: $i \notin S, i \notin T$;
+$i \notin S, i \in T$; or $i \in S, i \in T$ (the fourth combination,
+$i \in S, i \notin T$, is excluded by $S \subseteq T$). This gives $3^n$
+total choices.
+\end{proof}
+
+\subsection{An \texorpdfstring{$O(n\cdot 2^n)$}{O(n*2\^{}n)} Algorithm (Fast Zeta Transform)}
+Write $T$ and $S$ in binary as $T=t_{n-1}\cdots t_1t_0$,
+$S=s_{n-1}\cdots s_1s_0$. Replace each bit $t_i=1$ of $T$ by a wildcard
+$*$, one at a time, to get a sequence of pattern strings over
+$\{0,1,*\}$; a bit string $S$ \emph{matches} a pattern if it agrees with
+every fixed ($0$ or $1$) position and is unconstrained at every $*$.
+Starting from the all-fixed pattern (matching only $S=T$) and replacing
+$T$'s $1$-bits with $*$ one at a time, the set of strings matching the
+pattern grows to be exactly $\{S : S \subseteq T\}$ once every $1$-bit
+has become a wildcard --- so accumulating sums as each bit turns into a
+wildcard computes $B_T$ for every $T$ simultaneously.
+
+\begin{theorembox}[Fast Zeta Transform]
+For $i=0,\ldots,n-1$ in order: for every $T$ with bit $i$ set, add
+$A_{T \oplus 2^i}$ (i.e.\ $A_T$ with bit $i$ cleared) into $A_T$
+in place. After all $n$ passes, $A_T$ holds $B_T$. This runs in
+$O(n\cdot 2^n)$ time.
+\end{theorembox}
+
+\begin{notebox}
+For better constant-factor performance, iterate only over the pairs
+$(i,T)$ that require work, rather than testing a condition inside a full
+double loop: partition $[0,2^n)$ into blocks of size $2^{i+1}$, and for
+each block add the lower half (bit $i$ clear) into the upper half (bit
+$i$ set) elementwise. This is the same computation, restructured to
+avoid a per-iteration branch.
+\end{notebox}
+
+\section{The Subset M\"obius Transform}
+\begin{definitionbox}
+Given $B=(B_0,\ldots,B_{2^n-1})$, the sequence
+$A=(A_0,\ldots,A_{2^n-1})$ satisfying $B_T = \sum_{S\subseteq T}A_S$ for
+every $T$ is the \emph{subset M\"obius transform} of $B$ --- the inverse
+of the subset zeta transform. (Inclusion--exclusion gives the closed
+form $A_S = \sum_{T\subseteq S}(-1)^{|S|-|T|}B_T$, though this lecture
+does not need it.)
+\end{definitionbox}
+
+\begin{theorembox}[Fast M\"obius Transform]
+Running the fast zeta transform's bit-flip step in reverse --- for
+$i=0,\ldots,n-1$, for every $T$ with bit $i$ set, \emph{subtract}
+$A_{T\oplus 2^i}$ from $A_T$ --- inverts the fast zeta transform exactly,
+in $O(n\cdot 2^n)$ time. (The order in which the $n$ bit positions are
+processed does not matter for either the fast zeta or fast M\"obius
+transform, since each pass only touches, for each pair differing in bit
+$i$, that bit's own contribution.)
+\end{theorembox}
+
+\section{Superset Zeta and M\"obius Transforms}
+\begin{definitionbox}
+For $A=(A_0,\ldots,A_{2^n-1})$, the \emph{superset zeta transform} is
+$B_T = \sum_{S \supseteq T}A_S$, and its inverse is the \emph{superset
+M\"obius transform}.
+\end{definitionbox}
+The algorithms are the mirror image of the subset case: in the pattern
+matching view, $T$'s $0$-bits (rather than $1$-bits) are replaced by
+wildcards one at a time. Both run in $O(n\cdot 2^n)$.
+
+\section{OR-Convolution and AND-Convolution}
+A less immediately obvious application of these transforms is computing
+convolutions with respect to bitwise OR and AND.
+
+\begin{definitionbox}[OR-convolution]
+Given $A,B$ indexed by subsets of $\{0,\ldots,n-1\}$, compute
+$C_U = \sum_{S\cup T=U} A_SB_T$.
+\end{definitionbox}
+The condition $S\cup T=U$ is awkward to work with directly, but
+$S\cup T\subseteq U$ factors nicely: $S\cup T\subseteq U \iff
+S\subseteq U \text{ and } T\subseteq U$. So define
+\[
+  D_U = \sum_{S\cup T\subseteq U} A_SB_T
+  = \Bigl(\sum_{S\subseteq U}A_S\Bigr)\Bigl(\sum_{T\subseteq U}B_T\Bigr),
+\]
+computable as a pointwise product of subset zeta transforms. Relating
+$D$ back to $C$:
+\[
+  D_U = \sum_{U'\subseteq U} C_{U'},
+\]
+i.e.\ $D$ is the subset zeta transform of $C$ --- equivalently, $C$ is
+the subset M\"obius transform of $D$.
+
+\begin{theorembox}
+OR-convolution: take the subset zeta transform of $A$ and of $B$,
+multiply pointwise, then take the subset M\"obius transform of the
+result. This computes $C$ in $O(n\cdot 2^n)$.
+\end{theorembox}
+
+\begin{definitionbox}[AND-convolution]
+Given $A,B$ indexed by subsets of $\{0,\ldots,n-1\}$, compute
+$C_U = \sum_{S\cap T=U} A_SB_T$.
+\end{definitionbox}
+\begin{theorembox}
+AND-convolution: take the superset zeta transform of $A$ and of $B$,
+multiply pointwise, then take the superset M\"obius transform of the
+result (the argument mirrors the OR-convolution case, using
+$S\cap T\supseteq U \iff S\supseteq U \text{ and } T \supseteq U$). This
+also runs in $O(n\cdot 2^n)$.
+\end{theorembox}
+
+\section{Generalizing the Operation}
+The fast zeta transform generalizes to any commutative monoid in place
+of integer addition; the fast M\"obius transform (which needs to
+subtract) generalizes to any commutative group; and OR-/AND-convolution
+(which needs both addition and multiplication) generalize to any ring.
+
+\section{Reference Implementations}
+The examples below implement subset zeta/M\"obius transforms three ways
+each (an $O(4^n)$ definition-level double loop, an $O(3^n)$
+submask-enumeration loop, and the $O(n\cdot 2^n)$ fast zeta/M\"obius
+transform), reproduce the lecture's own worked example exactly, and
+cross-check the three implementations against each other and the
+M\"obius transform against being an exact inverse of the zeta transform
+--- for both the subset and superset relations --- over many random
+trials. OR- and AND-convolution are then implemented via the
+zeta/pointwise-product/M\"obius pipeline and cross-checked against an
+$O(4^n)$ brute-force convolution definition.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $A=(3,1,4,1,5,9,2,6)$, all three subset zeta transform
+implementations reproduce the lecture's own
+$B=(3,4,7,9,8,18,14,31)$ exactly. Across 100 random trials each (with
+$n$ up to $8$), the $O(4^n)$, $O(3^n)$, and $O(n\cdot 2^n)$
+implementations of both the subset and superset zeta transforms agree
+exactly, and applying the corresponding M\"obius transform exactly
+recovers the original array in every case. OR- and AND-convolution
+(via the zeta/pointwise-product/M\"obius pipeline) match an $O(4^n)$
+brute-force convolution over 100 further random trials each.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item Library Checker, ``Bitwise And Convolution'':
+        \url{https://judge.yosupo.jp/problem/bitwise_and_convolution}
+  \item AtCoder ARC100 E, ``Or Plus Max'':
+        \url{https://atcoder.jp/contests/arc100/tasks/arc100_c}
+  \item USACO Guide, ``Sum over Subsets DP'':
+        \url{https://usaco.guide/plat/dp-sos}
+\end{itemize}
+
+\end{document}
