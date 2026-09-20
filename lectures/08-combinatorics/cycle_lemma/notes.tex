@@ -1,0 +1,202 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Cycle Lemma}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Combinatorics}{Cycle Lemma}{5}
+
+\section{Overview}
+The \emph{Cycle Lemma} is a short, elegant statement about cyclic shifts
+of an integer sequence: under a mild condition, exactly one cyclic shift
+in every $K$ makes all prefix sums positive, where $K$ is the sequence's
+total. Its proof is a few lines, but it is a surprisingly efficient engine
+for deriving classical counting formulas --- Catalan numbers (in two
+different closed forms), Fuss--Catalan numbers, Narayana numbers, and a
+convolution identity for Catalan numbers --- each via the same one-line
+trick: prepend a $+1$ and count.
+
+\section{The Lemma}
+\begin{definitionbox}[(Prefix sum, cyclic shift)]
+For $A=(A_0,\ldots,A_{N-1})$, its prefix sums are
+$S_n = \sum_{i<n} A_i$ for $n=0,\ldots,N$ (so $S_0=0$ always). The cyclic
+shift of $A$ by $j$ is $(A_j, A_{j+1}, \ldots, A_{N-1}, A_0, \ldots,
+A_{j-1})$, treated as a distinct sequence for each $j=0,\ldots,N-1$ (index
+labels matter, even though the shifts by $0$ and by $N$ coincide as
+sequences).
+\end{definitionbox}
+
+\begin{theorembox}[(Cycle Lemma)]
+Let $A=(A_0,\ldots,A_{N-1})$ satisfy $A_i \le 1$ for every $i$, with sum
+$K \ge 0$. Then exactly $K$ of $A$'s $N$ cyclic shifts have every prefix
+sum, other than $S_0$, strictly positive.
+\end{theorembox}
+
+\begin{examplebox}
+For $A=(1,0,-2,1,-1,1,0,0,1,1)$ (sum $K=2$), exactly two cyclic shifts
+have all-positive prefix sums after the first: shifting to start at index
+$6$ gives $(1,0,0,1,1,1,0,-2,1,-1)$ with prefix sums
+$0,1,1,1,2,3,4,4,2,3,2$ (all positive after $S_0$), and shifting to start
+at index $8$ gives $(1,1,1,0,-2,1,-1,1,0,0)$ with prefix sums
+$0,1,2,3,3,1,2,1,2,2,2$ (likewise) --- matching $K=2$ exactly.
+\end{examplebox}
+
+\subsection{Proof idea}
+Plot the path through points $(n, S_n)$ for $n=0,\ldots,N$. A cyclic
+shift by $j$ corresponds to cutting this path at $x=j$, moving the right
+piece to the front, and translating the whole thing to start at the
+origin again --- the classic ``rotate the path'' picture behind cycle
+lemma arguments.
+
+Shift $A$ so its path attains its minimum $y$-value at $x=0$ (always
+possible, by starting the cut at any minimizing index); after this shift,
+every $S_n \ge 0$. Now consider, for each height $h = 0, 1, \ldots, K-1$,
+the \emph{last} (rightmost) point on the path at that height --- these
+exist because $A_i \le 1$ means the path can only rise by at most $1$ at
+each step, so it must pass through every intermeditate height on its way
+to the final value $K$. Cutting at each of these $K$ points, and only
+these, produces a shifted path that never returns to $0$ or below after
+the start: past that cut point, the path is at height $\ge h+1$ everywhere
+until it wraps back around past the top, since any earlier return to
+height $h$ would contradict that point being the \emph{last} occurrence
+of height $h$ in the once-shifted (all-nonnegative) path. A full
+justification checks both directions of this claim; see the video lecture
+or the cited references for the complete argument.
+
+\section{Applications}
+Every application below follows the same pattern: phrase a counting
+problem as ``sequences with all prefix sums positive after the first,''
+relate it by the Cycle Lemma to an easy-to-count unrestricted family, and
+solve for the target count.
+
+\subsection{Catalan Numbers}
+\begin{definitionbox}
+A \emph{bracket sequence} is a string of \texttt{(} and \texttt{)};
+identify it with $A_i = +1$ for \texttt{(} and $A_i=-1$ for \texttt{)}. It
+is \emph{correct} if $+1$ and $-1$ occur equally often and every prefix
+sum is nonnegative. The \emph{Catalan number} $C_N$ is the number of
+correct bracket sequences of length $2N$.
+\end{definitionbox}
+
+\begin{theorembox}
+\[
+  C_N = \frac{1}{2N+1}\binom{2N+1}{N} = \frac{1}{N+1}\binom{2N}{N}.
+\]
+
+\emph{Proof.} Compare four counts: (1) correct bracket sequences of
+length $2N$ ($=C_N$ by definition); (2) length-$(2N{+}1)$ sequences with
+$N{+}1$ occurrences of $+1$ and $N$ of $-1$, all prefix sums after the
+first positive; (3) all length-$(2N{+}1)$ sequences with $N{+}1$ $(+1)$'s
+and $N$ $(-1)$'s, unrestricted; (4) the same domain as (3), restricted to
+those starting with $+1$.
+
+Prepending $+1$ to a sequence counted in (1) gives one counted in (2), and
+this is a bijection (removing the leading $+1$ from a (2)-sequence always
+leaves a correct bracket sequence), so (1) and (2) have equal counts.
+The Cycle Lemma, applied to any sequence of type (3), says exactly $N+1$
+(the sum) of its $2N+1$ cyclic shifts satisfy the type-(2) condition ---
+and since each type-(3) sequence's shifts sweep out the whole set of
+type-(3) sequences $(2N{+}1)$ times over (once per starting shift,
+counted once from each origin sequence), this identifies
+$(2N{+}1)\cdot|\text{(2)}| = |\text{(3)}| = \binom{2N+1}{N}$, giving the
+first formula. Separately, applying the Cycle Lemma the same way but
+counting only shifts landing on a type-(4) sequence identifies
+$(N{+}1)\cdot|\text{(2)}| = |\text{(4)}| = \binom{2N}{N}$ (fixing the
+first slot as $+1$ leaves $\binom{2N}{N}$ ways to place the rest),
+giving the second formula. \qed
+\end{theorembox}
+
+\subsection{Catalan Convolution Formula}
+\begin{theorembox}
+For $M \ge 1$ and $N \ge 0$,
+\[
+  \sum_{n_0+\cdots+n_{M-1}=N} \; \prod_{i=0}^{M-1} C_{n_i}
+  \;=\; \frac{M}{2N+M}\binom{2N+M}{N}.
+\]
+
+\emph{Proof sketch.} The left side counts $M$-tuples of correct bracket
+sequences with total length $2N$. Prepending $+1$ to each of the $M$
+pieces and concatenating gives a length-$(2N{+}M)$ sequence with $N{+}M$
+$(+1)$'s and $N$ $(-1)$'s whose prefix sums are positive after the first
+--- and, conversely, any such sequence splits uniquely back into $M$
+pieces this way (the $M$ inserted $+1$'s are exactly where each piece's
+running sum first returns to its starting level). The Cycle Lemma then
+identifies this count with $\frac{1}{2N+M}\binom{2N+M}{N} \times M$
+(the extra factor $M$, versus the single-piece Catalan case, matches the
+sum here being $M$ rather than $1$). \qed
+\end{theorembox}
+
+\subsection{Fuss--Catalan Numbers}
+\begin{theorembox}
+For positive integers $N,M$, the number of length-$(NM{+}N)$ sequences
+with $NM$ occurrences of $+1$ and $N$ occurrences of $-M$, all of whose
+prefix sums are nonnegative, is
+\[
+  \frac{1}{NM+1}\binom{NM+N}{N}.
+\]
+
+\emph{Proof sketch.} As before, prepend a $+1$: this reduces to counting
+length-$(NM{+}N{+}1)$ sequences with $NM{+}1$ $(+1)$'s and $N$ $(-M)$'s,
+all prefix sums after the first positive, and dividing by $NM+1$ via the
+Cycle Lemma. \qed
+\end{theorembox}
+
+\subsection{Narayana Numbers}
+\begin{theorembox}
+For $1 \le M \le N$, the number of correct bracket sequences of length
+$2N$ with exactly $M$ occurrences of the pattern $(A_i,A_{i+1})=(1,-1)$
+(a \texttt{()} immediately adjacent, i.e.\ $M$ ``peaks'') is
+\[
+  \frac{1}{N}\binom{N}{M}\binom{N}{M-1}.
+\]
+
+\emph{Proof sketch.} Prepending $+1$ reduces this, via the Cycle Lemma, to
+counting length-$(2N{+}1)$ sequences with $N{+}1$ $(+1)$'s and $N$
+$(-1)$'s, starting with $+1$, with $M$ peaks, then dividing by $N+1$.
+Splitting such a sequence at its ascending/descending boundaries turns
+this into counting a composition of $N+1$ into $M$ positive parts
+followed by one nonnegative part (the run-lengths of $+1$'s) alongside a
+composition of $N$ into $M$ positive parts (the run-lengths of $-1$'s),
+giving $\binom{N}{M}\binom{N-1}{M-1}$ before dividing by $N+1$; algebraic
+simplification of $\frac{1}{N+1}\binom{N+1}{M}\binom{N-1}{M-1}$ yields the
+stated form. \qed
+\end{theorembox}
+
+\section{Reference Implementations}
+Both examples below implement the Cycle Lemma directly (verified against
+the lecture's own worked example and against random sequences), and
+derive all four corollaries above via brute-force enumeration, checked
+against their closed forms.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $A=(1,0,-2,1,-1,1,0,0,1,1)$, the sum is $K=2$ and brute force confirms
+exactly $2$ of its $10$ cyclic shifts have all-positive prefix sums after
+the first --- both reference implementations reproduce this exactly, and
+go on to confirm $C_0,\ldots,C_6 = 1,1,2,5,14,42,132$ via both formulas
+from Theorem 6, cross-checked directly against brute-force bracket
+sequence enumeration.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item A. Dvoretzky, Th. Motzkin, ``A problem of arrangements'', Duke
+        Mathematical Journal 14(2), 1947, pp.\ 305--313.
+  \item N. Dershowitz, S. Zaks, ``The Cycle Lemma and Some
+        Applications'', European Journal of Combinatorics 11(1), 1990,
+        pp.\ 35--40.
+\end{itemize}
+
+\end{document}
