@@ -1,0 +1,207 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Sperner's Theorem}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Set Operations \& Functions}{Sperner's Theorem}{5}
+
+\section{Overview}
+Among all subsets of $\{0, 1, \ldots, n-1\}$, how many can be chosen so
+that no one is contained in another? \textbf{Sperner's theorem} answers
+this exactly: the maximum is $\binom{n}{\lfloor n/2 \rfloor}$, achieved by
+simply taking every subset of size $\lfloor n/2 \rfloor$. This lecture
+gives two independent proofs --- one via a clean probabilistic inequality
+(LYM), one via an explicit combinatorial decomposition --- along with the
+exact characterization of when equality holds and a useful matching
+corollary. The ideas here (chains, antichains) are foundational for order
+theory generally, including results like Dilworth's theorem.
+
+\section{Chains and Antichains}
+Write $B_n$ for the \emph{Boolean lattice}: all subsets of
+$\{0,\ldots,n-1\}$, ordered by $\subseteq$. Drawing an edge $S \to T$
+whenever $S \subsetneq T$ and $|T|=|S|+1$, with same-size subsets drawn at
+the same height, gives $B_n$'s \emph{Hasse diagram}.
+
+\begin{definitionbox}
+A set $C \subseteq B_n$ is a \emph{chain} if every two of its elements are
+comparable ($S \subseteq T$ or $T \subseteq S$). A set $A \subseteq B_n$
+is an \emph{antichain} if every two \emph{distinct} elements are
+incomparable.
+\end{definitionbox}
+
+\begin{theorembox}[(Chains meet antichains at most once)]
+For any chain $C$ and antichain $A$, $|C \cap A| \le 1$.
+
+\emph{Proof.} Two distinct elements of $C \cap A$ would have to be both
+comparable (from $C$) and incomparable (from $A$). \qed
+\end{theorembox}
+
+Let $B_{n,k}$ denote the size-$k$ subsets of $\{0,\ldots,n-1\}$. Since
+same-size sets are never comparable, $B_{n,k}$ is itself an antichain, of
+size $\binom{n}{k}$; taking $k = \lfloor n/2 \rfloor$ maximizes this.
+
+\begin{theorembox}[(Sperner)]
+Every antichain $A \subseteq B_n$ satisfies
+$|A| \le \binom{n}{\lfloor n/2 \rfloor}$.
+\end{theorembox}
+
+\section{Proof 1: The LYM Inequality}
+For a permutation $p = (p_0, \ldots, p_{n-1})$ of $\{0,\ldots,n-1\}$,
+define the \emph{maximal chain}
+$C_p = \{\emptyset, \{p_0\}, \{p_0,p_1\}, \ldots, \{p_0,\ldots,p_{n-1}\}\}$
+--- one subset of each size $0,\ldots,n$.
+
+\begin{theorembox}[(Lubell--Yamamoto--Meshalkin inequality)]
+For any antichain $A \subseteq B_n$,
+\[
+  \sum_{S \in A} \binom{n}{|S|}^{-1} \;\le\; 1.
+\]
+
+\emph{Proof.} Pick $p$ uniformly at random among all $n!$ permutations,
+and consider $\mathbb{E}[\,|C_p \cap A|\,]$. Since $|C_p \cap A| \le 1$
+always (previous theorem), the expectation is at most $1$. On the other
+hand, for fixed $S$ with $|S|=m$, $C_p$ contains a unique $m$-element set,
+uniformly distributed among all $\binom{n}{m}$ of them as $p$ varies, so
+$\Pr[S \in C_p] = \binom{n}{m}^{-1}$. Summing this probability over
+$S \in A$ gives $\mathbb{E}[\,|C_p \cap A|\,] = \sum_{S \in A}
+\binom{n}{|S|}^{-1}$, which is therefore $\le 1$. \qed
+\end{theorembox}
+
+\subsection{Deriving Sperner's theorem}
+Since $\binom{n}{k}$ is maximized at $k = \lfloor n/2 \rfloor$, every term
+satisfies $\binom{n}{|S|}^{-1} \ge \binom{n}{\lfloor n/2\rfloor}^{-1}$.
+Substituting into LYM:
+\[
+  1 \;\ge\; \sum_{S \in A} \binom{n}{|S|}^{-1}
+  \;\ge\; |A| \cdot \binom{n}{\lfloor n/2 \rfloor}^{-1},
+\]
+so $|A| \le \binom{n}{\lfloor n/2 \rfloor}$.
+
+\subsection{When is equality achieved?}
+Equality forces every inequality along the way to be tight: every $S \in
+A$ must satisfy $\binom{n}{|S|} = \binom{n}{\lfloor n/2\rfloor}$, i.e.\
+$|S| \in \{\lfloor n/2\rfloor, \lceil n/2\rceil\}$, and $|C_p \cap A|=1$
+for \emph{every} permutation $p$.
+
+\begin{theorembox}
+If $|A| = \binom{n}{\lfloor n/2\rfloor}$, then $A = B_{n,n/2}$ when $n$ is
+even, and $A = B_{n,(n-1)/2}$ or $A = B_{n,(n+1)/2}$ when $n$ is odd.
+
+\emph{Proof sketch (odd case; even is immediate).} Write $n=2m+1$. Every
+$S \in A$ has size $m$ or $m+1$; suppose some $S \in A$ has $|S|=m$, and
+let $x \in S$, $y \notin S$, $T = S \setminus\{x\} \cup \{y\}$. Some
+permutation's maximal chain contains both $T$ and $S \cup \{y\}$ (both
+have the same two elements $\{x,y\}$ swapped relative to a common
+$(m{+}1)$-set); since $A$ meets that chain exactly once, and
+$S\cup\{y\} \notin A$ (it strictly contains $S \in A$), we get $T \in A$.
+Repeating this swap argument shows $A$ contains \emph{every} $m$-element
+set once it contains one, so (matching $|A|=\binom{n}{m}$) $A = B_{n,m}$
+exactly. \qed
+\end{theorembox}
+
+\section{Proof 2: Symmetric Chain Decomposition}
+\begin{definitionbox}
+A chain $S_0 \subsetneq S_1 \subsetneq \cdots \subsetneq S_m$ in $B_n$ is
+\emph{symmetric} if consecutive sets differ in size by exactly $1$, and
+$|S_0| + |S_m| = n$ (it is centered around the middle rank).
+\end{definitionbox}
+
+\begin{theorembox}
+$B_n$ can be partitioned into disjoint symmetric chains.
+
+\emph{Proof (induction on $n$).} $B_0 = \{\emptyset\}$ is trivially one
+chain. Given a symmetric chain decomposition of $B_{n-1}$, write
+$S^+ = S \cup \{n-1\}$ for $S \subseteq \{0,\ldots,n-2\}$. Each chain
+$S_0 \subsetneq \cdots \subsetneq S_m$ of $B_{n-1}$ splits into two chains
+of $B_n$: $S_0 \subsetneq \cdots \subsetneq S_m \subsetneq S_m^+$, and (if
+$m \ge 1$) $S_0^+ \subsetneq \cdots \subsetneq S_{m-1}^+$. Both are
+symmetric in $B_n$: the first has sizes $|S_0|$ and $|S_m|+1$, summing to
+$n$; the second has sizes $|S_0|+1$ and $|S_{m-1}|+1 = |S_m|$, also
+summing to $n$. Every subset of $\{0,\ldots,n-1\}$ is uniquely $S$ or
+$S^+$ for some $S \subseteq \{0,\ldots,n-2\}$, so applying this split to
+every chain of the $B_{n-1}$ decomposition covers all of $B_n$. \qed
+\end{theorembox}
+
+\subsection{Deriving Sperner's theorem, again}
+Fix $k = \lfloor n/2 \rfloor$. Any symmetric chain has min size $a$ and
+max size $b=n-a$ with $a \le b$, so $a \le k \le b$: every symmetric chain
+passes through rank $k$ \emph{exactly once}. Hence the decomposition has
+exactly $\binom{n}{k}$ chains, and (chains meet antichains at most once)
+any antichain has size at most $\binom{n}{k}$.
+
+\subsection{A matching corollary}
+The same decomposition gives, for free, a maximum matching between
+consecutive levels.
+
+\begin{theorembox}
+For $0 \le k < n$, there is an injective map pairing each of
+$\min\bigl(\binom{n}{k}, \binom{n}{k+1}\bigr)$ sets in $B_{n,k}$ with a
+proper superset in $B_{n,k+1}$.
+
+\emph{Proof.} Take every symmetric chain that passes through both rank $k$
+and rank $k+1$, and pair its rank-$k$ and rank-$(k+1)$ members. If
+$k < n/2$, every chain reaching rank $k$ also reaches rank $k+1$ (since
+its span is symmetric about the middle), giving $\binom{n}{k}$ pairs;
+symmetrically for $k \ge n/2$. \qed
+\end{theorembox}
+
+\begin{notebox}
+This matching can also be proved first (by other means) and used to
+\emph{derive} Sperner's theorem: chain together matched pairs across all
+levels to build $\binom{n}{\lfloor n/2\rfloor}$ chains covering $B_n$,
+recovering the same bound.
+\end{notebox}
+
+\begin{notebox}
+Sperner's theorem generalizes from $B_n$ (a product of $n$ two-element
+chains) to a product of chains of arbitrary lengths, where the maximum
+antichain is the ``middle layer'' by coordinate sum; the symmetric-chain
+argument adapts with the same overall shape, though the details are
+substantially more involved.
+\end{notebox}
+
+\section{Reference Implementations}
+Both examples below implement the symmetric chain decomposition (verified
+to be a valid partition of $B_n$ into exactly $\binom{n}{\lfloor
+n/2\rfloor}$ symmetric chains), the level-matching corollary, the LYM
+inequality (checked on random maximal antichains, with exact rational
+arithmetic), and an independent cross-check of the whole theorem via
+Dilworth's theorem: the maximum antichain size equals the minimum number
+of chains needed to cover the poset, computed here by bipartite matching.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $n=3$, the inductive construction produces the symmetric chains
+$\{\emptyset,\{0\},\{0,1\},\{0,1,2\}\}$, $\{\{2\},\{0,2\}\}$, and
+$\{\{1\},\{1,2\}\}$ --- three chains, matching
+$\binom{3}{1}=3=\binom{3}{\lfloor 3/2\rfloor}$. Reading off rank $1$ and
+rank $2$ from each chain gives a perfect matching between $B_{3,1}$ and
+$B_{3,2}$ (both size $3$): $\{0\}\!\to\!\{0,1\}$, $\{2\}\!\to\!\{0,2\}$,
+$\{1\}\!\to\!\{1,2\}$ --- exactly what the reference implementations
+compute and verify for every $n$ up to $8$--$10$.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item E. Sperner, ``Ein Satz über Untermengen einer endlichen Menge'',
+        Mathematische Zeitschrift 27(1), 1928, pp.\ 544--548.
+  \item Wikipedia, \emph{Lubell--Yamamoto--Meshalkin inequality}:
+        \url{https://en.wikipedia.org/wiki/Lubell\%E2\%80\%93Yamamoto\%E2\%80\%93Meshalkin_inequality}
+  \item Wikipedia, \emph{Dilworth's theorem}:
+        \url{https://en.wikipedia.org/wiki/Dilworth's_theorem}
+\end{itemize}
+
+\end{document}
