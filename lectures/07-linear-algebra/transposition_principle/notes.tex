@@ -1,0 +1,245 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Transposition Principle Introduction}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Linear Algebra}{Transposition Principle Introduction}{6}
+
+\section{Overview}
+The transposition principle mechanically converts an algorithm for one
+problem into an algorithm for a related \emph{transposed} problem ---
+often a problem that looks quite different on its face. It is best
+known for speeding up multipoint polynomial evaluation and for deriving
+formal power series composition algorithms, but this lecture develops it
+from scratch and applies it only to accessible, beginner-level examples,
+to build intuition before those harder applications. The principle
+(also called Tellegen's principle, after its origin in electrical
+network theory) is usually presented in terms of signal-flow networks;
+this lecture uses a simplified, purely algebraic presentation instead.
+Assumes computing range sums via prefix sums; matrix familiarity helps
+but is not required (the matrix-based proof and remarks can be skipped).
+
+\section{The Transposed Problem}
+\begin{definitionbox}[Problem 1(A)]
+Given integers $A_{i,j}$ ($1\le i\le N$, $1\le j\le M$) and
+$x_1,\ldots,x_M$, compute $y_1,\ldots,y_N$ where
+$y_i = \sum_{j=1}^M A_{i,j}x_j$.
+\end{definitionbox}
+\begin{definitionbox}[Problem 1(B)]
+Given the same $A_{i,j}$ and integers $Y_1,\ldots,Y_N$, compute
+$X_1,\ldots,X_M$ where $X_j = \sum_{i=1}^N A_{i,j}Y_i$.
+\end{definitionbox}
+Problem 1(B) is the \emph{transposed problem} of Problem 1(A), and vice
+versa.
+
+\subsection{Restatement 1: Matrices}
+With $x$ an $M\times1$ matrix, $y$ an $N\times1$ matrix, and $A$ an
+$N\times M$ matrix, Problem 1(A) computes $y=Ax$; with $X$ an
+$M\times1$ matrix and $Y$ an $N\times1$ matrix, Problem 1(B) computes
+$X=A^TY$. So 1(A) multiplies a column vector by $A$, and 1(B)
+multiplies a column vector by $A$'s transpose.
+
+\subsection{Restatement 2: A Duality Identity}
+The four quantities satisfy
+\[
+  \sum_{j=1}^M x_jX_j = \sum_{i=1}^N y_iY_i.
+\]
+So Problem 1(B) can be described as: given $Y$ (and knowing only that
+$x,y$ are related as in Problem 1(A), without being given $x$ or $y$
+themselves), find $X$ making this identity hold for every $x$. ($X_j$
+and $Y_i$ are sometimes called \emph{dual variables} to $x_j$ and
+$y_i$; this restatement is, in the language of dual maps and dual
+bases, just a rephrasing of Restatement 1.)
+
+\begin{examplebox}
+For the map $y_1=2x_1+3x_2$, $y_2=4x_1+5x_2$, $y_3=6x_1+7x_2$, the
+transposed problem is $X_1=2Y_1+4Y_2+6Y_3$, $X_2=3Y_1+5Y_2+7Y_3$.
+Deriving this from Restatement 2: $X_1,X_2$ must satisfy
+$x_1X_1+x_2X_2 = (2x_1+3x_2)Y_1+(4x_1+5x_2)Y_2+(6x_1+7x_2)Y_3$ for
+every $x_1,x_2$; collecting the right side by $x_1$ and $x_2$ gives
+exactly the stated $X_1,X_2$.
+\end{examplebox}
+
+\begin{notebox}
+Not every ``compute $y$ from $x$'' problem has a meaningful transposed
+problem this way --- the construction needs $y$ to depend
+\emph{linearly} on $x$. Relations like $y_1=x_1^2$ or
+$y_1=\min(x_1,x_2)$ do not fit this framework.
+\end{notebox}
+
+\section{The Transposition Principle}
+\begin{theorembox}[Transposition Principle / Tellegen's Principle]
+Suppose Problem 1(A) is solved by the algorithm:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Initialize variables $z_1,\ldots,z_k$ to $0$.
+  \item Load $x_1,\ldots,x_M$ into $z_{s_1},\ldots,z_{s_M}$.
+  \item For $q=1,\ldots,Q$: add $c_q\times z_{b_q}$ to $z_{a_q}$.
+  \item Read $y_1,\ldots,y_N$ out of $z_{t_1},\ldots,z_{t_N}$.
+\end{enumerate}
+Then Problem 1(B) is solved by:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Initialize variables $Z_1,\ldots,Z_k$ to $0$.
+  \item Load $Y_1,\ldots,Y_N$ into $Z_{t_1},\ldots,Z_{t_N}$.
+  \item For $q=Q,Q-1,\ldots,1$: add $c_q\times Z_{a_q}$ to $Z_{b_q}$.
+  \item Read $X_1,\ldots,X_M$ out of $Z_{s_1},\ldots,Z_{s_M}$.
+\end{enumerate}
+\end{theorembox}
+In short: reverse the order of the elementary steps, swap each step's
+two roles ($a_q\leftrightarrow b_q$), and swap the roles of the
+load/store positions.
+
+\subsection{Proof via Matrices}
+Each part of the Problem 1(A) algorithm is a matrix: loading $x$ into
+$z$ is $z=Sx$ for the $k\times M$ matrix $S$ with a $1$ in position
+$(s_j,j)$ and $0$ elsewhere (summing contributions when some $s_j$
+coincide, exactly as ordinary matrix multiplication would); step $q$
+replaces $z$ with $A_qz$ for the $k\times k$ matrix $A_q$ that is the
+identity except for a $c_q$ in position $(a_q,b_q)$; and reading $y$
+from $z$ is $y=Tz$ for the $N\times k$ matrix $T$ with a $1$ in
+position $(i,t_i)$. So the whole algorithm computes
+$y = T\cdot A_QA_{Q-1}\cdots A_1\cdot S\cdot x$, i.e.\
+$A = T\cdot A_QA_{Q-1}\cdots A_1\cdot S$. Using $(BC)^T=C^TB^T$
+repeatedly,
+\[
+  A^T = S^T\cdot A_1^TA_2^T\cdots A_{Q-1}^TA_Q^T\cdot T^T,
+\]
+so $X=A^TY$ is computed by applying, in order, $T^T$ (reading $Y$ into
+$Z$ at the positions $t_i$ --- summing when they coincide, since $T^T$
+is exactly the loading-type matrix for this step), then
+$A_1^T,\ldots,A_Q^T$ (each just $A_q$ with $a_q,b_q$ swapped), then
+$S^T$ (reading $X$ out of $Z$ at positions $s_j$). This is precisely
+the stated algorithm for Problem 1(B).
+
+\subsection{Proof via the Duality Identity}
+Comparing the two algorithms, Problem 1(B)'s steps retrace Problem
+1(A)'s in reverse. By Restatement 2, it suffices to show
+$\sum_jx_jX_j=\sum_iy_iY_i$ where $X$ is the output of the Problem
+1(B) algorithm above. This follows from three easy observations:
+$\sum_jx_jX_j=\sum_kz_kZ_k$ at the moment $x$ is loaded into $z$ and
+$Y$ into $Z$ (both sides are $0$ except at the loaded positions, where
+they agree termwise); $\sum_kz_kZ_k$ is unchanged by each pair of
+steps $q$ (forward step $q$ on $z$, matched with backward step $q$ on
+$Z$), since
+$(z_a+cz_b)Z_a + z_bZ_b = z_aZ_a + z_b(Z_b+cZ_a)$; and
+$\sum_kz_kZ_k=\sum_iy_iY_i$ at the moment $y$ is read from $z$ and $Y$
+was loaded into $Z$, by the same termwise argument as the first step.
+
+\section{Worked Example: Range-Sum Queries}
+\begin{definitionbox}[Problem 3(A)]
+Given a length-$N$ sequence $x=(x_0,\ldots,x_{N-1})$, answer $Q$
+queries; query $i$ gives $L_i,R_i$ ($0\le L_i\le R_i\le N-1$) and asks
+for $y_i=\sum_{j=L_i}^{R_i}x_j$.
+\end{definitionbox}
+\begin{definitionbox}[Problem 3(B), the transpose]
+Given $Q$ triples $(L_i,R_i,Y_i)$, compute
+$X_0,\ldots,X_{N-1}$ where $X_j$ is the sum of $Y_i$ over all $i$ with
+$L_i\le j\le R_i$.
+\end{definitionbox}
+Problem 3(A) answers range-sum queries; its transpose, Problem 3(B),
+answers range-add queries. The classic prefix-sum solution to 3(A) can
+be mechanically transposed into a solution to 3(B).
+
+\subsection{Solving 3(A)}
+Initialize $s_0,\ldots,s_N,y_1,\ldots,y_Q$ to $0$; load $x_j$ into
+$s_{j+1}$; for $j=0,\ldots,N-1$, add $s_j$ into $s_{j+1}$ (building
+prefix sums); for $i=1,\ldots,Q$, add $s_{R_i+1}$ into $y_i$ and add
+$-s_{L_i}$ into $y_i$; output $y_1,\ldots,y_Q$.
+
+\subsection{Solving 3(B) via the Transposition Principle}
+Applying Theorem 2 mechanically: initialize $S_0,\ldots,S_N,Y_1,\ldots,
+Y_Q$ to $0$; load the given $Y_i$; for $i=1,\ldots,Q$ (any order, since
+these steps don't depend on each other), add $-Y_i$ into $S_{L_i}$ and
+add $Y_i$ into $S_{R_i+1}$; for $j=N-1,\ldots,1,0$ (reverse of 3(A)'s
+forward loop), add $S_{j+1}$ into $S_j$; output $X_j=S_{j+1}$ for
+$j=0,\ldots,N-1$.
+
+\begin{notebox}
+The most familiar solution to Problem 3(B) is probably the \emph{imos
+method}: load $Y_i$ into $S_{L_i}$ (not $-Y_i$) and $-Y_i$ into
+$S_{R_i+1}$ (not $+Y_i$), run the prefix-sum loop forward
+($j=0,\ldots,N-1$, adding $S_j$ into $S_{j+1}$), and read
+$X_j=S_j$ (not $S_{j+1}$). This differs from the mechanically-derived
+solution above in loop direction and sign convention, but both compute
+the same $X$. Transposing the imos method's own algorithm gives yet
+another (loop-order-shuffled) solution to Problem 3(A) --- worth
+trying by hand.
+\end{notebox}
+
+\section{Practice Problems}
+\begin{examplebox}
+\textbf{Subset zeta transform.} Given $x=(x_0,\ldots,x_{2^N-1})$ with
+$y_i=\sum_{S\subseteq i}x_S$, the transposed problem is the
+\emph{superset} zeta transform, $X_i=\sum_{S\supseteq i}Y_S$: the fast
+subset zeta transform's elementary steps (in the Zeta \& M\"obius
+Transform lecture) mechanically transpose into the fast superset zeta
+transform.
+
+\textbf{Divisor zeta transform.} Given $x=(x_1,\ldots,x_N)$ with
+$y_i=\sum_{j\mid i}x_j$, the transposed problem is the \emph{multiple}
+zeta transform, $X_i=\sum_{i\mid j}Y_j$: the fast divisor-relation zeta
+transform's steps mechanically transpose into the fast
+multiple-relation zeta transform.
+
+\textbf{Point update, range sum.} Given a sequence supporting point
+updates ($x_i\mathrel{+}=v$) and range-sum queries
+($\sum_{j=L}^{R}x_j$), transposing a Fenwick-tree or segment-tree
+solution mechanically produces a solution to the transposed problem ---
+range-update, point-query --- i.e.\ the well-known \emph{dual}
+Fenwick tree / dual segment tree technique.
+\end{examplebox}
+
+\section{Reference Implementations}
+The examples below implement a generic interpreter for the small
+``elementary-step'' programs described in Theorem 2, running both the
+forward algorithm and its mechanically-derived transpose. They validate
+the transposition principle itself by comparing the transpose's output
+against $A^TY$ computed directly from the matrix $A$ that the forward
+algorithm implements (recovered by running it on every standard basis
+vector), over many random programs; reproduce the lecture's own small
+worked example exactly; encode the prefix-sum solution to range-sum
+queries and confirm its mechanically-derived transpose agrees with both
+hand-derived solutions to range-add queries from the lecture (the
+direct derivation and the imos method) and with a brute-force
+definition; and encode the fast subset zeta transform, confirming its
+mechanically-derived transpose matches a brute-force superset zeta
+transform.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+The transposition principle itself (transpose output equalling $A^TY$)
+is confirmed exactly across 300 random small programs. The lecture's
+own $2\times3$ worked example is reproduced exactly, both forward and
+transposed, across 50 random input trials. For range-sum/range-add
+queries, the mechanically-derived transpose, the lecture's own
+hand-derived transpose, the imos method, and a brute-force definition
+all agree exactly across 100 random trials (sequence lengths up to
+$20$, up to $14$ queries). For the subset zeta transform, its
+mechanically-derived transpose matches a brute-force superset zeta
+transform exactly across 30 random trials (up to $6$ bits).
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder ARC185 E, ``Adjacent GCD'' (an application of
+        transposing a linear-combination computation to get per-term
+        contribution coefficients):
+        \url{https://atcoder.jp/contests/arc185/tasks/arc185_e}
+  \item Bostan, Lecerf, Schost, ``Tellegen's Principle into Practice,''
+        ISSAC 2003:
+        \url{https://doi.org/10.1145/860854.860870}
+\end{itemize}
+
+\end{document}
