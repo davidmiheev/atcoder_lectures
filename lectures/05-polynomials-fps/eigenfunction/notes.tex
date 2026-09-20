@@ -1,0 +1,206 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{DP Acceleration via Eigenfunctions}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Polynomials \& Formal Power Series}{DP Acceleration via Eigenfunctions}{9}
+
+\section{Overview}
+Matrix exponentiation is a familiar trick: to apply a linear map $M$
+times, diagonalize it (find its eigenvalues and eigenvectors), and
+raising a diagonal matrix to the $M$-th power is just raising each
+eigenvalue to the $M$-th power. This lecture applies the same idea to a
+different setting: DP recurrences $A_{i+1} = f(A_i)$ where each $A_i$ is
+a \emph{polynomial} (or formal power series) and $f$ is a linear map
+involving differentiation. When $f$'s eigenfunctions are known in closed
+form, $M$ iterations of the DP again collapse to one change of basis, one
+exponentiation of each eigenvalue, and one change back. Assumes linear
+algebra (eigenvalues/eigenvectors), formal power series, and (for two of
+the three worked problems) power series composition and separable
+differential equations.
+
+\section{Eigenvalues and Eigenfunctions}
+\begin{definitionbox}
+For a vector space $V$ and linear map $f: V \to V$, a nonzero
+$v \in V$ and scalar $\lambda$ with $f(v) = \lambda v$ make $\lambda$ an
+\emph{eigenvalue} and $v$ an \emph{eigenvector} (or \emph{eigenfunction},
+when $V$'s elements are themselves functions).
+\end{definitionbox}
+
+\begin{examplebox}
+For $A = \begin{pmatrix}2&1\\1&2\end{pmatrix}$ and $f(x)=Ax$: the vector
+$(1,1)$ is an eigenvector with eigenvalue $3$, and $(1,-1)$ is an
+eigenvector with eigenvalue $1$. Separately, if $V$ is the space of all
+formal power series and $f$ is differentiation, then for any constant
+$\lambda$, $e^{\lambda x}$ is an eigenfunction with eigenvalue $\lambda$
+(since $\frac{d}{dx}e^{\lambda x} = \lambda e^{\lambda x}$).
+\end{examplebox}
+
+\begin{theorembox}
+If $v_0,\ldots,v_n$ are eigenvectors of $f$ with eigenvalues
+$\lambda_0,\ldots,\lambda_n$, and $v = \sum_k c_k v_k$, then
+\[
+  f^M(v) \;=\; \sum_{k=0}^n c_k\, \lambda_k^M\, v_k.
+\]
+\end{theorembox}
+This is the whole mechanism: express the DP's initial state in the
+eigenbasis, raise each eigenvalue to the $M$-th power (fast, via binary
+exponentiation or a closed form), and convert back.
+
+\section{Worked Problems}
+The technique is best understood through examples of increasing
+difficulty.
+
+\subsection{A tractable case: \texorpdfstring{$A_{i+1}=(1+x)A_i'$}{A\_{i+1}=(1+x)A\_i'}}
+\begin{definitionbox}
+Given a polynomial $A_0(x)$ of degree $\le N$, define
+$A_{i+1}(x) = (1+x)A_i'(x)$. Compute $A_M(x) \bmod 998244353$.
+\end{definitionbox}
+
+Here $f(A) = (1+x)A'$ is linear on the $(N{+}1)$-dimensional space of
+degree-$\le N$ polynomials. Finding its eigenfunctions means solving
+$(1+x)A'(x) = \lambda A(x)$ --- a separable ODE. Writing $y = A(x)$ and
+formally separating variables,
+\[
+  \frac{y'}{y} = \frac{\lambda}{1+x}
+  \;\Longrightarrow\;
+  (\log y)' = \bigl(\lambda \log(1+x)\bigr)'
+  \;\Longrightarrow\;
+  y = (1+x)^\lambda .
+\]
+(The manipulation is purely heuristic --- log of a formal power series,
+division by $y$ --- but the conclusion is easy to check directly:
+$(1+x)\cdot\lambda(1+x)^{\lambda-1} = \lambda(1+x)^\lambda$, confirming
+$(1+x)^\lambda$ really is an eigenfunction with eigenvalue $\lambda$,
+regardless of how it was found.) Restricting to degree $\le N$
+polynomials, the eigenfunctions are $(1+x)^k$ for $k=0,\ldots,N$, with
+eigenvalue $k$.
+
+\begin{theorembox}
+Problem 2 above is solved by: (1) find $c_0,\ldots,c_N$ with
+$A_0(x) = \sum_k c_k(1+x)^k$; (2) replace each $c_k$ with $c_k \cdot
+k^M$; (3) output $\sum_k c_k (1+x)^k$. Both basis-change steps are a
+\emph{Taylor shift} (substituting $x \to x - 1$ and back), computable in
+$O(N \log N)$ with a fast implementation (the reference code below uses
+a simpler $O(N^2)$ version). Total: $O(N(\log N + \log M))$.
+\end{theorembox}
+
+\begin{notebox}
+Why Taylor shift finds the $c_k$: setting $y = 1+x$, the expansion
+$A_0(x) = \sum_k c_k(1+x)^k$ is exactly $A_0(y-1)$ written as a
+polynomial in $y$ --- i.e.\ $c$ is $A_0$'s coefficient list after
+substituting $x \to x-1$. Converting back at the end is the same
+substitution in reverse, $x \to x+1$.
+\end{notebox}
+
+\subsection{A subtler case: \texorpdfstring{$A_{i+1}=A_i+A_i'$}{A\_{i+1}=A\_i+A\_i'}}
+\begin{definitionbox}
+Given $A_0(x)$ of degree $\le N$, define $A_{i+1}(x) = A_i(x) + A_i'(x)$.
+Compute $A_M(x) \bmod 998244353$.
+\end{definitionbox}
+
+The eigenfunction here is easy to guess directly: $\frac{d}{dx}e^{kx} =
+k e^{kx}$, so $e^{kx}$ satisfies $A + A' = (k+1)A$, eigenvalue $k+1$. The
+complication is truncation: $e^{kx} \bmod x^{N+1}$ is \emph{not} exactly
+an eigenfunction of the corresponding truncated map, because computing
+its derivative from the truncated series silently drops information that
+the true (infinite) series would have supplied at the top degree ---
+verified concretely in the reference code below, where the identity
+$A+A' = (k+1)A$ holds at every coefficient except deliberately the
+highest one once the working precision is cut too short.
+
+The fix is to work at higher precision than needed and truncate only at
+the very end: expand $A_0(x) \equiv \sum_{k=0}^{N+M} c_k e^{kx}
+\pmod{x^{N+M+1}}$ (enough headroom that the top-degree error never
+reaches the part of the answer that matters), multiply each $c_k$ by
+$(k+1)^M$, recombine, and \emph{then} truncate to degree $N$. Finding the
+$c_k$ (expanding in the $e^{kx}$ basis) is itself a formal power series
+composition problem --- writing $A_0$ as a polynomial evaluated at
+$e^x$ --- solvable with a general composition algorithm, giving
+$O((N+M)\log^2(N+M))$ overall.
+
+\subsection{A generalized case: \texorpdfstring{$A_{i+1}=x(A_i+A_i')+b_iA_i$}{A\_{i+1}=x(A\_i+A\_i')+b\_i A\_i}}
+\begin{definitionbox}
+Given $A_0(x)$ of degree $\le N$ and $b_0,\ldots,b_{M-1}$, define
+$A_{i+1}(x) = x(A_i(x)+A_i'(x)) + b_i A_i(x)$. Compute $A_M(x) \bmod
+998244353$. (This recurrence appears in one solution to AtCoder ABC272
+Ex.)
+\end{definitionbox}
+
+Direct substitution confirms $x^k e^{-x}$ is an eigenfunction of
+$A \mapsto x(A+A')$ with eigenvalue $k$: writing $A = x^k e^{-x}$,
+$A' = kx^{k-1}e^{-x} - x^k e^{-x}$, so
+$A + A' = kx^{k-1}e^{-x}$, and $x(A+A') = k\,x^k e^{-x} = kA$.
+Since the $b_i$ term only rescales by a constant at each step (not mixing
+different eigenfunctions), the effective eigenvalue across all $M$ steps
+becomes the \emph{product} $(k+b_0)(k+b_1)\cdots(k+b_{M-1})$ rather than a
+single power $k^M$.
+
+\begin{theorembox}
+The strategy: (1) expand $A_0(x) \equiv \sum_{k=0}^N c_k\, x^k e^{-x}
+\pmod{x^{N+1}}$ (multiplying by $e^x$ turns this into an ordinary
+polynomial-coefficient read-off, no composition needed here since the
+basis functions are already indexed by monomials $x^k$ times a fixed
+$e^{-x}$); (2) replace each $c_k$ with $c_k \cdot (k+b_0)\cdots
+(k+b_{M-1})$, computable for all $k=0,\ldots,N$ at once via multipoint
+evaluation of $(x+b_0)\cdots(x+b_{M-1})$; (3) recombine and multiply back
+by $e^{-x}$. Total: $O((N+M)\log^2(N+M))$.
+\end{theorembox}
+
+\section{Complexity Summary}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Problem} & \textbf{Complexity} \\
+\midrule
+$A_{i+1}=(1+x)A_i'$ (eigenbasis $(1+x)^k$) & $O(N(\log N + \log M))$ \\
+$A_{i+1}=A_i+A_i'$ (eigenbasis $e^{kx}$) & $O((N+M)\log^2(N+M))$ \\
+$A_{i+1}=x(A_i+A_i')+b_iA_i$ (eigenbasis $x^ke^{-x}$) & $O((N+M)\log^2(N+M))$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reference Implementations}
+Both examples below fully implement and test Problem 2 (via Taylor
+shift, cross-checked against a direct $O(NM)$ simulation of the DP
+table). For Problems 3 and 4, which need a full power-series composition
+or multipoint-evaluation pipeline to reach the stated complexity, the
+examples instead numerically verify the underlying eigenfunction
+identities themselves --- via a from-scratch power series $\exp$ ---
+including a concrete demonstration of the truncation caveat described
+above.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For Problem 2, the eigenfunction method (Taylor shift by $-1$, scale by
+$k^M$, Taylor shift by $+1$) matches a direct $O(NM)$ simulation of the
+stated DP exactly across 200 random $(A_0, M)$ pairs in both reference
+implementations. Separately, computing $e^{kx} \bmod x^{10}$ from scratch
+and checking $A+A'=(k+1)A$ confirms the identity holds exactly with a few
+extra digits of precision kept, and \emph{specifically fails at the
+highest computed coefficient} --- and nowhere else --- when that
+headroom is removed, exactly matching the lecture's own description of
+why the $N{+}M$ padding trick is necessary.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder ABC272 Ex, ``Flipping Coins 2'' (an application of the
+        third worked problem):
+        \url{https://atcoder.jp/contests/abc272/tasks/abc272_h}
+\end{itemize}
+
+\end{document}
