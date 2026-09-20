@@ -119,6 +119,16 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 | [Min-Plus Convolution of Convex Sequences](lectures/11-miscellaneous/min_plus_convolution/) | 4/9 |
 | [Color-Coding](lectures/11-miscellaneous/color_coding/) | 5/9 |
 
+### 12. Supplementary (original, not from AtCoder's index)
+| Lecture | Difficulty |
+|---|---|
+| [The Number Theoretic Transform](lectures/12-supplementary/ntt_implementation/) | 6/9 |
+
+These lectures are not part of AtCoder's Algorithm Lectures table of
+contents; they fill in prerequisite material that other lectures in this
+series assume (e.g. an actual NTT implementation, referenced but not built
+by the advanced Bostan–Mori lecture).
+
 ## Source
 
 Topic list and difficulty ratings from the AtCoder Algorithm Lectures index:

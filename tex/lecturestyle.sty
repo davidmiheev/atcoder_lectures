@@ -61,6 +61,26 @@
   \vspace{10pt}
 }
 
+% Variant for original supplementary lectures that are NOT drawn from the
+% AtCoder Algorithm Lectures index (e.g. filling in prerequisite material
+% another lecture assumes). Same visual style, accurate description.
+\newcommand{\lecturetitlebandsupplement}[3]{%
+  % #1 = category  #2 = title  #3 = difficulty (1-9)
+  \begin{tcolorbox}[colback=lectureaccent,colframe=lectureaccent,
+      sharp corners,boxrule=0pt,left=10pt,right=10pt,top=8pt,bottom=8pt]
+    {\color{white}\small\sffamily #1 \hfill Difficulty: #3/9}\\[4pt]
+    {\color{white}\LARGE\sffamily\bfseries #2}
+  \end{tcolorbox}
+  \vspace{2pt}
+  {\small\color{lectureink!70} An original supplementary lecture in this
+   series, not itself drawn from the AtCoder Algorithm Lectures index
+   (\url{https://info.atcoder.jp/entry/algorithm_lectures/index}), added
+   to cover prerequisite material another lecture in the series assumes.}
+  \vspace{6pt}
+  \hrule
+  \vspace{10pt}
+}
+
 \pagestyle{fancy}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0.4pt}

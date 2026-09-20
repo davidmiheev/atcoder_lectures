@@ -1,0 +1,140 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{The Number Theoretic Transform}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitlebandsupplement{Supplementary}{The Number Theoretic Transform}{6}
+
+\section{Overview}
+This lecture is a \textbf{supplement}, not part of AtCoder's Algorithm
+Lectures index: several lectures elsewhere in this collection (the
+$K$-th term and advanced Bostan--Mori lectures, in particular) refer to
+fast, $O(d \log d)$ polynomial multiplication modulo a prime without
+building the transform behind it. This fills that gap with a
+from-scratch implementation of the \textbf{Number Theoretic Transform
+(NTT)}: a Discrete Fourier Transform carried out entirely inside
+$\mathbb{Z}/p\mathbb{Z}$ for a well-chosen prime $p$, giving the same
+fast-convolution trick as the classical (complex-valued) FFT but with
+exact integer arithmetic and no floating-point rounding error --- which
+is why it is the standard choice for polynomial multiplication modulo a
+prime in competitive programming.
+
+\section{Roots of Unity, Modulo a Prime}
+The FFT-based convolution trick needs a primitive $n$-th root of unity:
+a value $\omega$ with $\omega^n = 1$ and no smaller positive power equal
+to $1$. Over $\mathbb{C}$ this is $e^{2\pi i/n}$; modulo a prime $p$, an
+analogous element exists exactly when $n \mid p - 1$.
+
+\begin{definitionbox}
+If $p$ is prime and $g$ is a primitive root modulo $p$ (a generator of
+the multiplicative group $(\mathbb{Z}/p\mathbb{Z})^\times$, of order
+$p-1$), then for any $n$ dividing $p-1$,
+\[
+  \omega_n \;=\; g^{(p-1)/n} \bmod p
+\]
+is a primitive $n$-th root of unity modulo $p$: $\omega_n^n \equiv 1$,
+and no smaller positive power is $\equiv 1$, since $g$ has order exactly
+$p-1$.
+\end{definitionbox}
+
+Competitive programming almost always uses
+$p = 998244353 = 119 \cdot 2^{23} + 1$, whose primitive root is $3$: since
+$p - 1$ is divisible by $2^{23}$, this supports NTTs of any length up to
+$2^{23}$ (over eight million points), comfortably larger than any
+polynomial size that shows up in a contest. The examples below use this
+prime throughout.
+
+\section{The Transform}
+\begin{definitionbox}
+For a length-$n$ array $a = (a_0,\ldots,a_{n-1})$ ($n$ a power of $2$,
+for the iterative algorithm below), its NTT is
+\[
+  \hat a_k \;=\; \sum_{j=0}^{n-1} a_j\, \omega_n^{jk} \pmod p, \qquad
+  k = 0,\ldots,n-1.
+\]
+The inverse transform recovers $a$ from $\hat a$ using $\omega_n^{-1}$
+in place of $\omega_n$, then dividing every entry by $n$ (i.e.\
+multiplying by $n^{-1} \bmod p$, via Fermat's little theorem since $p$ is
+prime).
+\end{definitionbox}
+
+\begin{theorembox}[(Convolution theorem)]
+For polynomials $A(x), B(x)$ of degree $< n/2$ (so their product has
+degree $< n$, fitting in a length-$n$ transform), if
+$\hat a, \hat b$ are their length-$n$ NTTs, then the length-$n$ NTT of
+their coefficientwise product $\hat a \cdot \hat b$ (pointwise
+multiplication) is the NTT of $A(x)B(x)$'s coefficients. Equivalently:
+transform both, multiply pointwise, inverse-transform, and the result is
+the product polynomial.
+\end{theorembox}
+
+\subsection{Computing it in $O(n \log n)$}
+A direct evaluation of the sum defining $\hat a_k$ for every $k$ costs
+$O(n^2)$. The standard Cooley--Tukey trick halves the work recursively:
+splitting $a$ into its even- and odd-indexed halves $a^{\text{even}}$,
+$a^{\text{odd}}$ (each transformed at length $n/2$), the length-$n$
+transform is recovered via
+\[
+  \hat a_k = \hat a^{\text{even}}_{k \bmod n/2}
+    + \omega_n^{k}\, \hat a^{\text{odd}}_{k \bmod n/2},
+\]
+using each half-length output twice (for $k$ and $k+n/2$, where the
+$\omega_n^{k+n/2} = -\omega_n^k$ sign flip is the only difference) ---
+the same halving idea, and indeed the same underlying identity, behind
+Bostan--Mori's even/odd-part recursion elsewhere in this collection.
+Unrolled iteratively rather than recursively, this becomes: permute the
+input into \emph{bit-reversed order} (index $i$ moves to the position
+whose binary representation is $i$'s reversed), then repeatedly combine
+adjacent blocks of doubling size with an $O(1)$-per-pair ``butterfly''
+update, for $O(\log n)$ passes of $O(n)$ work each --- $O(n \log n)$
+total, and in-place.
+
+\section{Reference Implementations}
+Both examples below implement the iterative, in-place NTT (forward and
+inverse) and use it for polynomial multiplication, cross-checked against
+the naive $O(nm)$ definition on hundreds of random polynomial pairs, and
+verified to round-trip (forward transform then inverse transform recovers
+the original array) across various sizes.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+$(1+2x+3x^2)(4+5x+6x^2) = 4+13x+28x^2+27x^3+18x^4$ by hand (multiply out
+and collect terms); both reference implementations compute exactly this
+via NTT-based multiplication, matching the naive convolution.
+\end{examplebox}
+
+\begin{notebox}
+Competitive-programming NTT implementations (including the AtCoder
+Library's \texttt{butterfly}/\texttt{butterfly\_inv}, mentioned in this
+collection's advanced Bostan--Mori lecture) often store the transformed
+array in bit-reversed order rather than natural index order, since the
+bit-reversal permutation this lecture applies at the start can instead be
+folded into how later stages are addressed, saving a pass. The
+implementations here use natural order throughout for clarity; adapting
+code that assumes one convention to work with the other requires
+tracking this carefully.
+\end{notebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item This lecture is an original supplement to this repository's
+        AtCoder Algorithm Lectures-based series, not itself part of that
+        index: \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder Library documentation (the \texttt{convolution} module):
+        \url{https://atcoder.github.io/ac-library/production/document_en/convolution.html}
+  \item cp-algorithms, \emph{Number-theoretic transform (NTT)}:
+        \url{https://cp-algorithms.com/algebra/fft.html}
+\end{itemize}
+
+\end{document}
