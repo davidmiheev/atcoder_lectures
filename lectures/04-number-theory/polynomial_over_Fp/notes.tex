@@ -1,0 +1,226 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Polynomials over F\_p}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Number Theory}{Polynomials over $\mathbb{F}_p$}{5}
+
+\section{Overview}
+Working with polynomials whose coefficients live in $\mathbb{F}_p$ (the
+integers mod a prime $p$, under the field structure this gives them) is a
+foundational tool in competitive programming, even though a problem
+rarely names ``polynomials over $\mathbb{F}_p$'' explicitly. Most of what
+follows is the same algebra taught for real- or complex-coefficient
+polynomials in secondary school; the point of this lecture is to confirm
+it survives the switch to $\mathbb{F}_p$, and to flag the one place it
+does not: everything here relies on $\mathbb{F}_p$ being a field (every
+nonzero element has a multiplicative inverse), which fails for a
+composite modulus. Assumes modular arithmetic and basic properties of
+primes.
+
+\section{Division, Remainder, and Factor Theorems}
+\begin{definitionbox}
+For $f, g \in \mathbb{F}_p[x]$ with $g \ne 0$, there exist unique
+$q, r \in \mathbb{F}_p[x]$ with $f = gq + r$ and $\deg r < \deg g$. Call
+$q$ the \emph{quotient} and $r$ the \emph{remainder}.
+\end{definitionbox}
+Existence and uniqueness follow the same long-division argument as over
+$\mathbb{R}$: at each step, the leading term of the current remainder is
+cancelled using the leading coefficient of $g$, which is invertible
+because $\mathbb{F}_p$ is a field. That invertibility is doing real work
+--- see \S5 for what breaks when the modulus is composite.
+
+\begin{theorembox}[Remainder Theorem]
+For $f \in \mathbb{F}_p[x]$ and $a \in \mathbb{F}_p$, the remainder of
+$f(x)$ divided by $x - a$ equals $f(a)$.
+\end{theorembox}
+\begin{proof}
+Write $f(x) = (x-a)q(x) + r(x)$ with $\deg r < 1$, so $r$ is a constant.
+Substituting $x = a$ gives $r = f(a)$.
+\end{proof}
+
+\begin{theorembox}[Factor Theorem]
+If $f(a) = 0$ for $f \in \mathbb{F}_p[x]$, $a \in \mathbb{F}_p$, then
+$f(x) = (x-a)g(x)$ for some $g \in \mathbb{F}_p[x]$.
+\end{theorembox}
+This is immediate from the remainder theorem: the remainder is $f(a)=0$,
+so $x-a$ divides $f$ exactly.
+
+\begin{theorembox}[Factor theorem, iterated]
+If $a_1,\ldots,a_n \in \mathbb{F}_p$ are distinct and all are roots of
+$f \in \mathbb{F}_p[x]$, then
+$f(x) = (x-a_1)(x-a_2)\cdots(x-a_n)\,g(x)$ for some
+$g \in \mathbb{F}_p[x]$.
+\end{theorembox}
+\begin{proof}
+Induction on $n$. The base case is the factor theorem above. For the
+step, factor out $(x-a_1)\cdots(x-a_n)$ by the inductive hypothesis,
+leaving $f(x) = (x-a_1)\cdots(x-a_n)g(x)$. Substituting $x = a_{n+1}$: the
+product of the $n$ nonzero factors $(a_{n+1}-a_i)$ times $g(a_{n+1})$
+must be $0$, and a product of nonzero field elements is nonzero, so
+$g(a_{n+1}) = 0$. Apply the factor theorem to $g$.
+\end{proof}
+
+\section{How Many Roots Can a Polynomial Have?}
+\begin{theorembox}
+A nonzero degree-$n$ polynomial in $\mathbb{F}_p[x]$ has at most $n$
+roots in $\mathbb{F}_p$.
+\end{theorembox}
+\begin{proof}
+Suppose $f$ has $n$ or more roots $a_1,\ldots,a_n$; we show it has
+exactly these. By the iterated factor theorem,
+$f(x) = f_n(x-a_1)\cdots(x-a_n)$ where $f_n \ne 0$ is $f$'s leading
+coefficient. A product of nonzero factors is nonzero, so $f(x) = 0$ only
+at $x \in \{a_1,\ldots,a_n\}$.
+\end{proof}
+
+\begin{notebox}
+It is worth pausing on exactly where primality was used, since it is easy
+to take this bound for granted. \S5 below works through what happens to
+every theorem in this section when $\mathbb{F}_p$ is replaced by
+$\mathbb{Z}/n\mathbb{Z}$ for composite $n$ --- division stops being
+well-defined at all, and the root-count bound fails outright (e.g.\ $2x$
+has two roots, $0$ and $2$, in $\mathbb{Z}/4\mathbb{Z}$, despite being
+degree $1$).
+\end{notebox}
+
+\section{The Factorization of \texorpdfstring{$x^p - x$}{x\^{}p - x}}
+\begin{theorembox}
+In $\mathbb{F}_p[x]$, $\displaystyle x^p - x = \prod_{a \in \mathbb{F}_p}
+(x - a)$.
+\end{theorembox}
+\begin{proof}
+By Fermat's little theorem, every $a \in \mathbb{F}_p$ satisfies
+$a^p \equiv a$, i.e.\ every element of $\mathbb{F}_p$ is a root of
+$x^p-x$. That is $p$ distinct roots of a degree-$p$ polynomial, so the
+root-count bound forces the full factorization (both sides are monic of
+degree $p$ with the same $p$ roots).
+\end{proof}
+
+\begin{theorembox}[Wilson's Theorem]
+For prime $p$, $(p-1)! \equiv -1 \pmod p$.
+\end{theorembox}
+\begin{proof}
+Compare the coefficient of $x^1$ on both sides of the factorization
+above. On the right, expanding $\prod_a (x-a)$, the $x^1$ coefficient is
+$(-1)^{p-1}\!\!\sum$ of all $\binom{p-1}{1}$-fold products of the
+$p-1$ nonzero elements leaving out one factor of $x$ times the constant
+terms of the rest --- concretely, it is $(-1)^{p-1}$ times the elementary
+symmetric polynomial of degree $p-1$ in $0,1,\ldots,p-1$, which (since
+one of the roots is $0$) reduces to $(-1)^{p-1}$ times the product of the
+nonzero elements, $(p-1)!$. On the left, $x^p - x$ has $x^1$ coefficient
+$-1$. For odd $p$, $(-1)^{p-1}=1$, giving $(p-1)! \equiv -1$; $p=2$ checks
+directly ($1! = 1 \equiv -1 \pmod 2$).
+\end{proof}
+
+\section{What Requires Primality: A Worked Comparison}
+\begin{examplebox}
+Replacing $\mathbb{F}_p$ with $\mathbb{Z}/n\mathbb{Z}$ for composite $n$
+throughout this lecture:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Division} (\S2, Definition): fails in general. In
+        $\mathbb{Z}/4\mathbb{Z}$, no $q,r$ satisfy $x^2 = (2x)q(x)+r(x)$
+        with $\deg r < 1$.
+  \item \textbf{Remainder theorem}: division by a general $g$ is not even
+        defined, but division by $x-a$ specifically still works (its
+        leading coefficient is $1$, always invertible), so
+        $f(x)=(x-a)q(x)+f(a)$ still holds in this restricted sense.
+  \item \textbf{Factor theorem}: still holds --- it only used the
+        remainder theorem with $g=x-a$.
+  \item \textbf{Iterated factor theorem}: fails. In
+        $\mathbb{Z}/4\mathbb{Z}$, $f(x)=2x$ has roots $a_1=0,a_2=2$, but
+        $2x \ne (x-0)(x-2)g(x)$ for any $g$ (the right side is degree
+        $\ge 2$). The induction step broke because
+        $g(a_{n+1})=0$ no longer follows from a product of nonzero
+        \emph{ring} elements being zero --- $\mathbb{Z}/4\mathbb{Z}$ has
+        zero divisors ($2\cdot 2 \equiv 0$).
+  \item \textbf{Root-count bound}: fails, by the same example ($2x$, a
+        degree-$1$ polynomial, has $2$ roots in
+        $\mathbb{Z}/4\mathbb{Z}$); a cleaner example with more roots than
+        degree is $x^2-1$ in $\mathbb{Z}/8\mathbb{Z}$, with roots
+        $1,3,5,7$.
+\end{itemize}
+The reference code below checks every one of these claims directly.
+\end{examplebox}
+
+\section{Schwartz--Zippel Lemma}
+This is the multivariate generalization of the root-count bound, and a
+standard ingredient in randomized-algorithm correctness proofs (identity
+testing, hashing, and Tutte-matrix-based matching algorithms among them).
+
+\begin{theorembox}[Schwartz--Zippel]
+Let $f \in \mathbb{F}_p[x_1,\ldots,x_n]$ be a nonzero polynomial of total
+degree $d$. Then the number of $n$-tuples $(a_1,\ldots,a_n) \in
+\mathbb{F}_p^n$ with $f(a_1,\ldots,a_n)=0$ is at most $d\cdot p^{n-1}$.
+Equivalently, for a uniformly random tuple,
+$\Pr[f(a_1,\ldots,a_n)=0] \le d/p$.
+\end{theorembox}
+\begin{proof}
+Induction on $n$; the base case $n=1$ is the root-count bound above.
+For the step, write $f(x_1,\ldots,x_n,t)$ (naming the $(n{+}1)$-th
+variable $t$) as a polynomial in $t$ with coefficients
+$g_i \in \mathbb{F}_p[x_1,\ldots,x_n]$:
+\[
+  f(x_1,\ldots,x_n,t) = \sum_{i=0}^{k} g_i(x_1,\ldots,x_n)\, t^i,
+\]
+where $k=\deg_t f$. Since $f \ne 0$, $g_k \ne 0$, and $\deg g_k \le d-k$.
+For a uniformly random $(a_1,\ldots,a_n,a_{n+1})$: by the inductive
+hypothesis, $\Pr[g_k(a_1,\ldots,a_n)=0] \le (d-k)/p$; and conditioned on
+$g_k(a_1,\ldots,a_n)\ne 0$, the base case applied to
+$f(a_1,\ldots,a_n,t)$ (a nonzero degree-$k$ polynomial in $t$ alone)
+gives $\Pr[f(a_1,\ldots,a_n,a_{n+1})=0] \le k/p$. Summing,
+$\Pr[f=0] \le (d-k)/p + k/p = d/p$.
+\end{proof}
+
+\section{Reference Implementations}
+The examples below implement polynomial long division over
+$\mathbb{F}_p$ from scratch and check it, via a large batch of random
+trials, against direct evaluation (the remainder theorem), then verify
+the factor theorem and the root-count bound by finding roots through
+brute-force evaluation (feasible since a small prime is used) and
+re-expanding the resulting product of linear factors to confirm it
+reproduces the original polynomial. They also expand
+$\prod_{a\in\mathbb{F}_p}(x-a)$ directly and check the result against
+$x^p-x$ coefficient-by-coefficient, cross-check the resulting Wilson's
+theorem identity against a direct factorial computation, and verify
+Schwartz--Zippel by exhaustively evaluating random bivariate polynomials
+over all of $\mathbb{F}_p \times \mathbb{F}_p$ and measuring how often
+they vanish. All checks use a small prime ($p=17$) specifically so that
+``exhaustive over $\mathbb{F}_p$'' checks stay cheap.
+
+\subsection{Rust}
+\lstinputlisting[language=Rust]{example.rs}
+
+\subsection{Python}
+\lstinputlisting[language=Python]{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+With $p=17$: the remainder theorem, factor theorem, and root-count bound
+all pass across 300 random trials each in both reference implementations.
+Expanding $\prod_{a=0}^{16}(x-a)$ directly reproduces $x^{17}-x$
+coefficient-by-coefficient, and its $x^1$ coefficient (which is $16$,
+i.e.\ $-1 \bmod 17$) matches a direct computation of $16! \bmod 17$,
+confirming Wilson's theorem. Exhaustively evaluating 30 random bivariate
+polynomials of degree $d \in \{1,\ldots,5\}$ over all $17^2$ points of
+$\mathbb{F}_{17}^2$ shows the vanishing frequency never exceeds $d/17$,
+matching Schwartz--Zippel.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder ABC137 F, ``Polynomial Construction'' (an application of
+        the $x^p-x$ factorization):
+        \url{https://atcoder.jp/contests/abc137/tasks/abc137_f}
+  \item Wikipedia, ``Schwartz--Zippel lemma'':
+        \url{https://en.wikipedia.org/wiki/Schwartz\%E2\%80\%93Zippel_lemma}
+\end{itemize}
+
+\end{document}
