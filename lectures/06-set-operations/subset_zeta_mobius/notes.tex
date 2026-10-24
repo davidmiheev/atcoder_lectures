@@ -96,6 +96,94 @@ $i$ set) elementwise. This is the same computation, restructured to
 avoid a per-iteration branch.
 \end{notebox}
 
+% FIGURE: zeta_passes
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.45cm,y=1.35cm]
+\node[llabel] at (0,0.7) {$000$};
+\node[llabel] at (1,0.7) {$001$};
+\node[llabel] at (2,0.7) {$010$};
+\node[llabel] at (3,0.7) {$011$};
+\node[llabel] at (4,0.7) {$100$};
+\node[llabel] at (5,0.7) {$101$};
+\node[llabel] at (6,0.7) {$110$};
+\node[llabel] at (7,0.7) {$111$};
+\node[llabel,anchor=east] at (-0.65,0) {input $A$};
+\node[lcell,minimum width=0.95cm,] (n0_0) at (0,0) {3};
+\node[lcell,minimum width=0.95cm,] (n0_1) at (1,0) {1};
+\node[lcell,minimum width=0.95cm,] (n0_2) at (2,0) {4};
+\node[lcell,minimum width=0.95cm,] (n0_3) at (3,0) {1};
+\node[lcell,minimum width=0.95cm,] (n0_4) at (4,0) {5};
+\node[lcell,minimum width=0.95cm,] (n0_5) at (5,0) {9};
+\node[lcell,minimum width=0.95cm,] (n0_6) at (6,0) {2};
+\node[lcell,minimum width=0.95cm,] (n0_7) at (7,0) {6};
+\node[llabel,anchor=east] at (-0.65,-1) {after bit 0};
+\node[lcell,minimum width=0.95cm,] (n1_0) at (0,-1) {3};
+\node[lcell,minimum width=0.95cm,lhi] (n1_1) at (1,-1) {4};
+\node[lcell,minimum width=0.95cm,] (n1_2) at (2,-1) {4};
+\node[lcell,minimum width=0.95cm,lhi] (n1_3) at (3,-1) {5};
+\node[lcell,minimum width=0.95cm,] (n1_4) at (4,-1) {5};
+\node[lcell,minimum width=0.95cm,lhi] (n1_5) at (5,-1) {14};
+\node[lcell,minimum width=0.95cm,] (n1_6) at (6,-1) {2};
+\node[lcell,minimum width=0.95cm,lhi] (n1_7) at (7,-1) {8};
+\node[llabel,anchor=east] at (-0.65,-2) {after bit 1};
+\node[lcell,minimum width=0.95cm,] (n2_0) at (0,-2) {3};
+\node[lcell,minimum width=0.95cm,] (n2_1) at (1,-2) {4};
+\node[lcell,minimum width=0.95cm,lhi] (n2_2) at (2,-2) {7};
+\node[lcell,minimum width=0.95cm,lhi] (n2_3) at (3,-2) {9};
+\node[lcell,minimum width=0.95cm,] (n2_4) at (4,-2) {5};
+\node[lcell,minimum width=0.95cm,] (n2_5) at (5,-2) {14};
+\node[lcell,minimum width=0.95cm,lhi] (n2_6) at (6,-2) {7};
+\node[lcell,minimum width=0.95cm,lhi] (n2_7) at (7,-2) {22};
+\node[llabel,anchor=east] at (-0.65,-3) {after bit 2 $=B$};
+\node[lcell,minimum width=0.95cm,] (n3_0) at (0,-3) {3};
+\node[lcell,minimum width=0.95cm,] (n3_1) at (1,-3) {4};
+\node[lcell,minimum width=0.95cm,] (n3_2) at (2,-3) {7};
+\node[lcell,minimum width=0.95cm,] (n3_3) at (3,-3) {9};
+\node[lcell,minimum width=0.95cm,lhi] (n3_4) at (4,-3) {8};
+\node[lcell,minimum width=0.95cm,lhi] (n3_5) at (5,-3) {18};
+\node[lcell,minimum width=0.95cm,lhi] (n3_6) at (6,-3) {14};
+\node[lcell,minimum width=0.95cm,lhi] (n3_7) at (7,-3) {31};
+\draw[lthin,lectureink!35] (n0_0) -- (n1_0);
+\draw[lthin,lectureink!35] (n0_1) -- (n1_1);
+\draw[lthin,lectureaccent,thick] (n0_0) -- (n1_1);
+\draw[lthin,lectureink!35] (n0_2) -- (n1_2);
+\draw[lthin,lectureink!35] (n0_3) -- (n1_3);
+\draw[lthin,lectureaccent,thick] (n0_2) -- (n1_3);
+\draw[lthin,lectureink!35] (n0_4) -- (n1_4);
+\draw[lthin,lectureink!35] (n0_5) -- (n1_5);
+\draw[lthin,lectureaccent,thick] (n0_4) -- (n1_5);
+\draw[lthin,lectureink!35] (n0_6) -- (n1_6);
+\draw[lthin,lectureink!35] (n0_7) -- (n1_7);
+\draw[lthin,lectureaccent,thick] (n0_6) -- (n1_7);
+\draw[lthin,lectureink!35] (n1_0) -- (n2_0);
+\draw[lthin,lectureink!35] (n1_1) -- (n2_1);
+\draw[lthin,lectureink!35] (n1_2) -- (n2_2);
+\draw[lthin,lectureaccent,thick] (n1_0) -- (n2_2);
+\draw[lthin,lectureink!35] (n1_3) -- (n2_3);
+\draw[lthin,lectureaccent,thick] (n1_1) -- (n2_3);
+\draw[lthin,lectureink!35] (n1_4) -- (n2_4);
+\draw[lthin,lectureink!35] (n1_5) -- (n2_5);
+\draw[lthin,lectureink!35] (n1_6) -- (n2_6);
+\draw[lthin,lectureaccent,thick] (n1_4) -- (n2_6);
+\draw[lthin,lectureink!35] (n1_7) -- (n2_7);
+\draw[lthin,lectureaccent,thick] (n1_5) -- (n2_7);
+\draw[lthin,lectureink!35] (n2_0) -- (n3_0);
+\draw[lthin,lectureink!35] (n2_1) -- (n3_1);
+\draw[lthin,lectureink!35] (n2_2) -- (n3_2);
+\draw[lthin,lectureink!35] (n2_3) -- (n3_3);
+\draw[lthin,lectureink!35] (n2_4) -- (n3_4);
+\draw[lthin,lectureaccent,thick] (n2_0) -- (n3_4);
+\draw[lthin,lectureink!35] (n2_5) -- (n3_5);
+\draw[lthin,lectureaccent,thick] (n2_1) -- (n3_5);
+\draw[lthin,lectureink!35] (n2_6) -- (n3_6);
+\draw[lthin,lectureaccent,thick] (n2_2) -- (n3_6);
+\draw[lthin,lectureink!35] (n2_7) -- (n3_7);
+\draw[lthin,lectureaccent,thick] (n2_3) -- (n3_7);
+\end{tikzpicture}
+\caption{The fast zeta transform on $A=(3,1,4,1,5,9,2,6)$ with $n=3$. Pass $i$ adds, to every entry whose index has bit $i$ set, the entry whose index differs in that bit (blue arrows); shaded cells are the ones that change. After the three passes each entry is the sum over all subsets of its index, e.g.\ $B_7=31=\sum_S A_S$.}\label{fig:zeta_passes}
+\end{figure}
+
 \section{The Subset M\"obius Transform}
 \begin{definitionbox}
 Given $B=(B_0,\ldots,B_{2^n-1})$, the sequence
@@ -185,11 +273,12 @@ trials. OR- and AND-convolution are then implemented via the
 zeta/pointwise-product/M\"obius pipeline and cross-checked against an
 $O(4^n)$ brute-force convolution definition.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

@@ -73,6 +73,33 @@ Versions are identified purely by their root: distinct versions have
 distinct roots, and querying is done by walking down from whichever root
 names the desired version, exactly as in an ordinary segment tree.
 
+% FIGURE: pst_pathcopy
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.15cm,y=1.15cm,
+  old/.style={lvert,minimum size=8.5mm,font=\scriptsize\sffamily,fill=lectureink!8},
+  new/.style={lvert,minimum size=8.5mm,font=\scriptsize\sffamily,fill=lectureaccent!30,draw=lectureaccent,thick}]
+\node[old] (R0) at (2,3) {$[0,4)$};
+\node[old] (A)  at (1,1.5) {$[0,2)$};
+\node[old] (B)  at (3,1.5) {$[2,4)$};
+\node[old] (L0) at (0.5,0) {$0$};
+\node[old] (L1) at (1.5,0) {$1$};
+\node[old] (L2) at (2.5,0) {$2$};
+\node[old] (L3) at (3.5,0) {$3$};
+\node[new] (R1) at (6.2,3) {$[0,4)'$};
+\node[new] (B1) at (5.6,1.5) {$[2,4)'$};
+\node[new] (L3n) at (6.4,0) {$3'$};
+\foreach \p/\c in {R0/A,R0/B,A/L0,A/L1,B/L2,B/L3}{ \draw[lthin] (\p) -- (\c); }
+\draw[lthin,lectureaccent,thick] (R1) -- (B1);
+\draw[lthin,lectureaccent,thick] (B1) -- (L3n);
+\draw[lthin,lectureaccent,thick,dashed] (R1) to[bend right=14] (A);
+\draw[lthin,lectureaccent,thick,dashed] (B1) -- (L2);
+\node[llabel,anchor=west] at (7.2,3) {version 1 root};
+\node[llabel,anchor=east] at (1.0,3) {version 0 root};
+\end{tikzpicture}
+\caption{Path copying. Version 0 is the full tree on positions $0,\dots,3$. Setting position 3 creates only the new nodes on the root-to-leaf path (shaded, primed): a new root, a new right child and a new leaf. Every other node, namely the left subtree $[0,2)$ and leaf $2$, is shared with version 0 through the dashed pointers, so the update costs $O(\log n)$ time and memory and version 0 remains intact.}\label{fig:pst_pathcopy}
+\end{figure}
+
 \subsection{Path copying: range updates}
 The same idea persists a \emph{lazy} segment tree. A lazy range update
 proceeds in three passes: push pending lazy values down to children along
@@ -172,11 +199,12 @@ array with point update and range-min query, and a chained frequency-tree
 supporting range count-$\le x$ and range $k$-th-smallest via the
 simultaneous-descent trick.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

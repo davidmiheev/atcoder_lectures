@@ -2,6 +2,7 @@
 // queries on a static array of small non-negative integers, by re-encoding
 // the array as one bit-plane per level plus a rank (prefix-count) table.
 
+// PDFBEGIN
 struct WaveletMatrix {
     height: u32,
     n: usize,
@@ -109,6 +110,8 @@ impl WaveletMatrix {
         self.count_less(l, r, b) - self.count_less(l, r, a)
     }
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     let a: Vec<u64> = vec![3, 1, 2, 1, 1, 0, 3, 2, 2];

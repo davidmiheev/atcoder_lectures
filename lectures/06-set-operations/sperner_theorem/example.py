@@ -5,16 +5,18 @@ decomposition (constructive) and the LYM inequality (probabilistic) -- plus
 an independent cross-check via Dilworth's theorem (max antichain = min
 chain cover, computed by bipartite matching).
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import math
-import random
-from fractions import Fraction
 
+import random
+
+from fractions import Fraction
 
 def popcount(x: int) -> int:
     return bin(x).count("1")
-
 
 # ---------------------------------------------------------------------
 # Proof 2: symmetric chain decomposition
@@ -43,6 +45,7 @@ def symmetric_chain_decomposition(n: int) -> list[list[int]]:
             result.append(chain2)
     return result
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def verify_symmetric_chain_decomposition(n: int, chains: list[list[int]]) -> bool:
     total = 1 << n
@@ -60,7 +63,6 @@ def verify_symmetric_chain_decomposition(n: int, chains: list[list[int]]) -> boo
             seen[s] = True
     return all(seen)
 
-
 def level_matching(chains: list[list[int]], k: int) -> list[tuple[int, int]]:
     """Corollary: a maximum matching between B_{n,k} and B_{n,k+1} (each
     edge a proper-subset pair), read directly off the chains that pass
@@ -72,7 +74,6 @@ def level_matching(chains: list[list[int]], k: int) -> list[tuple[int, int]]:
             if popcount(a) == k:
                 edges.append((a, b))
     return edges
-
 
 # ---------------------------------------------------------------------
 # Proof 1: LYM inequality (exact rational arithmetic via Fraction)
@@ -87,7 +88,6 @@ def lym_sum(n: int, antichain: list[int]) -> Fraction:
         total += Fraction(1, math.comb(n, k))
     return total
 
-
 def random_maximal_antichain(n: int, rng: random.Random) -> list[int]:
     """A random MAXIMAL (not necessarily maximum) antichain, built
     greedily: shuffle all subsets, add each one that's incomparable to
@@ -100,7 +100,6 @@ def random_maximal_antichain(n: int, rng: random.Random) -> list[int]:
         if not any((s & t == s) or (s & t == t) for t in antichain):
             antichain.append(s)
     return antichain
-
 
 # ---------------------------------------------------------------------
 # Independent cross-check: Dilworth's theorem via bipartite matching.
@@ -129,7 +128,6 @@ def max_bipartite_matching(adj: list[list[int]], n_right: int) -> int:
             result += 1
     return result
 
-
 def max_antichain_via_dilworth(n: int) -> int:
     total = 1 << n
     adj: list[list[int]] = [[] for _ in range(total)]
@@ -139,7 +137,6 @@ def max_antichain_via_dilworth(n: int) -> int:
                 adj[u].append(v)
     matching = max_bipartite_matching(adj, total)
     return total - matching
-
 
 def main() -> None:
     # --- Symmetric chain decomposition: validity + count -----------------
@@ -196,7 +193,6 @@ def main() -> None:
             dilworth_ok = False
             print(f"DILWORTH FAIL n={n}: matching-based={via_dilworth} formula={via_formula}")
     print(f"max antichain size via Dilworth's theorem (bipartite matching) matches C(n,floor(n/2)) for n=0..=5: {'PASS' if dilworth_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

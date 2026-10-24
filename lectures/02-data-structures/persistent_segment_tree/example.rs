@@ -13,6 +13,7 @@
 // the "empty subtree" sentinel -- the standard way to avoid materializing
 // every empty leaf.
 
+// PDFBEGIN
 const NIL: usize = 0;
 
 // ---------------------------------------------------------------------
@@ -20,6 +21,7 @@ const NIL: usize = 0;
 // ---------------------------------------------------------------------
 
 #[derive(Clone, Copy)]
+
 struct MinNode {
     left: usize,
     right: usize,
@@ -100,6 +102,7 @@ impl PersistentArray {
 // ---------------------------------------------------------------------
 
 #[derive(Clone, Copy)]
+
 struct CountNode {
     left: usize,
     right: usize,
@@ -176,6 +179,8 @@ impl PersistentFrequencyTree {
         }
     }
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- Part 1: branching multi-version array, range min --------------

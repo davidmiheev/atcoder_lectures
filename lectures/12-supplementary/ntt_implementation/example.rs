@@ -11,7 +11,9 @@
 // multiplication without building the transform itself. This fills that
 // gap with a from-scratch, from-first-principles implementation.
 
+// PDFBEGIN
 const MOD: i64 = 998244353; // = 119 * 2^23 + 1, a common NTT-friendly prime
+
 const PRIMITIVE_ROOT: i64 = 3; // a primitive root mod 998244353
 
 fn mod_pow(mut base: i64, mut exp: u64, m: i64) -> i64 {
@@ -112,6 +114,8 @@ fn multiply_via_ntt(a: &[i64], b: &[i64]) -> Vec<i64> {
     fa
 }
 
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
 /// The definition, directly: O(n*m). Used only to cross-check the NTT.
 fn multiply_naive(a: &[i64], b: &[i64]) -> Vec<i64> {
     if a.is_empty() || b.is_empty() {
@@ -131,6 +135,7 @@ fn multiply_naive(a: &[i64], b: &[i64]) -> Vec<i64> {
 }
 
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

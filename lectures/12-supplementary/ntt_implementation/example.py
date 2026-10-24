@@ -11,18 +11,19 @@ Bostan-Mori lectures in particular) refer to fast, NTT-based polynomial
 multiplication without building the transform itself. This fills that
 gap with a from-scratch, from-first-principles implementation.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
 
 MOD = 998244353  # = 119 * 2^23 + 1, a common NTT-friendly prime
-PRIMITIVE_ROOT = 3  # a primitive root mod 998244353
 
+PRIMITIVE_ROOT = 3  # a primitive root mod 998244353
 
 def mod_inverse(a: int, m: int) -> int:
     """Fermat's little theorem: a^(m-2) = a^-1 (mod m), for prime m."""
     return pow(a, m - 2, m)
-
 
 def ntt(a: list[int], invert: bool) -> None:
     """In-place iterative NTT (Cooley-Tukey), length len(a) a power of 2.
@@ -67,7 +68,6 @@ def ntt(a: list[int], invert: bool) -> None:
         for i in range(n):
             a[i] = a[i] * n_inv % MOD
 
-
 def multiply_via_ntt(a: list[int], b: list[int]) -> list[int]:
     """Polynomial multiplication mod MOD via NTT: O(n log n) instead of
     the naive O(n^2)."""
@@ -89,6 +89,7 @@ def multiply_via_ntt(a: list[int], b: list[int]) -> list[int]:
 
     return fa[:result_len]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def multiply_naive(a: list[int], b: list[int]) -> list[int]:
     """The definition, directly: O(n*m). Used only to cross-check the NTT."""
@@ -102,7 +103,6 @@ def multiply_naive(a: list[int], b: list[int]) -> list[int]:
         for j, bv in enumerate(b):
             out[i + j] = (out[i + j] + av * (bv % MOD)) % MOD
     return out
-
 
 def main() -> None:
     # --- Sanity check: the roots of unity really are roots of unity ------
@@ -149,7 +149,6 @@ def main() -> None:
     print(f"\n(1+2x+3x^2)(4+5x+6x^2) via NTT   = {multiply_via_ntt(a, b)}")
     print(f"(1+2x+3x^2)(4+5x+6x^2) via naive = {multiply_naive(a, b)}")
     # Expected by hand: 4 + 13x + 28x^2 + 27x^3 + 18x^4
-
 
 if __name__ == "__main__":
     main()

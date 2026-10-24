@@ -3,6 +3,7 @@
 // after a_i (spots numbered 1..n), every car finds a spot. There are
 // exactly (n+1)^(n-1) of them, proved here via a circular extension trick.
 
+// PDFBEGIN
 /// Definition 1, directly: simulate the parking procedure.
 fn is_parking_function_sim(a: &[usize], n: usize) -> bool {
     let mut occupied = vec![false; n + 1]; // 1-indexed spots 1..=n
@@ -59,6 +60,8 @@ fn satisfies_generalized_condition(a: &[usize], n: usize, m: usize) -> bool {
 fn binom_pow(base: u64, exp: u32) -> u64 {
     base.pow(exp)
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- The source's own worked examples (Problem 2) --------------------

@@ -3,10 +3,11 @@ parking function if, sending car i to look for the first free spot at or
 after a_i (spots numbered 1..n), every car finds a spot. There are exactly
 (n+1)^(n-1) of them, proved here via a circular extension trick.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import itertools
-
 
 def is_parking_function_sim(a: list[int], n: int) -> bool:
     """Definition 1, directly: simulate the parking procedure."""
@@ -22,12 +23,10 @@ def is_parking_function_sim(a: list[int], n: int) -> bool:
             return False
     return True
 
-
 def is_parking_function_condition(a: list[int], n: int) -> bool:
     """Proposition 3, condition 2: for every k, at least k of the a_i are
     <= k."""
     return all(sum(1 for ai in a if ai <= k) >= k for k in range(1, n + 1))
-
 
 def circular_park_empty_slot(a: list[int], n: int) -> int:
     """The circular extension from the counting proof: n cars, spots
@@ -43,13 +42,13 @@ def circular_park_empty_slot(a: list[int], n: int) -> int:
         occupied[j] = True
     return occupied.index(False)
 
-
 def satisfies_generalized_condition(a: list[int], n: int, m: int) -> bool:
     """Proposition 5's generalized condition, for length-m sequences with
     values in [1,n]: for every k, at least (m-n+k) of the a_i are <= k.
     """
     return all(sum(1 for ai in a if ai <= k) >= (m - n + k) for k in range(1, n + 1))
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     # --- The source's own worked examples (Problem 2) --------------------
@@ -126,7 +125,6 @@ def main() -> None:
                 prop5_ok = False
                 print(f"PROP5 MISMATCH n={n} m={m}: got {count} expected {expected}")
     print(f"Proposition 5 count (n+1-m)(n+1)^(m-1) matches brute force, for n,m<=6: {'PASS' if prop5_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

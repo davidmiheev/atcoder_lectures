@@ -6,21 +6,7 @@
 // becomes "cheapest way to pick k items from the two bags combined" --
 // i.e. just merge the two (already-sorted) difference sequences.
 
-/// General min-plus convolution, O(N*M): the definition, directly.
-fn min_plus_convolution_naive(a: &[i64], b: &[i64]) -> Vec<i64> {
-    let (n, m) = (a.len() - 1, b.len() - 1);
-    let mut c = vec![i64::MAX; n + m + 1];
-    for i in 0..=n {
-        for j in 0..=m {
-            let s = a[i] + b[j];
-            if s < c[i + j] {
-                c[i + j] = s;
-            }
-        }
-    }
-    c
-}
-
+// PDFBEGIN
 /// "Convex below": differences A_{i+1} - A_i are nondecreasing.
 fn is_convex(a: &[i64]) -> bool {
     let diffs: Vec<i64> = a.windows(2).map(|w| w[1] - w[0]).collect();
@@ -62,7 +48,25 @@ fn min_plus_convolution_convex(a: &[i64], b: &[i64]) -> Vec<i64> {
     c
 }
 
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+/// General min-plus convolution, O(N*M): the definition, directly.
+fn min_plus_convolution_naive(a: &[i64], b: &[i64]) -> Vec<i64> {
+    let (n, m) = (a.len() - 1, b.len() - 1);
+    let mut c = vec![i64::MAX; n + m + 1];
+    for i in 0..=n {
+        for j in 0..=m {
+            let s = a[i] + b[j];
+            if s < c[i + j] {
+                c[i + j] = s;
+            }
+        }
+    }
+    c
+}
+
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

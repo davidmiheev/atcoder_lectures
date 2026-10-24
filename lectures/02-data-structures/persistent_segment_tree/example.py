@@ -13,11 +13,13 @@ Both use an arena of nodes addressed by index, with index 0 reserved as the
 "empty subtree" sentinel -- the standard way to avoid materializing every
 empty leaf.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 NIL = 0
-INF = float("inf")
 
+INF = float("inf")
 
 class PersistentArray:
     """Branching multi-version array: point update, range min."""
@@ -70,7 +72,6 @@ class PersistentArray:
             self.query(self.left[root], lo, mid, l, r),
             self.query(self.right[root], mid + 1, hi, l, r),
         )
-
 
 class PersistentFrequencyTree:
     """Chained frequency-array versions: range count <= x, range k-th
@@ -133,6 +134,7 @@ class PersistentFrequencyTree:
         right_lo = self.right[lo_root] if lo_root != NIL else NIL
         return self.kth_smallest(right_hi, right_lo, mid + 1, hi, k - left_count)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     # --- Part 1: branching multi-version array, range min --------------
@@ -186,7 +188,6 @@ def main() -> None:
         f"{ft.count_less(roots[8], 1, domain_hi, 5) - ft.count_less(roots[2], 1, domain_hi, 5)}"
     )
     print(f"3rd smallest value in [3,8] (1-indexed) = {ft.kth_smallest(roots[8], roots[2], 1, domain_hi, 3)}")
-
 
 if __name__ == "__main__":
     main()

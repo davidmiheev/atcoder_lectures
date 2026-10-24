@@ -167,6 +167,71 @@ are). The problem is now exactly range count-in-$[a,b)$ on a static array
 ordinary wavelet matrix of height $\lceil \log_2 N \rceil$. Construction
 and $Q$ queries together cost $O((N + Q)\log N)$.
 
+% FIGURE: wma_rect
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.52cm,y=0.52cm]
+\fill[lhi] (1.5,1.5) rectangle (7.5,5.5);
+\draw[lectureink!15] (0,-0.5) -- (0,9.5);
+\draw[lectureink!15] (-0.5,0) -- (9.5,0);
+\draw[lectureink!15] (1,-0.5) -- (1,9.5);
+\draw[lectureink!15] (-0.5,1) -- (9.5,1);
+\draw[lectureink!15] (2,-0.5) -- (2,9.5);
+\draw[lectureink!15] (-0.5,2) -- (9.5,2);
+\draw[lectureink!15] (3,-0.5) -- (3,9.5);
+\draw[lectureink!15] (-0.5,3) -- (9.5,3);
+\draw[lectureink!15] (4,-0.5) -- (4,9.5);
+\draw[lectureink!15] (-0.5,4) -- (9.5,4);
+\draw[lectureink!15] (5,-0.5) -- (5,9.5);
+\draw[lectureink!15] (-0.5,5) -- (9.5,5);
+\draw[lectureink!15] (6,-0.5) -- (6,9.5);
+\draw[lectureink!15] (-0.5,6) -- (9.5,6);
+\draw[lectureink!15] (7,-0.5) -- (7,9.5);
+\draw[lectureink!15] (-0.5,7) -- (9.5,7);
+\draw[lectureink!15] (8,-0.5) -- (8,9.5);
+\draw[lectureink!15] (-0.5,8) -- (9.5,8);
+\draw[lectureink!15] (9,-0.5) -- (9,9.5);
+\draw[lectureink!15] (-0.5,9) -- (9.5,9);
+\draw[->,lectureink!70] (-0.5,-0.5) -- (10.2,-0.5) node[right,llabel] {position $i$};
+\draw[->,lectureink!70] (-0.5,-0.5) -- (-0.5,10.2) node[above,llabel] {value};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (0,3) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (1,7) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (2,1) {};
+\node[circle,fill=lectureaccent,draw=lectureaccent,inner sep=1.6pt] at (3,5) {};
+\node[circle,fill=lectureaccent,draw=lectureaccent,inner sep=1.6pt] at (4,2) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (5,8) {};
+\node[circle,fill=lectureaccent,draw=lectureaccent,inner sep=1.6pt] at (6,4) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (7,0) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (8,6) {};
+\node[circle,fill=white,draw=lectureink!70,inner sep=1.6pt] at (9,3) {};
+\node[llabel] at (4.5,-1.6) {points $(i,\,a_i)$ and the query rectangle};
+\node[llabel,anchor=east] at (12.1,8.2) {array $a$};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,] at (13.0,8.2) {3};
+\node[llabel] at (13.0,9.2) {0};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,] at (14.0,8.2) {7};
+\node[llabel] at (14.0,9.2) {1};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lgray] at (15.0,8.2) {1};
+\node[llabel] at (15.0,9.2) {2};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lhi] at (16.0,8.2) {5};
+\node[llabel] at (16.0,9.2) {3};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lhi] at (17.0,8.2) {2};
+\node[llabel] at (17.0,9.2) {4};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lgray] at (18.0,8.2) {8};
+\node[llabel] at (18.0,9.2) {5};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lhi] at (19.0,8.2) {4};
+\node[llabel] at (19.0,9.2) {6};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,lgray] at (20.0,8.2) {0};
+\node[llabel] at (20.0,9.2) {7};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,] at (21.0,8.2) {6};
+\node[llabel] at (21.0,9.2) {8};
+\node[lcell,minimum width=0.52cm,minimum height=0.52cm,inner sep=0pt,font=\footnotesize\sffamily,] at (22.0,8.2) {3};
+\node[llabel] at (22.0,9.2) {9};
+\draw[decorate,decoration={brace,mirror,amplitude=3pt}] (14.5,7.55) -- (20.5,7.55) node[midway,below=3pt,llabel] {indices $[2,8)$};
+\node[llabel,align=left,anchor=north west] at (12.5,5.6) {count the entries of this index range\\ whose value lies in $[2,6)$:\\ \textbf{3}};
+\end{tikzpicture}
+\caption{Counting points in a rectangle. Sorting the points by $x$ turns the query $[2,8)\times[2,6)$ into ``how many entries of the array $a_2,\dots,a_7$ lie in $[2,6)$'', a range-count query on a wavelet matrix; here the answer is 3.}\label{fig:wma_rect}
+\end{figure}
+
 \subsection{Points with insertions and deletions, offline}
 When points are added and removed over time and queries ask for a maximum
 attached value $X$ over a rectangle, read every query in advance. Each
@@ -187,11 +252,12 @@ point-update, binary-search, and offline-dynamic-points extensions above
 follow the same pattern but are left as an implementation exercise, as the
 source material for this curriculum itself suggests.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

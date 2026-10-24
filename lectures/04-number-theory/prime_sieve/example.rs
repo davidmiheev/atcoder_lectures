@@ -1,6 +1,7 @@
 // Prime sieves: Eratosthenes, the linear sieve (with smallest prime factors),
 // bulk multiplicative functions, and a segmented sieve for a high window.
 
+// PDFBEGIN
 /// Primes up to n, striking multiples of p starting at p*p.
 fn sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     if n < 2 {
@@ -139,6 +140,8 @@ fn segmented_sieve(lo: u64, hi: u64) -> Vec<u64> {
         .map(|i| lo + i as u64)
         .collect()
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     let n = 50usize;

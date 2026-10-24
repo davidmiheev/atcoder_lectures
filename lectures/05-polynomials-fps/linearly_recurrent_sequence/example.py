@@ -14,30 +14,26 @@ recurrent -- reproducing every closure claim in the lecture by fitting a
 candidate recurrence from a prefix of a sequence and confirming it
 extrapolates correctly on a long, disjoint holdout range.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 MOD = 998244353
 
-
 def add(a: int, b: int) -> int:
     return (a + b) % MOD
-
 
 def sub(a: int, b: int) -> int:
     return (a - b) % MOD
 
-
 def mul(a: int, b: int) -> int:
     return (a % MOD) * (b % MOD) % MOD
-
 
 def mod_pow(base: int, exp: int) -> int:
     return pow(base % MOD, exp, MOD)
 
-
 def mod_inv(a: int) -> int:
     return mod_pow(a, MOD - 2)
-
 
 def recur_seq(c: list[int], init: list[int], n: int) -> list[int]:
     """Generate A_0, ..., A_{n-1}: A_i = sum_k c[k] * A_{i-1-k}."""
@@ -52,9 +48,7 @@ def recur_seq(c: list[int], init: list[int], n: int) -> list[int]:
         a.append(s)
     return a[:n]
 
-
 Mat = list[list[int]]
-
 
 def companion_matrix(c: list[int]) -> Mat:
     """Companion matrix of A_i = c[0]*A_{i-1} + ... + c[d-1]*A_{i-d}, so that
@@ -67,7 +61,6 @@ def companion_matrix(c: list[int]) -> Mat:
         m[d - 1][j] = c[d - 1 - j]
     return m
 
-
 def mat_mul(a: Mat, b: Mat) -> Mat:
     n, k, m = len(a), len(b), len(b[0])
     out = [[0] * m for _ in range(n)]
@@ -79,7 +72,6 @@ def mat_mul(a: Mat, b: Mat) -> Mat:
                 out[i][j] = add(out[i][j], mul(a[i][t], b[t][j]))
     return out
 
-
 def mat_pow(base: Mat, exp: int) -> Mat:
     n = len(base)
     result = [[1 if i == j else 0 for j in range(n)] for i in range(n)]
@@ -90,22 +82,8 @@ def mat_pow(base: Mat, exp: int) -> Mat:
         exp >>= 1
     return result
 
-
 def mat_vec(m: Mat, v: list[int]) -> list[int]:
     return [sum((mul(mij, vj) for mij, vj in zip(row, v)), 0) % MOD for row in m]
-
-
-def verify_companion(c: list[int], init: list[int], n: int) -> bool:
-    """Checks A_i == (M^i V_0)_0 for i = 0..n (Theorem 18)."""
-    seq = recur_seq(c, init, n)
-    m = companion_matrix(c)
-    for i in range(n):
-        vi = mat_vec(mat_pow(m, i), init)
-        if vi[0] != seq[i]:
-            print(f"COMPANION MISMATCH i={i}: matrix={vi[0]} direct={seq[i]}")
-            return False
-    return True
-
 
 def find_recurrence(seq: list[int], d: int) -> list[int] | None:
     """Fits a candidate order-D recurrence using the equations at indices
@@ -131,6 +109,18 @@ def find_recurrence(seq: list[int], d: int) -> list[int] | None:
                     rows[r][j] = sub(rows[r][j], mul(factor, rows[col][j]))
     return [rows[i][d] for i in range(d)]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def verify_companion(c: list[int], init: list[int], n: int) -> bool:
+    """Checks A_i == (M^i V_0)_0 for i = 0..n (Theorem 18)."""
+    seq = recur_seq(c, init, n)
+    m = companion_matrix(c)
+    for i in range(n):
+        vi = mat_vec(mat_pow(m, i), init)
+        if vi[0] != seq[i]:
+            print(f"COMPANION MISMATCH i={i}: matrix={vi[0]} direct={seq[i]}")
+            return False
+    return True
 
 def verify_holdout(seq: list[int], c: list[int], start: int) -> bool:
     d = len(c)
@@ -143,7 +133,6 @@ def verify_holdout(seq: list[int], c: list[int], start: int) -> bool:
             return False
     return True
 
-
 def check_linearly_recurrent(name: str, seq: list[int], d: int) -> bool:
     c = find_recurrence(seq, d)
     if c is None:
@@ -155,7 +144,6 @@ def check_linearly_recurrent(name: str, seq: list[int], d: int) -> bool:
         f"{len(seq) - 2 * d} terms: {'PASS' if ok else 'FAIL'}"
     )
     return ok
-
 
 def main() -> None:
     n = 60
@@ -215,7 +203,6 @@ def main() -> None:
         and periodic_ok
     )
     print(f"\nAll checks: {'PASS' if all_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

@@ -122,6 +122,29 @@ suggest, via the transpose principle (see below), rather than computing
 the whole product and discarding the rest.
 \end{notebox}
 
+% FIGURE: bm_msb
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n0) at (0,-0.00) {$Q_0$,\; $[L,R]=[5,13]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n1) at (0,-1.45) {$Q_1$,\; $[L,R]=[2,6]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n2) at (0,-2.90) {$Q_2$,\; $[L,R]=[0,3]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n3) at (0,-4.35) {$Q_3$,\; $[L,R]=[-1,1]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm,lhi2] (n4) at (0,-5.80) {$Q_4$,\; $[L,R]=[-1,0]$\\[-1pt]\scriptsize base case: $R=0$, answer $x^{1}$};
+\draw[larrow] ([xshift=-1.1cm]n0.south) -- ([xshift=-1.1cm]n1.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n1.north) -- ([xshift=1.1cm]n0.south);
+\draw[larrow] ([xshift=-1.1cm]n1.south) -- ([xshift=-1.1cm]n2.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n2.north) -- ([xshift=1.1cm]n1.south);
+\draw[larrow] ([xshift=-1.1cm]n2.south) -- ([xshift=-1.1cm]n3.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n3.north) -- ([xshift=1.1cm]n2.south);
+\draw[larrow] ([xshift=-1.1cm]n3.south) -- ([xshift=-1.1cm]n4.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n4.north) -- ([xshift=1.1cm]n3.south);
+\node[llabel,anchor=east,align=right] at (-2.0,-2.9) {descend: $Q_{t+1}(x^2)=Q_t(x)Q_t(-x)$,\\ $L'=\lceil (L-d)/2\rceil,\ R'=\lfloor R/2\rfloor$};
+\node[llabel,anchor=west,align=left,text=lectureaccent] at (2.0,-2.9) {unwind: interleave $W$ into $S$,\\ then take the middle product\\ of $Q_t(-x)$ and $S$};
+\end{tikzpicture}
+\caption{The MSB-first recursion for $[x^{[L,R]}]\,1/Q(x)$ with $d=2$ and $[L,R]=[5,13]$. Each level squares away the odd part of the denominator and roughly halves the interval ($L'=\lceil (L-d)/2\rceil$, $R'=\lfloor R/2\rfloor$) until $R=0$; the answer is then rebuilt on the way back up, one middle product per level.}\label{fig:bm_msb}
+\end{figure}
+
 \subsection{This is the transpose of the ordinary algorithm}
 \begin{notebox}
 Write the target answer as $[x^{[L,R]}]\,1/Q(x) = \sum_i a_i x^i$
@@ -250,11 +273,12 @@ engine; it is described above with its complexity analysis but not
 implemented here, consistent with how the source material itself treats
 it as a refinement layered on the core algorithm.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

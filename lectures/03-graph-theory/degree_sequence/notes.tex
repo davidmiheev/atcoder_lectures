@@ -123,6 +123,35 @@ having it fail at some step certifies the sequence is \emph{not} graphic
 --- so the algorithm doubles as a realizability test, an alternative to
 checking the Erd\H{o}s--Gallai inequalities directly.
 
+% FIGURE: hh_graph
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert] (v0) at (0.000,1.700) {4};
+\node[lvert] (v1) at (1.472,0.850) {4};
+\node[lvert] (v2) at (1.472,-0.850) {3};
+\node[lvert] (v3) at (0.000,-1.700) {2};
+\node[lvert] (v4) at (-1.472,-0.850) {2};
+\node[lvert] (v5) at (-1.472,0.850) {1};
+\draw[lectureaccent,very thick] (v0) -- (v1);
+\draw[lectureaccent,very thick] (v0) -- (v2);
+\draw[lectureaccent,very thick] (v0) -- (v3);
+\draw[lectureaccent,very thick] (v0) -- (v4);
+\draw[lecturewarn,very thick] (v1) -- (v2);
+\draw[lecturewarn,very thick] (v1) -- (v3);
+\draw[lecturewarn,very thick] (v1) -- (v4);
+\draw[lectureink,very thick] (v2) -- (v5);
+\node[lnode] (s0) at (7.4,2.40) {$(4,4,3,2,2,1)$};
+\node[lnode] (s1) at (7.4,0.80) {$(3,2,1,1,1)$};
+\draw[larrow] (s0) -- (s1) node[midway,right=2pt,llabel,align=left,text=lectureaccent] {step 1: remove a 4, subtract 1\\ from the next four};
+\node[lnode] (s2) at (7.4,-0.80) {$(1,1,0,0)$};
+\draw[larrow] (s1) -- (s2) node[midway,right=2pt,llabel,align=left,text=lecturewarn] {step 2: remove the 3, subtract 1\\ from the next three, re-sort};
+\node[lnode] (s3) at (7.4,-2.40) {$(0,0,0)$};
+\draw[larrow] (s2) -- (s3) node[midway,right=2pt,llabel,align=left,text=lectureink] {step 3: remove a 1, subtract 1\\ from the next one};
+\end{tikzpicture}
+\caption{Havel--Hakimi on $(4,4,3,2,2,1)$. Left: the graph that the three steps construct, with each vertex labelled by its degree; the edges added in step 1 are blue, step 2 brown, step 3 black. Right: the shrinking sequence; it reaches all zeros, so the sequence is graphic.}\label{fig:hh_graph}
+\end{figure}
+
 \section{Complexity}
 Checking the Erd\H{o}s--Gallai conditions directly, after sorting, takes
 $O(n)$ time with counting-sort-style bucketing and prefix sums (the
@@ -142,11 +171,12 @@ Havel--Hakimi construction, verify them against the source lecture's own
 three worked examples, and cross-check the realizability test exhaustively
 against every possible $5$-vertex graph.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

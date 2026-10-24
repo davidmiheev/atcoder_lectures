@@ -16,13 +16,16 @@ against both a hand-derived variant from the lecture and the well-known
 mechanically derive the fast superset zeta transform; and (4) reproduces
 the lecture's own small worked example exactly.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
+
 from dataclasses import dataclass, field
 
-
 @dataclass
+
 class Program:
     """A "linear program": load x into some scratch slots, run a sequence
     of z[a] += c*z[b] steps, then read y out of some scratch slots."""
@@ -31,7 +34,6 @@ class Program:
     load_positions: list[int]  # length M: x[j] goes into z[load_positions[j]]
     ops: list[tuple[int, int, int]] = field(default_factory=list)  # (a, b, c): z[a] += c*z[b]
     store_positions: list[int] = field(default_factory=list)  # length N: y[i] = z[store_positions[i]]
-
 
 def forward(prog: Program, x: list[int]) -> list[int]:
     z = [0] * prog.k
@@ -48,7 +50,6 @@ def forward(prog: Program, x: list[int]) -> list[int]:
         z[a] += c * z[b]
     return [z[p] for p in prog.store_positions]
 
-
 def transpose_run(prog: Program, y: list[int]) -> list[int]:
     """The transposed algorithm from Theorem 2: reverse step order, swap
     each step's (a,b) roles, and swap the roles of load/store positions."""
@@ -60,40 +61,6 @@ def transpose_run(prog: Program, y: list[int]) -> list[int]:
     for a, b, c in reversed(prog.ops):
         z[b] += c * z[a]
     return [z[p] for p in prog.load_positions]
-
-
-def compute_matrix(prog: Program) -> list[list[int]]:
-    """Computes the N x M matrix A that `forward` implements, by running it
-    on each standard basis vector. Used only to validate the transposition
-    principle itself against A^T, not part of either algorithm."""
-    m = len(prog.load_positions)
-    n = len(prog.store_positions)
-    a = [[0] * m for _ in range(n)]
-    for j in range(m):
-        x = [0] * m
-        x[j] = 1
-        y = forward(prog, x)
-        for i in range(n):
-            a[i][j] = y[i]
-    return a
-
-
-def mat_transpose_vec(a: list[list[int]], y: list[int]) -> list[int]:
-    n = len(a)
-    m = len(a[0]) if n > 0 else 0
-    return [sum(a[i][j] * y[i] for i in range(n)) for j in range(m)]
-
-
-def random_program(rng: random.Random) -> Program:
-    k = rng.randint(2, 7)
-    m = rng.randint(1, k)
-    n = rng.randint(1, k)
-    q = rng.randint(0, 14)
-    load_positions = [rng.randint(0, k - 1) for _ in range(m)]
-    store_positions = [rng.randint(0, k - 1) for _ in range(n)]
-    ops = [(rng.randint(0, k - 1), rng.randint(0, k - 1), rng.randint(-5, 5)) for _ in range(q)]
-    return Program(k=k, load_positions=load_positions, ops=ops, store_positions=store_positions)
-
 
 # --- Section 5: range-sum queries (Problem 3A) and their transpose,
 # range-add queries (Problem 3B), via the prefix-sum solution. ---
@@ -117,15 +84,6 @@ def interval_sum_program(n: int, queries: list[tuple[int, int]]) -> Program:
     store_positions = [n + 1 + i for i in range(q)]
     return Program(k=k, load_positions=load_positions, ops=ops, store_positions=store_positions)
 
-
-def interval_sum_naive(queries: list[tuple[int, int]], x: list[int]) -> list[int]:
-    return [sum(x[l : r + 1]) for l, r in queries]
-
-
-def interval_add_naive(n: int, queries: list[tuple[int, int]], y: list[int]) -> list[int]:
-    return [sum(yi for (l, r), yi in zip(queries, y) if l <= j <= r) for j in range(n)]
-
-
 def transpose_hand_derived(n: int, queries: list[tuple[int, int]], y: list[int]) -> list[int]:
     """The hand-derived transpose from section 5.3 of the lecture."""
     s = [0] * (n + 1)
@@ -135,7 +93,6 @@ def transpose_hand_derived(n: int, queries: list[tuple[int, int]], y: list[int])
     for j in range(n - 1, -1, -1):
         s[j] += s[j + 1]
     return [s[j + 1] for j in range(n)]
-
 
 def transpose_imos(n: int, queries: list[tuple[int, int]], y: list[int]) -> list[int]:
     """The "imos method" variant from section 5.4 (different loop
@@ -147,7 +104,6 @@ def transpose_imos(n: int, queries: list[tuple[int, int]], y: list[int]) -> list
     for j in range(n):
         s[j + 1] += s[j]
     return [s[j] for j in range(n)]
-
 
 # --- Section 6: subset zeta transform (Problem 4A) and its transpose,
 # the superset zeta transform (Problem 4B). ---
@@ -164,16 +120,51 @@ def subset_zeta_program(n: int) -> Program:
     store_positions = list(range(size))
     return Program(k=size, load_positions=load_positions, ops=ops, store_positions=store_positions)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def compute_matrix(prog: Program) -> list[list[int]]:
+    """Computes the N x M matrix A that `forward` implements, by running it
+    on each standard basis vector. Used only to validate the transposition
+    principle itself against A^T, not part of either algorithm."""
+    m = len(prog.load_positions)
+    n = len(prog.store_positions)
+    a = [[0] * m for _ in range(n)]
+    for j in range(m):
+        x = [0] * m
+        x[j] = 1
+        y = forward(prog, x)
+        for i in range(n):
+            a[i][j] = y[i]
+    return a
+
+def mat_transpose_vec(a: list[list[int]], y: list[int]) -> list[int]:
+    n = len(a)
+    m = len(a[0]) if n > 0 else 0
+    return [sum(a[i][j] * y[i] for i in range(n)) for j in range(m)]
+
+def random_program(rng: random.Random) -> Program:
+    k = rng.randint(2, 7)
+    m = rng.randint(1, k)
+    n = rng.randint(1, k)
+    q = rng.randint(0, 14)
+    load_positions = [rng.randint(0, k - 1) for _ in range(m)]
+    store_positions = [rng.randint(0, k - 1) for _ in range(n)]
+    ops = [(rng.randint(0, k - 1), rng.randint(0, k - 1), rng.randint(-5, 5)) for _ in range(q)]
+    return Program(k=k, load_positions=load_positions, ops=ops, store_positions=store_positions)
+
+def interval_sum_naive(queries: list[tuple[int, int]], x: list[int]) -> list[int]:
+    return [sum(x[l : r + 1]) for l, r in queries]
+
+def interval_add_naive(n: int, queries: list[tuple[int, int]], y: list[int]) -> list[int]:
+    return [sum(yi for (l, r), yi in zip(queries, y) if l <= j <= r) for j in range(n)]
 
 def subset_zeta_naive(n: int, a: list[int]) -> list[int]:
     size = 1 << n
     return [sum(a[s] for s in range(size) if s & t == s) for t in range(size)]
 
-
 def superset_zeta_naive(n: int, a: list[int]) -> list[int]:
     size = 1 << n
     return [sum(a[s] for s in range(size) if s & t == t) for t in range(size)]
-
 
 def main() -> None:
     rng = random.Random(2026092001)
@@ -269,7 +260,6 @@ def main() -> None:
 
     all_ok = theorem_ok and example_ok and interval_ok and zeta_ok
     print(f"\nAll checks: {'PASS' if all_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

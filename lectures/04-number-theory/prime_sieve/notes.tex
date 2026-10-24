@@ -53,6 +53,70 @@ $\mathrm{isPrime}[p]$ was still true when the walk reached $p$, so the inner
 loop for $p$ ran and marked the multiple $n$. \qed
 \end{theorembox}
 
+% FIGURE: sieve_grid
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.9cm,y=0.78cm]
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,lgray,text=lectureink!40] at (0,0) {1};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (1,0) {\textbf{2}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (2,0) {\textbf{3}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (3,0) {4};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (4,0) {\textbf{5}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (5,0) {6};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (6,0) {\textbf{7}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (7,0) {8};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (8,0) {9};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (9,0) {10};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (0,-1) {\textbf{11}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (1,-1) {12};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (2,-1) {\textbf{13}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (3,-1) {14};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (4,-1) {15};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (5,-1) {16};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (6,-1) {\textbf{17}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (7,-1) {18};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (8,-1) {\textbf{19}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (9,-1) {20};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (0,-2) {21};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (1,-2) {22};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (2,-2) {\textbf{23}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (3,-2) {24};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=green!35!lectureink!12,text=lectureink!70] at (4,-2) {25};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (5,-2) {26};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (6,-2) {27};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (7,-2) {28};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (8,-2) {\textbf{29}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (9,-2) {30};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (0,-3) {\textbf{31}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (1,-3) {32};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (2,-3) {33};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (3,-3) {34};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=green!35!lectureink!12,text=lectureink!70] at (4,-3) {35};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (5,-3) {36};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (6,-3) {\textbf{37}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (7,-3) {38};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (8,-3) {39};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (9,-3) {40};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (0,-4) {\textbf{41}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (1,-4) {42};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (2,-4) {\textbf{43}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (3,-4) {44};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lecturewarn!30,text=lectureink!70] at (4,-4) {45};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (5,-4) {46};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=white,very thick,draw=lectureink] at (6,-4) {\textbf{47}};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (7,-4) {48};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=violet!25,text=lectureink!70] at (8,-4) {49};
+\node[lcell,minimum width=0.85cm,minimum height=0.72cm,fill=lectureaccent!30,text=lectureink!70] at (9,-4) {50};
+\node[llabel,anchor=west] at (10.0,-0.2) {crossed out first by:};
+\node[lcell,minimum width=0.6cm,minimum height=0.5cm,fill=lectureaccent!30] at (10.4,-0.90) {}; \node[llabel,anchor=west] at (10.75,-0.90) {multiples of 2};
+\node[lcell,minimum width=0.6cm,minimum height=0.5cm,fill=lecturewarn!30] at (10.4,-1.55) {}; \node[llabel,anchor=west] at (10.75,-1.55) {multiples of 3};
+\node[lcell,minimum width=0.6cm,minimum height=0.5cm,fill=green!35!lectureink!12] at (10.4,-2.20) {}; \node[llabel,anchor=west] at (10.75,-2.20) {multiples of 5};
+\node[lcell,minimum width=0.6cm,minimum height=0.5cm,fill=violet!25] at (10.4,-2.85) {}; \node[llabel,anchor=west] at (10.75,-2.85) {multiples of 7};
+\node[lcell,minimum width=0.6cm,minimum height=0.5cm,very thick,draw=lectureink,fill=white] at (10.4,-3.5) {}; \node[llabel,anchor=west] at (10.75,-3.5) {prime (never crossed out)};
+\end{tikzpicture}
+\caption{The sieve of Eratosthenes on $1,\dots,50$. Only the primes $2,3,5,7$ up to $\lfloor\sqrt{50}\rfloor$ need to be used as sieving primes; each composite is coloured by the first (smallest) prime that crosses it out, and the numbers left unmarked are the 15 primes up to 50.}\label{fig:sieve_grid}
+\end{figure}
+
 \subsection{Complexity}
 The inner loop for a prime $p$ performs $\lfloor N/p \rfloor$ writes, so the
 total work is
@@ -263,11 +327,12 @@ Primes in $[L, R]$ (segmented)       & $O((\sqrt R + R - L)\log\log R)$ & $\sqrt
 
 \section{Reference Implementations}
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

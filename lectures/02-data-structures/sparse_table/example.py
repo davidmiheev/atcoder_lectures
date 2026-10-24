@@ -2,8 +2,9 @@
 
 Build: O(n log n). Query: O(1).
 """
-from __future__ import annotations
 
+# PDFBEGIN
+from __future__ import annotations
 
 class SparseTable:
     def __init__(self, a: list[int]) -> None:
@@ -28,6 +29,7 @@ class SparseTable:
         window = 1 << k
         return min(self.table[k][l], self.table[k][r - window])
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     a = [5, 2, 4, 7, 1, 3, 6]
@@ -35,7 +37,6 @@ def main() -> None:
 
     for l, r in [(1, 6), (0, 7), (3, 4), (4, 6)]:
         print(f"min(a[{l}:{r}]) = {st.query(l, r)}")
-
 
 if __name__ == "__main__":
     main()

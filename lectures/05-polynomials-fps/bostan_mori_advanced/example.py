@@ -7,22 +7,20 @@ a linearly recurrent sequence's generating function, and computing
 x^K mod Gamma(x) (the object at the heart of Fiduccia's algorithm) via
 this machinery instead of binary exponentiation.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 MOD = 998244353
 
-
 def add(a: int, b: int) -> int:
     return (a + b) % MOD
-
 
 def sub(a: int, b: int) -> int:
     return (a - b) % MOD
 
-
 def mul(a: int, b: int) -> int:
     return (a % MOD) * (b % MOD) % MOD
-
 
 def poly_mul(a: list[int], b: list[int]) -> list[int]:
     out = [0] * (len(a) + len(b) - 1)
@@ -33,19 +31,15 @@ def poly_mul(a: list[int], b: list[int]) -> list[int]:
             out[i + j] = add(out[i + j], mul(av, bv))
     return out
 
-
 def negate_odd(a: list[int]) -> list[int]:
     return [sub(0, v) if i % 2 == 1 else v for i, v in enumerate(a)]
-
 
 def even_part(a: list[int]) -> list[int]:
     return a[0::2]
 
-
 def ceil_div(a: int, b: int) -> int:
     """ceil(a / b) for b > 0, correct for negative a."""
     return -(-a // b)
-
 
 # Every interval-extraction result is returned as a PLAIN polynomial,
 # reindexed to start at x^0: index j holds the true coefficient at degree
@@ -106,7 +100,6 @@ def range_coefficients_of_inverse(q: list[int], d: int, l: int, r: int) -> list[
             out[p] = prod[idx]
     return out
 
-
 def range_coefficients_of_rational(p: list[int], q: list[int], d: int, l: int, r: int) -> list[int]:
     """[x^[L,R]] P(x)/Q(x), for P of degree <= d-1, Q of degree <= d,
     Q(0) = 1. (Problem 1, reduced to Problem 2 above.)
@@ -121,52 +114,6 @@ def range_coefficients_of_rational(p: list[int], q: list[int], d: int, l: int, r
         idx = p_idx + d - 1
         out.append(prod[idx] if 0 <= idx < len(prod) else 0)
     return out
-
-
-# --- Reference implementations, for cross-checking ----------------------
-
-
-def brute_force_inverse(q: list[int], up_to: int) -> list[int]:
-    """O(d^2 * N): the first up_to+1 coefficients of 1/Q(x) via the
-    standard recurrence, given Q(0) = 1.
-    """
-    inv = [0] * (up_to + 1)
-    inv[0] = 1
-    for k in range(1, up_to + 1):
-        s = 0
-        for i in range(1, min(k, len(q) - 1) + 1):
-            s = add(s, mul(q[i], inv[k - i]))
-        inv[k] = sub(0, s)
-    return inv
-
-
-def brute_force_range_of_inverse(q: list[int], l: int, r: int) -> list[int]:
-    inv = brute_force_inverse(q, max(r, 0))
-    return [0 if deg < 0 else inv[deg] for deg in range(l, r + 1)]
-
-
-def direct_sequence(p: list[int], q: list[int], up_to: int) -> list[int]:
-    """Direct recurrence unrolling of A_i = c_1 A_{i-1} + ... + c_d A_{i-d},
-    from A(x) = P(x)/Q(x) with Q(x) = 1 - c_1 x - ... - c_d x^d.
-    """
-    d = len(q) - 1
-    c = [sub(0, q[j]) for j in range(1, d + 1)]
-    a = [0] * (up_to + 1)
-    for i in range(up_to + 1):
-        p_i = p[i] if i < len(p) else 0
-        if i < d:
-            # A(x)Q(x) = P(x), Q(0)=1: A_i = P_i - sum_{j<i} A_j Q_{i-j}.
-            s = p_i % MOD
-            for j in range(i):
-                s = sub(s, mul(a[j], q[i - j]))
-            a[i] = s
-        else:
-            v = 0
-            for j in range(d):
-                v = add(v, mul(c[j], a[i - 1 - j]))
-            a[i] = v
-    return a
-
 
 def xk_mod_gamma_fiduccia(k: int, d: int, c: list[int]) -> list[int]:
     """x^K mod Gamma(x) via ordinary binary exponentiation (Fiduccia),
@@ -211,7 +158,6 @@ def xk_mod_gamma_fiduccia(k: int, d: int, c: list[int]) -> list[int]:
 
     return rec(k)
 
-
 def xk_mod_gamma_via_bostan_mori(q: list[int], d: int, k: int) -> list[int]:
     """x^K mod Gamma(x) via interval coefficient extraction (Problem 5):
     U(x) = [x^[K-d+1,K]] 1/Q(x), then reverse (Q(x)U(x) mod x^d).
@@ -221,6 +167,49 @@ def xk_mod_gamma_via_bostan_mori(q: list[int], d: int, k: int) -> list[int]:
     r_tilde = qu[:d]
     return r_tilde[::-1]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+# --- Reference implementations, for cross-checking ----------------------
+
+
+def brute_force_inverse(q: list[int], up_to: int) -> list[int]:
+    """O(d^2 * N): the first up_to+1 coefficients of 1/Q(x) via the
+    standard recurrence, given Q(0) = 1.
+    """
+    inv = [0] * (up_to + 1)
+    inv[0] = 1
+    for k in range(1, up_to + 1):
+        s = 0
+        for i in range(1, min(k, len(q) - 1) + 1):
+            s = add(s, mul(q[i], inv[k - i]))
+        inv[k] = sub(0, s)
+    return inv
+
+def brute_force_range_of_inverse(q: list[int], l: int, r: int) -> list[int]:
+    inv = brute_force_inverse(q, max(r, 0))
+    return [0 if deg < 0 else inv[deg] for deg in range(l, r + 1)]
+
+def direct_sequence(p: list[int], q: list[int], up_to: int) -> list[int]:
+    """Direct recurrence unrolling of A_i = c_1 A_{i-1} + ... + c_d A_{i-d},
+    from A(x) = P(x)/Q(x) with Q(x) = 1 - c_1 x - ... - c_d x^d.
+    """
+    d = len(q) - 1
+    c = [sub(0, q[j]) for j in range(1, d + 1)]
+    a = [0] * (up_to + 1)
+    for i in range(up_to + 1):
+        p_i = p[i] if i < len(p) else 0
+        if i < d:
+            # A(x)Q(x) = P(x), Q(0)=1: A_i = P_i - sum_{j<i} A_j Q_{i-j}.
+            s = p_i % MOD
+            for j in range(i):
+                s = sub(s, mul(a[j], q[i - j]))
+            a[i] = s
+        else:
+            v = 0
+            for j in range(d):
+                v = add(v, mul(c[j], a[i - 1 - j]))
+            a[i] = v
+    return a
 
 class Rng:
     def __init__(self, seed: int) -> None:
@@ -235,7 +224,6 @@ class Rng:
 
     def range(self, lo: int, hi: int) -> int:
         return lo + (self.next() % (hi - lo + 1))
-
 
 def main() -> None:
     rng = Rng(2025)
@@ -304,7 +292,6 @@ def main() -> None:
             shift_ok = False
             print(f"SHIFT MISMATCH p={p} q={q} k={k}: shifted={shifted_seq} want={want}")
     print(f"shifted generating function S(x)/Q(x) reproduces (A_K, A_K+1, ...): {'PASS' if shift_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

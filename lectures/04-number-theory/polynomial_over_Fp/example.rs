@@ -12,17 +12,21 @@
 // direct computation, and Schwartz-Zippel by measuring vanishing
 // frequency of random nonzero polynomials against the d/p bound.
 
+// PDFBEGIN
 const P: i64 = 17; // small prime, so exhaustive checks over all of F_p are cheap
 
 fn add(a: i64, b: i64) -> i64 {
     (a + b).rem_euclid(P)
 }
+
 fn sub(a: i64, b: i64) -> i64 {
     (a - b).rem_euclid(P)
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a.rem_euclid(P) * b.rem_euclid(P)).rem_euclid(P)
 }
+
 fn mod_pow(mut base: i64, mut exp: i64, m: i64) -> i64 {
     let mut result = 1i64;
     base = base.rem_euclid(m);
@@ -35,6 +39,7 @@ fn mod_pow(mut base: i64, mut exp: i64, m: i64) -> i64 {
     }
     result
 }
+
 fn mod_inv(a: i64) -> i64 {
     mod_pow(a, P - 2, P)
 }
@@ -111,6 +116,8 @@ fn poly_mul(a: &Poly, b: &Poly) -> Poly {
 fn roots_by_evaluation(f: &Poly) -> Vec<i64> {
     (0..P).filter(|&a| eval_poly(f, a) == 0).collect()
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- Remainder theorem: f(x) mod (x - a) == f(a), for many random f, a ---

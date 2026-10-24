@@ -120,6 +120,47 @@ statistic, then locate a cut where a running sum matches a closed-form
 target --- is a useful pattern in its own right.
 \end{notebox}
 
+% FIGURE: tour_scc
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert,minimum size=7.5mm] (v0) at (0,0.9) {$v_0$};
+\node[lvert,minimum size=7.5mm] (v1) at (1.5,0.9) {$v_1$};
+\node[lvert,minimum size=7.5mm] (v2) at (0.75,-0.4) {$v_2$};
+\node[lvert,minimum size=7.5mm] (v3) at (4.4,0.25) {$v_3$};
+\node[lvert,minimum size=7.5mm] (v4) at (7.2,0.25) {$v_4$};
+\draw[larrow] (v0) -- (v1);
+\draw[larrow] (v1) -- (v2);
+\draw[larrow] (v2) -- (v0);
+\begin{scope}[on background layer]
+\node[draw=lectureaccent,dashed,rounded corners=8pt,fit=(v0)(v1)(v2),inner sep=7pt] (C1) {};
+\end{scope}
+\node[llabel,above=2pt of C1] {component 1 (a 3-cycle)};
+\draw[larrow,lectureaccent] (C1.east) -- (v3.west);
+\draw[larrow,lectureaccent] (v3) -- (v4);
+\draw[larrow,lectureaccent,bend left=26] (C1.north east) to (v4.north west);
+\node[llabel,below=15pt of v3] {component 2};
+\node[llabel,below=15pt of v4] {component 3};
+\node[llabel,text=lecturewarn,left=1pt of v0] {in=1};
+\node[llabel,text=lecturewarn,right=1pt of v1] {in=1};
+\node[llabel,text=lecturewarn,right=1pt of v2] {in=1};
+\node[llabel,text=lecturewarn,below=1pt of v3] {in=3};
+\node[llabel,text=lecturewarn,below=1pt of v4] {in=4};
+\end{tikzpicture}
+
+\medskip
+\small\sffamily
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+$k$ (vertices sorted by in-degree) & 1 & 2 & 3 & 4 & 5\\
+running sum of in-degrees & 1 & 2 & 3 & 6 & 10\\
+$\binom{k}{2}$ & 0 & 1 & 3 & 6 & 10\\
+equal? (cut here) & & & \textbf{yes} & \textbf{yes} & \textbf{yes}\\
+\bottomrule
+\end{tabular}
+\caption{The component structure of a tournament on five vertices, and how in-degrees recover it. Sorted in-degrees are $1,1,1,3,4$; the running sum equals $\binom{k}{2}$ exactly at $k=3,4,5$, so the components are $\{v_0,v_1,v_2\},\{v_3\},\{v_4\}$. Every edge between two components points from the earlier to the later one.}\label{fig:tour_scc}
+\end{figure}
+
 \section{Hamiltonian Paths}
 \begin{theorembox}[(R\'edei)]
 Every tournament on $N \ge 1$ vertices has a Hamiltonian path.
@@ -206,11 +247,12 @@ SCC decomposition (cross-checked against a reachability-based reference
 implementation), R\'edei's Hamiltonian path, Camion's Hamiltonian cycle,
 and Landau's $2$-king, each validated over hundreds of random tournaments.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

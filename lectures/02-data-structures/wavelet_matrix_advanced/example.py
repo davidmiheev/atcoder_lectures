@@ -3,10 +3,11 @@ over an attached value array, and 2D rectangle counting via coordinate
 compression. Builds on the plain range k-th-smallest / range-count wavelet
 matrix from the companion "basics" lecture.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import bisect
-
 
 class WaveletMatrixSum:
     def __init__(self, height: int, a: list[int], x: list[int]) -> None:
@@ -112,7 +113,6 @@ class WaveletMatrixSum:
         """Count of i in [l, r) with a <= A_i < b (range_sum with X = all ones)."""
         return self.range_sum(l, r, a, b)
 
-
 class RectangleCounter:
     """2D rectangle counting: given N points, answer "how many points have
     L <= x < R and D <= y < U" by coordinate-compressing y, sorting by x,
@@ -140,6 +140,7 @@ class RectangleCounter:
         du = bisect.bisect_left(self.sorted_unique_y, u)
         return self.wm.range_count(il, ir, dl, du)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     # --- XOR-shifted k-th smallest -------------------------------------
@@ -189,7 +190,6 @@ def main() -> None:
             print(f"RECT MISMATCH ({l},{r},{d},{u}): got {got} want {expected}")
         print(f"rect [{l},{r}) x [{d},{u}) -> {got} points")
     print(f"rectangle-count cross-check: {'PASS' if rect_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

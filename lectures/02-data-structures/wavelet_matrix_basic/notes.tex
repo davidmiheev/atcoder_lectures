@@ -113,6 +113,56 @@ counting argument applied to $a_1, b_1$ (now counting within the
 went-right elements) gives the offset $c_0 + a_1$.
 \end{notebox}
 
+% FIGURE: wm_levels
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.05cm,y=1.25cm]
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,0) {\textcolor{lecturewarn}{\textbf{1}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,0) {\textcolor{lecturewarn}{\textbf{0}}11};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,0) {\textcolor{lecturewarn}{\textbf{1}}10};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,0) {\textcolor{lecturewarn}{\textbf{0}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,0) {\textcolor{lecturewarn}{\textbf{1}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,0) {\textcolor{lecturewarn}{\textbf{0}}00};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,0) {\textcolor{lecturewarn}{\textbf{1}}11};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,0) {\textcolor{lecturewarn}{\textbf{0}}10};
+\node[llabel,anchor=east] at (-0.7,0) {input};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-1) {0\textcolor{lecturewarn}{\textbf{1}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-1) {0\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-1) {0\textcolor{lecturewarn}{\textbf{0}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-1) {0\textcolor{lecturewarn}{\textbf{1}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-1) {1\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-1) {1\textcolor{lecturewarn}{\textbf{1}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-1) {1\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-1) {1\textcolor{lecturewarn}{\textbf{1}}1};
+\node[llabel,anchor=east] at (-0.7,-1) {after bit 2};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-2) {00\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-2) {00\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-2) {10\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-2) {10\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-2) {01\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-2) {01\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-2) {11\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-2) {11\textcolor{lecturewarn}{\textbf{1}}};
+\node[llabel,anchor=east] at (-0.7,-2) {after bit 1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-3) {000};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-3) {010};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-3) {110};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-3) {001};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-3) {101};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-3) {101};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-3) {011};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-3) {111};
+\node[llabel,anchor=east] at (-0.7,-3) {after bit 0};
+\draw[larrow] (7.8,-0.20) -- (7.8,-0.80) node[midway,right,llabel,align=left] {split on bit 2,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (3.5,-0.65) -- (3.5,-1.35);
+\draw[larrow] (7.8,-1.20) -- (7.8,-1.80) node[midway,right,llabel,align=left] {split on bit 1,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (3.5,-1.65) -- (3.5,-2.35);
+\draw[larrow] (7.8,-2.20) -- (7.8,-2.80) node[midway,right,llabel,align=left] {split on bit 0,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (2.5,-2.65) -- (2.5,-3.35);
+\end{tikzpicture}
+\caption{Building a wavelet matrix for $a=(5,3,6,1,5,0,7,2)$ with $H=3$ bits. At each level the highlighted bit (most significant first) is read off every element and the array is stably partitioned with the zeros first; the dashed line marks the boundary $c_0$ between the two groups. Because every pass partitions the whole array, the final order is by bit-reversed value (here $0,2,6,1,5,5,3,7$), not sorted order.}\label{fig:wm_levels}
+\end{figure}
+
 \section{Build and Query Algorithms}
 
 \subsection{Build}
@@ -120,8 +170,11 @@ Process heights $h = H-1$ down to $0$. At each height, with the array in
 its current order, read off the bit at position $h$ of every element,
 stably partition the array into ``bit $0$'' elements followed by ``bit
 $1$'' elements, and record the bit sequence's prefix sums as
-$\mathrm{dat}_h$ before moving on. After all $H$ levels this is exactly a
-most-significant-bit-first radix sort, and the total work is $O(NH)$.
+$\mathrm{dat}_h$ before moving on. Note that each pass partitions the
+\emph{whole} array, not each trie node separately, so the passes are those
+of a radix sort that handles the most significant bit \emph{first}; the
+final array is therefore ordered by the bit-reversed values rather than
+sorted (see Figure~\ref{fig:wm_levels}). The total work is $O(NH)$.
 
 \subsection{$k$-th smallest}
 Starting from the root $(H, [L, R))$, at each step compute the current
@@ -162,11 +215,12 @@ settings and is not covered here.
 
 \section{Reference Implementations}
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

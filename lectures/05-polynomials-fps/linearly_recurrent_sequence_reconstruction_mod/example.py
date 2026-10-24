@@ -6,8 +6,9 @@ prime power separately (the hard part -- ordinary Berlekamp-Massey does not
 work since Z/p^eZ is not a field), then recombine coefficient-wise with the
 Chinese Remainder Theorem.
 """
-from __future__ import annotations
 
+# PDFBEGIN
+from __future__ import annotations
 
 def ext_gcd(a: int, b: int) -> tuple[int, int, int]:
     if b == 0:
@@ -15,13 +16,11 @@ def ext_gcd(a: int, b: int) -> tuple[int, int, int]:
     g, x1, y1 = ext_gcd(b, a % b)
     return g, y1, x1 - (a // b) * y1
 
-
 def mod_inv(a: int, m: int) -> int:
     """Inverse of a unit `a` modulo `m` (requires gcd(a, m) = 1)."""
     g, x, _ = ext_gcd(a % m, m)
     assert g == 1, f"{a} is not invertible mod {m}"
     return x % m
-
 
 def factorize(m: int) -> list[tuple[int, int]]:
     factors = []
@@ -38,7 +37,6 @@ def factorize(m: int) -> list[tuple[int, int]]:
         factors.append((m, 1))
     return factors
 
-
 def valuation_unit(x: int, p: int, e: int, pe: int) -> tuple[int, int]:
     """Decompose a residue x in [0, p^e) as x = t * p^u, t a unit mod p^e.
 
@@ -52,7 +50,6 @@ def valuation_unit(x: int, p: int, e: int, pe: int) -> tuple[int, int]:
         x //= p
         u += 1
     return u, x
-
 
 def reeds_sloane_prime_power(s: list[int], p: int, e: int) -> tuple[int, list[int]]:
     """Reeds-Sloane recovery of the minimal (L, Q(x)) with Q(0) = 1, over
@@ -119,14 +116,12 @@ def reeds_sloane_prime_power(s: list[int], p: int, e: int) -> tuple[int, list[in
 
     return length[0], q[0]
 
-
 def crt_pair(r1: int, m1: int, r2: int, m2: int) -> tuple[int, int]:
     g, x, _ = ext_gcd(m1, m2)
     assert g == 1, "moduli must be coprime"
     m = m1 * m2
     t = ((r2 - r1) % m2) * x % m2
     return (r1 + m1 * t) % m, m
-
 
 def reeds_sloane(s: list[int], m: int) -> tuple[int, list[int]]:
     """Full Reeds-Sloane recovery for an arbitrary modulus m: solve modulo
@@ -149,7 +144,6 @@ def reeds_sloane(s: list[int], m: int) -> tuple[int, list[int]]:
         q[i] = r
     return l, q
 
-
 def extrapolate(known: list[int], q: list[int], m: int, count: int) -> list[int]:
     """Extend a sequence using S_i = -sum_{j=1}^{L} Q[j] * S[i-j] (mod m),
     given Q[0] = 1. Returns `count` further terms after the known prefix.
@@ -165,6 +159,7 @@ def extrapolate(known: list[int], q: list[int], m: int, count: int) -> list[int]
         s.append((-acc) % m)
     return s[len(known):]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     # --- Example 1: composite, non-prime-power modulus ---------------
@@ -200,7 +195,6 @@ def main() -> None:
     print(f"mod 5 tribonacci-like: recovered L = {l3}, Q = {q3}")
     pred3 = extrapolate(known3, q3, m3, len(trib) - len(known3))
     print(f"match: {pred3 == trib[len(known3):]}")
-
 
 if __name__ == "__main__":
     main()

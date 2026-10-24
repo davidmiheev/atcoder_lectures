@@ -24,26 +24,26 @@ inverse, so a Walsh-Hadamard-transform-based solution (which divides by 2
 up to N times) could not be used in this ring at all, while the algorithm
 here works unmodified.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
 
 MOD_BITS = 20
-MOD = 1 << MOD_BITS
-MASK = MOD - 1
 
+MOD = 1 << MOD_BITS
+
+MASK = MOD - 1
 
 def add(a: int, b: int) -> int:
     return (a + b) & MASK
 
-
 def sub(a: int, b: int) -> int:
     return (a - b) & MASK
 
-
 def mul(a: int, b: int) -> int:
     return ((a & MASK) * (b & MASK)) & MASK
-
 
 def subset_zeta(n: int, a: list[int]) -> list[int]:
     """Subset zeta transform (SOS): B_T = sum_{S subseteq T} A_S. O(n*2^n)."""
@@ -55,7 +55,6 @@ def subset_zeta(n: int, a: list[int]) -> list[int]:
                 a[t] = add(a[t], a[t ^ (1 << i)])
     return a
 
-
 def subset_mobius(n: int, a: list[int]) -> list[int]:
     """Subset Mobius transform, the inverse of the above. O(n*2^n)."""
     a = a[:]
@@ -65,7 +64,6 @@ def subset_mobius(n: int, a: list[int]) -> list[int]:
             if (t >> i) & 1:
                 a[t] = sub(a[t], a[t ^ (1 << i)])
     return a
-
 
 def transform_x_to_y(n: int, a: list[int]) -> list[int]:
     """Converts coefficients from the x-basis to the y-basis under
@@ -79,7 +77,6 @@ def transform_x_to_y(n: int, a: list[int]) -> list[int]:
                 a[t] = sub(a[t], a[hi])
     return a
 
-
 def transform_y_to_x(n: int, a: list[int]) -> list[int]:
     """Inverse of transform_x_to_y, under y_i = x_i + 1:
     b0 + b1*y_i = (b0+b1) + b1*x_i, so (b0,b1) -> (b0+b1,b1)."""
@@ -91,7 +88,6 @@ def transform_y_to_x(n: int, a: list[int]) -> list[int]:
                 hi = t | (1 << i)
                 a[t] = add(a[t], a[hi])
     return a
-
 
 def ranked_or_convolution_pow2(n: int, a1: list[int], b1: list[int]) -> list[int]:
     """Problem 2: C_U = sum_{S union T = U} A_S*B_T*2^(|S|+|T|-|U|), i.e.
@@ -139,7 +135,6 @@ def ranked_or_convolution_pow2(n: int, a1: list[int], b1: list[int]) -> list[int
         c1[u] = acc
     return c1
 
-
 def xor_convolution_division_free(n: int, a: list[int], b: list[int]) -> list[int]:
     """The full division-free XOR convolution algorithm."""
     a1 = transform_x_to_y(n, a)
@@ -147,6 +142,7 @@ def xor_convolution_division_free(n: int, a: list[int], b: list[int]) -> list[in
     c1 = ranked_or_convolution_pow2(n, a1, b1)
     return transform_y_to_x(n, c1)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def xor_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
     """Brute-force O(4^n) reference for XOR convolution."""
@@ -156,7 +152,6 @@ def xor_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
         for t in range(size):
             c[s ^ t] = add(c[s ^ t], mul(a[s], b[t]))
     return c
-
 
 def problem2_naive(n: int, a: list[int], b: list[int]) -> list[int]:
     """Brute-force O(4^n) reference for Problem 2."""
@@ -171,7 +166,6 @@ def problem2_naive(n: int, a: list[int], b: list[int]) -> list[int]:
                 pow2 = mul(pow2, 2)
             c[u] = add(c[u], mul(mul(a[s], b[t]), pow2))
     return c
-
 
 def main() -> None:
     rng = random.Random(2026091901)
@@ -221,7 +215,6 @@ def main() -> None:
 
     all_ok = roundtrip_ok and problem2_ok and full_ok
     print(f"\nAll checks: {'PASS' if all_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

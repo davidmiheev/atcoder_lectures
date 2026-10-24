@@ -1,11 +1,13 @@
 """Degree sequences of simple undirected graphs: the Erdos-Gallai
 realizability test and the Havel-Hakimi construction algorithm.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import bisect
-import itertools
 
+import itertools
 
 def is_graphic_erdos_gallai(d: list[int]) -> bool:
     """Is `d` (any order) the degree sequence of some simple undirected
@@ -41,7 +43,6 @@ def is_graphic_erdos_gallai(d: list[int]) -> bool:
             return False
     return True
 
-
 def havel_hakimi(d: list[int]) -> list[tuple[int, int]] | None:
     """Construct a simple graph with degree sequence `d` (any order), or
     return None if none exists. Returns 0-indexed edges referring to the
@@ -72,6 +73,7 @@ def havel_hakimi(d: list[int]) -> list[tuple[int, int]] | None:
         remaining[0] = (0, v1)
     return edges
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def verify_degrees(n: int, edges: list[tuple[int, int]], want: list[int]) -> bool:
     got = [0] * n
@@ -79,7 +81,6 @@ def verify_degrees(n: int, edges: list[tuple[int, int]], want: list[int]) -> boo
         got[a] += 1
         got[b] += 1
     return got == want
-
 
 def main() -> None:
     # The three worked examples from the lecture text.
@@ -120,7 +121,6 @@ def main() -> None:
         f"\nexhaustive check over all {n}-vertex graphs: every realized degree "
         f"sequence passes is_graphic ({mismatches} mismatches)"
     )
-
 
 if __name__ == "__main__":
     main()

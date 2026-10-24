@@ -2,6 +2,7 @@
 //
 // Build: O(n log n). Query: O(1).
 
+// PDFBEGIN
 struct SparseTable {
     // table[k][i] = min of a[i .. i + 2^k)
     table: Vec<Vec<i64>>,
@@ -41,6 +42,8 @@ impl SparseTable {
         self.table[k][l].min(self.table[k][r - window])
     }
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     let a: Vec<i64> = vec![5, 2, 4, 7, 1, 3, 6];

@@ -4,6 +4,7 @@
 // classical counting formulas -- Catalan, Fuss-Catalan, Narayana, and the
 // Catalan convolution identity -- follow from it via a "prepend +1" trick.
 
+// PDFBEGIN
 fn binomial(n: usize, k: usize) -> u128 {
     if k > n {
         return 0;
@@ -21,6 +22,42 @@ fn binomial(n: usize, k: usize) -> u128 {
 fn catalan(n: usize) -> u128 {
     binomial(2 * n, n) / (n as u128 + 1)
 }
+
+fn prefix_always_nonneg(a: &[i64]) -> bool {
+    let mut s = 0i64;
+    for &x in a {
+        s += x;
+        if s < 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn prefix_positive_after_first(a: &[i64]) -> bool {
+    let mut s = 0i64;
+    for &x in a {
+        s += x;
+        if s <= 0 {
+            return false;
+        }
+    }
+    true
+}
+
+/// The Cycle Lemma count: how many of A's N cyclic shifts have every
+/// prefix sum (excluding S_0) strictly positive.
+fn cycle_lemma_count(a: &[i64]) -> usize {
+    let n = a.len();
+    (0..n)
+        .filter(|&j| {
+            let shifted: Vec<i64> = a[j..].iter().chain(a[..j].iter()).cloned().collect();
+            prefix_positive_after_first(&shifted)
+        })
+        .count()
+}
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 /// All ways to choose `k` of `n` positions (as sorted index vectors).
 fn combinations(n: usize, k: usize) -> Vec<Vec<usize>> {
@@ -59,41 +96,8 @@ fn all_sequences(total: usize, num_plus: usize, plus_val: i64, minus_val: i64) -
         .collect()
 }
 
-fn prefix_always_nonneg(a: &[i64]) -> bool {
-    let mut s = 0i64;
-    for &x in a {
-        s += x;
-        if s < 0 {
-            return false;
-        }
-    }
-    true
-}
-
-fn prefix_positive_after_first(a: &[i64]) -> bool {
-    let mut s = 0i64;
-    for &x in a {
-        s += x;
-        if s <= 0 {
-            return false;
-        }
-    }
-    true
-}
-
-/// The Cycle Lemma count: how many of A's N cyclic shifts have every
-/// prefix sum (excluding S_0) strictly positive.
-fn cycle_lemma_count(a: &[i64]) -> usize {
-    let n = a.len();
-    (0..n)
-        .filter(|&j| {
-            let shifted: Vec<i64> = a[j..].iter().chain(a[..j].iter()).cloned().collect();
-            prefix_positive_after_first(&shifted)
-        })
-        .count()
-}
-
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

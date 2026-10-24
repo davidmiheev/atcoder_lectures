@@ -52,6 +52,22 @@ This is the whole mechanism: express the DP's initial state in the
 eigenbasis, raise each eigenvalue to the $M$-th power (fast, via binary
 exponentiation or a closed form), and convert back.
 
+% FIGURE: eig_square
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2.6cm and 5.2cm]
+\node[lnode,minimum width=3.4cm] (A0) {$A_0$ (initial polynomial)};
+\node[lnode,minimum width=3.4cm,right=of A0] (AM) {$A_M=f^{M}(A_0)$};
+\node[lnode,minimum width=3.4cm,lhi,below=of A0] (C) {coefficients $c_0,\dots,c_N$\\ in the eigenbasis};
+\node[lnode,minimum width=3.4cm,lhi,below=of AM] (CM) {$c_0\lambda_0^M,\dots,c_N\lambda_N^M$};
+\draw[larrow,lectureink!45,dashed] (A0) -- (AM) node[midway,above,llabel] {$M$ DP steps ($O(M)$ iterations)};
+\draw[larrow] (A0) -- (C) node[midway,left,llabel,align=right] {expand in the\\eigenbasis};
+\draw[larrow] (C) -- (CM) node[midway,above,llabel] {multiply $c_k$ by $\lambda_k^M$};
+\draw[larrow] (CM) -- (AM) node[midway,right,llabel,align=left] {recombine};
+\end{tikzpicture}
+\caption{The eigenfunction method as a commuting square. Instead of applying the linear map $f$ a total of $M$ times (dashed), change to a basis in which $f$ is diagonal, raise each eigenvalue to the $M$-th power, and change back. The two basis changes cost the same as one Taylor shift (or one composition) each.}\label{fig:eig_square}
+\end{figure}
+
 \section{Worked Problems}
 The technique is best understood through examples of increasing
 difficulty.
@@ -175,11 +191,12 @@ identities themselves --- via a from-scratch power series $\exp$ ---
 including a concrete demonstration of the truncation caveat described
 above.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

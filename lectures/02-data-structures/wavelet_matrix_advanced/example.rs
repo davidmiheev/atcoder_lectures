@@ -3,6 +3,7 @@
 // compression. Builds on the plain range k-th-smallest / range-count
 // wavelet matrix from the companion "basics" lecture.
 
+// PDFBEGIN
 struct WaveletMatrixSum {
     height: u32,
     n: usize,
@@ -208,6 +209,8 @@ impl RectangleCounter {
         self.wm.range_count(il, ir, dl, du)
     }
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- XOR-shifted k-th smallest -------------------------------------

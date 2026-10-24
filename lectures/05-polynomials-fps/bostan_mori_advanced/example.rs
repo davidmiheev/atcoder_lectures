@@ -7,6 +7,7 @@
 // computing x^K mod Gamma(x) (the object at the heart of Fiduccia's
 // algorithm) via this machinery instead of binary exponentiation.
 
+// PDFBEGIN
 const MOD: i64 = 998244353;
 
 // rem_euclid (not plain %) throughout: inputs here are sometimes raw,
@@ -17,9 +18,11 @@ const MOD: i64 = 998244353;
 fn add(a: i64, b: i64) -> i64 {
     (a + b).rem_euclid(MOD)
 }
+
 fn sub(a: i64, b: i64) -> i64 {
     (a - b).rem_euclid(MOD)
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a.rem_euclid(MOD) * b.rem_euclid(MOD)).rem_euclid(MOD)
 }
@@ -40,6 +43,7 @@ fn poly_mul(a: &[i64], b: &[i64]) -> Vec<i64> {
 fn negate_odd(a: &[i64]) -> Vec<i64> {
     a.iter().enumerate().map(|(i, &v)| if i % 2 == 1 { sub(0, v) } else { v }).collect()
 }
+
 fn even_part(a: &[i64]) -> Vec<i64> {
     a.iter().step_by(2).cloned().collect()
 }
@@ -133,55 +137,6 @@ fn range_coefficients_of_rational(p: &[i64], q: &[i64], d: usize, l: i64, r: i64
         .collect()
 }
 
-// --- Reference implementations, for cross-checking ----------------------
-
-/// O(d^2 * N): the first `up_to`+1 coefficients of 1/Q(x) via the
-/// standard recurrence, given Q(0) = 1.
-fn brute_force_inverse(q: &[i64], up_to: usize) -> Vec<i64> {
-    let mut inv = vec![0i64; up_to + 1];
-    inv[0] = 1;
-    for k in 1..=up_to {
-        let mut s = 0i64;
-        for i in 1..=k.min(q.len() - 1) {
-            s = add(s, mul(q[i], inv[k - i]));
-        }
-        inv[k] = sub(0, s);
-    }
-    inv
-}
-
-fn brute_force_range_of_inverse(q: &[i64], l: i64, r: i64) -> Vec<i64> {
-    let inv = brute_force_inverse(q, r.max(0) as usize);
-    (l..=r).map(|deg| if deg < 0 { 0 } else { inv[deg as usize] }).collect()
-}
-
-/// Direct recurrence unrolling of A_i = c_1 A_{i-1} + ... + c_d A_{i-d},
-/// from A(x) = P(x)/Q(x) with Q(x) = 1 - c_1 x - ... - c_d x^d.
-fn direct_sequence(p: &[i64], q: &[i64], up_to: usize) -> Vec<i64> {
-    let d = q.len() - 1;
-    let c: Vec<i64> = (1..=d).map(|j| sub(0, q[j])).collect();
-    let mut a = vec![0i64; up_to + 1];
-    for i in 0..=up_to {
-        let p_i = if i < p.len() { p[i] } else { 0 };
-        if i < d {
-            // A(x)Q(x) = P(x), Q(0)=1: A_i = P_i - sum_{j<i} A_j Q_{i-j}.
-            let mut s = p_i.rem_euclid(MOD);
-            for j in 0..i {
-                s = sub(s, mul(a[j], q[i - j]));
-            }
-            a[i] = s;
-        } else {
-            // The recurrence proper: A_i = c_1 A_{i-1} + ... + c_d A_{i-d}.
-            let mut v = 0i64;
-            for j in 0..d {
-                v = add(v, mul(c[j], a[i - 1 - j]));
-            }
-            a[i] = v;
-        }
-    }
-    a
-}
-
 /// x^K mod Gamma(x) via ordinary binary exponentiation (Fiduccia), used
 /// only to cross-check the Bostan-Mori-based method below.
 fn xk_mod_gamma_fiduccia(k: u64, d: usize, c: &[i64]) -> Vec<i64> {
@@ -243,7 +198,59 @@ fn xk_mod_gamma_via_bostan_mori(q: &[i64], d: usize, k: i64) -> Vec<i64> {
     r_tilde.into_iter().rev().collect()
 }
 
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+// --- Reference implementations, for cross-checking ----------------------
+
+/// O(d^2 * N): the first `up_to`+1 coefficients of 1/Q(x) via the
+/// standard recurrence, given Q(0) = 1.
+fn brute_force_inverse(q: &[i64], up_to: usize) -> Vec<i64> {
+    let mut inv = vec![0i64; up_to + 1];
+    inv[0] = 1;
+    for k in 1..=up_to {
+        let mut s = 0i64;
+        for i in 1..=k.min(q.len() - 1) {
+            s = add(s, mul(q[i], inv[k - i]));
+        }
+        inv[k] = sub(0, s);
+    }
+    inv
+}
+
+fn brute_force_range_of_inverse(q: &[i64], l: i64, r: i64) -> Vec<i64> {
+    let inv = brute_force_inverse(q, r.max(0) as usize);
+    (l..=r).map(|deg| if deg < 0 { 0 } else { inv[deg as usize] }).collect()
+}
+
+/// Direct recurrence unrolling of A_i = c_1 A_{i-1} + ... + c_d A_{i-d},
+/// from A(x) = P(x)/Q(x) with Q(x) = 1 - c_1 x - ... - c_d x^d.
+fn direct_sequence(p: &[i64], q: &[i64], up_to: usize) -> Vec<i64> {
+    let d = q.len() - 1;
+    let c: Vec<i64> = (1..=d).map(|j| sub(0, q[j])).collect();
+    let mut a = vec![0i64; up_to + 1];
+    for i in 0..=up_to {
+        let p_i = if i < p.len() { p[i] } else { 0 };
+        if i < d {
+            // A(x)Q(x) = P(x), Q(0)=1: A_i = P_i - sum_{j<i} A_j Q_{i-j}.
+            let mut s = p_i.rem_euclid(MOD);
+            for j in 0..i {
+                s = sub(s, mul(a[j], q[i - j]));
+            }
+            a[i] = s;
+        } else {
+            // The recurrence proper: A_i = c_1 A_{i-1} + ... + c_d A_{i-d}.
+            let mut v = 0i64;
+            for j in 0..d {
+                v = add(v, mul(c[j], a[i - 1 - j]));
+            }
+            a[i] = v;
+        }
+    }
+    a
+}
+
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

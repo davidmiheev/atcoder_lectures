@@ -129,6 +129,26 @@ $V(0)=1$ --- exactly the same shape of problem, with the target index cut
 in (about) half. Iterating until $K=0$ reduces the answer to
 $[x^0]P(x)/Q(x) = [x^0]P(x)$, since $Q(0)=1$.
 
+% FIGURE: kth_halving
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lnode,minimum width=1.8cm] (k0) at (0.00,0) {$K=13$\\[-1pt]\scriptsize$(1101)_2$};
+\node[lnode,minimum width=1.8cm] (k1) at (3.40,0) {$K=6$\\[-1pt]\scriptsize$(110)_2$};
+\node[lnode,minimum width=1.8cm] (k2) at (6.80,0) {$K=3$\\[-1pt]\scriptsize$(11)_2$};
+\node[lnode,minimum width=1.8cm] (k3) at (10.20,0) {$K=1$\\[-1pt]\scriptsize$(1)_2$};
+\node[lnode,minimum width=1.8cm] (k4) at (13.60,0) {$K=0$\\[-1pt]\scriptsize$(0)_2$};
+\draw[larrow] (k0) -- (k1) node[midway,above=1pt,llabel,align=center] {keep the\\ odd part};
+\draw[larrow] (k1) -- (k2) node[midway,above=1pt,llabel,align=center] {keep the\\ even part};
+\draw[larrow] (k2) -- (k3) node[midway,above=1pt,llabel,align=center] {keep the\\ odd part};
+\draw[larrow] (k3) -- (k4) node[midway,above=1pt,llabel,align=center] {keep the\\ odd part};
+\node[lnode,lhi,minimum width=3.2cm] (ans) at (13.60,-1.7) {$A_K=[x^0]P(x)=P_0$};
+\draw[larrow] (k4) -- (ans);
+\node[llabel,align=left,anchor=west] at (0,-1.7) {each round: $P\leftarrow$ parity part of $P(x)Q(-x)$,\\[-1pt] $Q\leftarrow$ even part of $Q(x)Q(-x)$, $K\leftarrow\lfloor K/2\rfloor$};
+\end{tikzpicture}
+\caption{Bostan--Mori for $K=13=1101_2$. The parity of $K$ at each round decides whether the odd or even part of the numerator is kept; after $\lfloor\log_2 K\rfloor+1=4$ rounds $K$ reaches $0$ and the answer is the constant term of the current numerator.}\label{fig:kth_halving}
+\end{figure}
+
 \begin{definitionbox}[(Bostan--Mori algorithm)]
 While $K>0$: compute $U(x)=P(x)Q(-x)$ and $W(x)=Q(x)Q(-x)$; replace $P(x)$
 with $U$'s even or odd part according to $K$'s parity, replace $Q(x)$
@@ -150,11 +170,12 @@ algorithm (with naive $O(d^2)$ polynomial arithmetic, giving
 $O(d^2\log K)$ overall) and cross-check them against each other and
 against direct recurrence unrolling.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

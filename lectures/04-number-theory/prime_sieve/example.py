@@ -1,10 +1,11 @@
 """Prime sieves: Eratosthenes, the linear sieve (with smallest prime factors),
 bulk multiplicative functions, and a segmented sieve for a high window.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import math
-
 
 def sieve_of_eratosthenes(n: int) -> list[int]:
     """Primes up to n, striking multiples of p starting at p*p."""
@@ -22,7 +23,6 @@ def sieve_of_eratosthenes(n: int) -> list[int]:
         p += 1
 
     return [i for i in range(2, n + 1) if is_prime[i]]
-
 
 def linear_sieve(n: int) -> tuple[list[int], list[int]]:
     """Every composite is written exactly once, by its smallest prime factor.
@@ -44,7 +44,6 @@ def linear_sieve(n: int) -> tuple[list[int], list[int]]:
 
     return primes, spf
 
-
 def factorize(n: int, spf: list[int]) -> list[tuple[int, int]]:
     """Factor n into (prime, exponent) pairs via repeated spf lookups."""
     factors: list[tuple[int, int]] = []
@@ -56,7 +55,6 @@ def factorize(n: int, spf: list[int]) -> list[tuple[int, int]]:
             e += 1
         factors.append((p, e))
     return factors
-
 
 def totient_table(n: int, spf: list[int]) -> list[int]:
     """Euler's totient for 1..n, using phi(p^e) = p^(e-1) (p - 1)."""
@@ -72,7 +70,6 @@ def totient_table(n: int, spf: list[int]) -> list[int]:
         phi[i] = phi[m] * (p - 1) * p ** (e - 1)
     return phi
 
-
 def divisor_count_table(n: int, spf: list[int]) -> list[int]:
     """Divisor count for 1..n, using d(p^e) = e + 1."""
     d = [0] * (n + 1)
@@ -86,7 +83,6 @@ def divisor_count_table(n: int, spf: list[int]) -> list[int]:
             e += 1
         d[i] = d[m] * (e + 1)
     return d
-
 
 def segmented_sieve(lo: int, hi: int) -> list[int]:
     """Primes in [lo, hi], for hi far beyond what a full sieve could hold."""
@@ -107,6 +103,7 @@ def segmented_sieve(lo: int, hi: int) -> list[int]:
 
     return [lo + i for i, ok in enumerate(is_prime) if ok]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     n = 50
@@ -131,7 +128,6 @@ def main() -> None:
 
     lo, hi = 1_000_000_000_000, 1_000_000_000_100
     print(f"primes in [{lo}, {hi}]: {segmented_sieve(lo, hi)}")
-
 
 if __name__ == "__main__":
     main()

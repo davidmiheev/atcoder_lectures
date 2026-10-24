@@ -2,8 +2,9 @@
 queries on a static array of small non-negative integers, by re-encoding
 the array as one bit-plane per level plus a rank (prefix-count) table.
 """
-from __future__ import annotations
 
+# PDFBEGIN
+from __future__ import annotations
 
 class WaveletMatrix:
     def __init__(self, height: int, a: list[int]) -> None:
@@ -73,6 +74,7 @@ class WaveletMatrix:
         """Count of A[l:r] with a <= value < b."""
         return self.count_less(l, r, b) - self.count_less(l, r, a)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     a = [3, 1, 2, 1, 1, 0, 3, 2, 2]
@@ -105,7 +107,6 @@ def main() -> None:
     print(f"kth_smallest(2, 7, 0) = {wm.kth_smallest(2, 7, 0)}  (median-ish of A[2:7])")
     print(f"kth_smallest(2, 7, 4) = {wm.kth_smallest(2, 7, 4)}  (largest of A[2:7])")
     print(f"range_count(0, 9, 1, 3) = {wm.range_count(0, 9, 1, 3)}  (values in [1,3) over all of A)")
-
 
 if __name__ == "__main__":
     main()

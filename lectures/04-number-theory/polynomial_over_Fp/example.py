@@ -12,6 +12,8 @@ prod (x-a) and comparing coefficients, Wilson's theorem by direct
 computation, and Schwartz-Zippel by measuring vanishing frequency of
 random nonzero polynomials against the d/p bound.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
@@ -20,26 +22,20 @@ P = 17  # small prime, so exhaustive checks over all of F_p are cheap
 
 Poly = list[int]
 
-
 def add(a: int, b: int) -> int:
     return (a + b) % P
-
 
 def sub(a: int, b: int) -> int:
     return (a - b) % P
 
-
 def mul(a: int, b: int) -> int:
     return (a % P) * (b % P) % P
-
 
 def mod_pow(base: int, exp: int, m: int) -> int:
     return pow(base % m, exp, m)
 
-
 def mod_inv(a: int) -> int:
     return mod_pow(a, P - 2, P)
-
 
 def trim(a: Poly) -> Poly:
     a = a[:]
@@ -47,20 +43,17 @@ def trim(a: Poly) -> Poly:
         a.pop()
     return a
 
-
 def degree(a: Poly) -> int:
     a = trim(a)
     if len(a) == 1 and a[0] == 0:
         return -1
     return len(a) - 1
 
-
 def eval_poly(a: Poly, x: int) -> int:
     acc = 0
     for c in reversed(a):
         acc = add(mul(acc, x), c)
     return acc
-
 
 def poly_divmod(f: Poly, g: Poly) -> tuple[Poly, Poly]:
     """Polynomial long division: returns (quotient, remainder) with
@@ -84,7 +77,6 @@ def poly_divmod(f: Poly, g: Poly) -> tuple[Poly, Poly]:
             break
     return trim(q), trim(r)
 
-
 def poly_mul(a: Poly, b: Poly) -> Poly:
     if degree(a) < 0 or degree(b) < 0:
         return [0]
@@ -94,11 +86,11 @@ def poly_mul(a: Poly, b: Poly) -> Poly:
             out[i + j] = add(out[i + j], mul(ai, bj))
     return trim(out)
 
-
 def roots_by_evaluation(f: Poly) -> list[int]:
     """All roots of f in F_p, found by brute-force evaluation (P is small)."""
     return [a for a in range(P) if eval_poly(f, a) == 0]
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     rng = random.Random(20260320)
@@ -193,7 +185,6 @@ def main() -> None:
             sz_ok = False
             print(f"SCHWARTZ-ZIPPEL VIOLATED d={d}: observed={observed:.4f} bound={bound:.4f}")
     print(f"Schwartz-Zippel lemma (P[f=0] <= d/p, checked exhaustively over F_p x F_p): {'PASS' if sz_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

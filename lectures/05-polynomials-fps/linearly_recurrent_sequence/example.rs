@@ -14,17 +14,21 @@
 // candidate recurrence from a prefix of a sequence and confirming it
 // extrapolates correctly on a long, disjoint holdout range.
 
+// PDFBEGIN
 const MOD: i64 = 998244353;
 
 fn add(a: i64, b: i64) -> i64 {
     (a + b).rem_euclid(MOD)
 }
+
 fn sub(a: i64, b: i64) -> i64 {
     (a - b).rem_euclid(MOD)
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a.rem_euclid(MOD) * b.rem_euclid(MOD)).rem_euclid(MOD)
 }
+
 fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
     let mut result = 1i64;
     base = base.rem_euclid(MOD);
@@ -37,6 +41,7 @@ fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
     }
     result
 }
+
 fn mod_inv(a: i64) -> i64 {
     mod_pow(a, MOD - 2)
 }
@@ -115,22 +120,6 @@ fn mat_vec(m: &Mat, v: &[i64]) -> Vec<i64> {
         .collect()
 }
 
-/// Checks A_i == (M^i V_0)_0 for i = 0..n, where M is the companion matrix
-/// of `c` and V_0 = init. This is Theorem 18's characterization.
-fn verify_companion(c: &[i64], init: &[i64], n: usize) -> bool {
-    let seq = recur_seq(c, init, n);
-    let m = companion_matrix(c);
-    for i in 0..n {
-        let mi = mat_pow(m.clone(), i as u64);
-        let vi = mat_vec(&mi, init);
-        if vi[0] != seq[i] {
-            println!("COMPANION MISMATCH i={i}: matrix={} direct={}", vi[0], seq[i]);
-            return false;
-        }
-    }
-    true
-}
-
 /// Fits a candidate order-D recurrence to `seq` using the equations at
 /// indices D..2D-1 (Gaussian elimination mod MOD), i.e. finds c_1..c_D with
 /// seq[i] = sum_k c_k * seq[i-k] for i in D..2D. Returns None if the system
@@ -172,6 +161,24 @@ fn find_recurrence(seq: &[i64], d: usize) -> Option<Vec<i64>> {
         }
     }
     Some((0..d).map(|i| rows[i][d]).collect())
+}
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+/// Checks A_i == (M^i V_0)_0 for i = 0..n, where M is the companion matrix
+/// of `c` and V_0 = init. This is Theorem 18's characterization.
+fn verify_companion(c: &[i64], init: &[i64], n: usize) -> bool {
+    let seq = recur_seq(c, init, n);
+    let m = companion_matrix(c);
+    for i in 0..n {
+        let mi = mat_pow(m.clone(), i as u64);
+        let vi = mat_vec(&mi, init);
+        if vi[0] != seq[i] {
+            println!("COMPANION MISMATCH i={i}: matrix={} direct={}", vi[0], seq[i]);
+            return false;
+        }
+    }
+    true
 }
 
 /// Checks the fitted recurrence `c` reproduces `seq` on the holdout range

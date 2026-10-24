@@ -24,16 +24,21 @@
 // (which divides by 2 up to N times) could not be used in this ring at
 // all, while the algorithm here works unmodified.
 
+// PDFBEGIN
 const MOD_BITS: u32 = 20;
+
 const MOD: i64 = 1 << MOD_BITS;
+
 const MASK: i64 = MOD - 1;
 
 fn add(a: i64, b: i64) -> i64 {
     (a + b) & MASK
 }
+
 fn sub(a: i64, b: i64) -> i64 {
     (a - b) & MASK
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a & MASK).wrapping_mul(b & MASK) & MASK
 }
@@ -170,6 +175,8 @@ fn xor_convolution_division_free(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
     transform_y_to_x(n, c1)
 }
 
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
 /// Brute-force O(4^n) reference for XOR convolution.
 fn xor_convolution_naive(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
     let size = 1usize << n;
@@ -202,6 +209,7 @@ fn problem2_naive(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
 }
 
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

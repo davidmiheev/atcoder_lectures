@@ -12,21 +12,11 @@ by, S,T subseteq U) followed by a subset Mobius transform back;
 AND-convolution is the superset-relation mirror image. All of these are
 cross-checked against brute-force O(4^n) definitions.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
-
-
-def subset_zeta_naive(n: int, a: list[int]) -> list[int]:
-    """O(4^n): definition-level double loop."""
-    size = 1 << n
-    b = [0] * size
-    for t in range(size):
-        for s in range(size):
-            if s & t == s:
-                b[t] += a[s]
-    return b
-
 
 def subset_zeta_submask_enum(n: int, a: list[int]) -> list[int]:
     """O(3^n): enumerate submasks of T directly."""
@@ -41,7 +31,6 @@ def subset_zeta_submask_enum(n: int, a: list[int]) -> list[int]:
             s = (s - 1) & t
     return b
 
-
 def subset_zeta_fast(n: int, a: list[int]) -> list[int]:
     """O(n*2^n): fast zeta transform (FZT)."""
     a = a[:]
@@ -51,7 +40,6 @@ def subset_zeta_fast(n: int, a: list[int]) -> list[int]:
             if (t >> i) & 1:
                 a[t] += a[t ^ (1 << i)]
     return a
-
 
 def subset_mobius_fast(n: int, a: list[int]) -> list[int]:
     """O(n*2^n): fast Mobius transform (FMT), the exact inverse of the fast
@@ -64,6 +52,53 @@ def subset_mobius_fast(n: int, a: list[int]) -> list[int]:
                 a[t] -= a[t ^ (1 << i)]
     return a
 
+def superset_zeta_fast(n: int, a: list[int]) -> list[int]:
+    """O(n*2^n): fast superset zeta transform."""
+    a = a[:]
+    size = 1 << n
+    for i in range(n):
+        for t in range(size):
+            if not (t >> i) & 1:
+                a[t] += a[t ^ (1 << i)]
+    return a
+
+def superset_mobius_fast(n: int, a: list[int]) -> list[int]:
+    """O(n*2^n): fast superset Mobius transform."""
+    a = a[:]
+    size = 1 << n
+    for i in range(n):
+        for t in range(size):
+            if not (t >> i) & 1:
+                a[t] -= a[t ^ (1 << i)]
+    return a
+
+def or_convolution(n: int, a: list[int], b: list[int]) -> list[int]:
+    """C_U = sum_{S|T=U} A_S*B_T, via subset zeta -> pointwise product ->
+    subset Mobius."""
+    za = subset_zeta_fast(n, a)
+    zb = subset_zeta_fast(n, b)
+    d = [x * y for x, y in zip(za, zb)]
+    return subset_mobius_fast(n, d)
+
+def and_convolution(n: int, a: list[int], b: list[int]) -> list[int]:
+    """C_U = sum_{S&T=U} A_S*B_T, via superset zeta -> pointwise product ->
+    superset Mobius."""
+    za = superset_zeta_fast(n, a)
+    zb = superset_zeta_fast(n, b)
+    d = [x * y for x, y in zip(za, zb)]
+    return superset_mobius_fast(n, d)
+
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def subset_zeta_naive(n: int, a: list[int]) -> list[int]:
+    """O(4^n): definition-level double loop."""
+    size = 1 << n
+    b = [0] * size
+    for t in range(size):
+        for s in range(size):
+            if s & t == s:
+                b[t] += a[s]
+    return b
 
 def superset_zeta_naive(n: int, a: list[int]) -> list[int]:
     """O(4^n): definition-level double loop for the superset zeta
@@ -76,47 +111,6 @@ def superset_zeta_naive(n: int, a: list[int]) -> list[int]:
                 b[t] += a[s]
     return b
 
-
-def superset_zeta_fast(n: int, a: list[int]) -> list[int]:
-    """O(n*2^n): fast superset zeta transform."""
-    a = a[:]
-    size = 1 << n
-    for i in range(n):
-        for t in range(size):
-            if not (t >> i) & 1:
-                a[t] += a[t ^ (1 << i)]
-    return a
-
-
-def superset_mobius_fast(n: int, a: list[int]) -> list[int]:
-    """O(n*2^n): fast superset Mobius transform."""
-    a = a[:]
-    size = 1 << n
-    for i in range(n):
-        for t in range(size):
-            if not (t >> i) & 1:
-                a[t] -= a[t ^ (1 << i)]
-    return a
-
-
-def or_convolution(n: int, a: list[int], b: list[int]) -> list[int]:
-    """C_U = sum_{S|T=U} A_S*B_T, via subset zeta -> pointwise product ->
-    subset Mobius."""
-    za = subset_zeta_fast(n, a)
-    zb = subset_zeta_fast(n, b)
-    d = [x * y for x, y in zip(za, zb)]
-    return subset_mobius_fast(n, d)
-
-
-def and_convolution(n: int, a: list[int], b: list[int]) -> list[int]:
-    """C_U = sum_{S&T=U} A_S*B_T, via superset zeta -> pointwise product ->
-    superset Mobius."""
-    za = superset_zeta_fast(n, a)
-    zb = superset_zeta_fast(n, b)
-    d = [x * y for x, y in zip(za, zb)]
-    return superset_mobius_fast(n, d)
-
-
 def or_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
     size = 1 << n
     c = [0] * size
@@ -125,7 +119,6 @@ def or_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
             c[s | t] += a[s] * b[t]
     return c
 
-
 def and_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
     size = 1 << n
     c = [0] * size
@@ -133,7 +126,6 @@ def and_convolution_naive(n: int, a: list[int], b: list[int]) -> list[int]:
         for t in range(size):
             c[s & t] += a[s] * b[t]
     return c
-
 
 def main() -> None:
     rng = random.Random(2026091801)
@@ -206,7 +198,6 @@ def main() -> None:
 
     all_ok = example_ok and cross_impl_ok and roundtrip_ok and or_ok and and_ok
     print(f"\nAll checks: {'PASS' if all_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

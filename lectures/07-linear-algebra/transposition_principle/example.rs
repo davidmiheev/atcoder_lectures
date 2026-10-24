@@ -16,6 +16,7 @@
 // mechanically derive the fast superset zeta transform; and (4)
 // reproduces the lecture's own small worked example exactly.
 
+// PDFBEGIN
 /// A "linear program": load x into some scratch slots, run a sequence of
 /// z[a] += c*z[b] steps, then read y out of some scratch slots.
 struct Program {
@@ -58,62 +59,6 @@ fn transpose_run(prog: &Program, y: &[i64]) -> Vec<i64> {
     prog.load_positions.iter().map(|&p| z[p]).collect()
 }
 
-/// Computes the N x M matrix A that `forward` implements, by running it on
-/// each standard basis vector. Used only to validate the transposition
-/// principle itself against A^T, not part of either algorithm.
-fn compute_matrix(prog: &Program) -> Vec<Vec<i64>> {
-    let m = prog.load_positions.len();
-    let n = prog.store_positions.len();
-    let mut a = vec![vec![0i64; m]; n];
-    for j in 0..m {
-        let mut x = vec![0i64; m];
-        x[j] = 1;
-        let y = forward(prog, &x);
-        for i in 0..n {
-            a[i][j] = y[i];
-        }
-    }
-    a
-}
-
-fn mat_transpose_vec(a: &[Vec<i64>], y: &[i64]) -> Vec<i64> {
-    let n = a.len();
-    let m = if n > 0 { a[0].len() } else { 0 };
-    (0..m).map(|j| (0..n).fold(0i64, |acc, i| acc + a[i][j] * y[i])).collect()
-}
-
-struct Rng(u64);
-impl Rng {
-    fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);
-        let mut z = self.0;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
-        z ^ (z >> 31)
-    }
-    fn range(&mut self, lo: i64, hi: i64) -> i64 {
-        lo + (self.next() % ((hi - lo + 1) as u64)) as i64
-    }
-}
-
-fn random_program(rng: &mut Rng) -> Program {
-    let k = rng.range(2, 8) as usize;
-    let m = rng.range(1, k as i64) as usize;
-    let n = rng.range(1, k as i64) as usize;
-    let q = rng.range(0, 15) as usize;
-    let load_positions: Vec<usize> = (0..m).map(|_| rng.range(0, k as i64 - 1) as usize).collect();
-    let store_positions: Vec<usize> = (0..n).map(|_| rng.range(0, k as i64 - 1) as usize).collect();
-    let ops: Vec<(usize, usize, i64)> = (0..q)
-        .map(|_| {
-            let a = rng.range(0, k as i64 - 1) as usize;
-            let b = rng.range(0, k as i64 - 1) as usize;
-            let c = rng.range(-5, 5);
-            (a, b, c)
-        })
-        .collect();
-    Program { k, load_positions, ops, store_positions }
-}
-
 // --- Section 5: range-sum queries (Problem 3A) and their transpose,
 // range-add queries (Problem 3B), via the prefix-sum solution. ---
 
@@ -135,24 +80,6 @@ fn interval_sum_program(n: usize, queries: &[(usize, usize)]) -> Program {
     }
     let store_positions: Vec<usize> = (0..q).map(|i| n + 1 + i).collect();
     Program { k, load_positions, ops, store_positions }
-}
-
-fn interval_sum_naive(n: usize, queries: &[(usize, usize)], x: &[i64]) -> Vec<i64> {
-    let _ = n;
-    queries.iter().map(|&(l, r)| x[l..=r].iter().sum()).collect()
-}
-
-fn interval_add_naive(n: usize, queries: &[(usize, usize)], y: &[i64]) -> Vec<i64> {
-    (0..n)
-        .map(|j| {
-            queries
-                .iter()
-                .zip(y.iter())
-                .filter(|&(&(l, r), _)| l <= j && j <= r)
-                .map(|(_, &yi)| yi)
-                .sum()
-        })
-        .collect()
 }
 
 /// The hand-derived transpose from section 5.3 of the lecture.
@@ -198,6 +125,83 @@ fn subset_zeta_program(n: usize) -> Program {
     }
     let store_positions: Vec<usize> = (0..size).collect();
     Program { k: size, load_positions, ops, store_positions }
+}
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+/// Computes the N x M matrix A that `forward` implements, by running it on
+/// each standard basis vector. Used only to validate the transposition
+/// principle itself against A^T, not part of either algorithm.
+fn compute_matrix(prog: &Program) -> Vec<Vec<i64>> {
+    let m = prog.load_positions.len();
+    let n = prog.store_positions.len();
+    let mut a = vec![vec![0i64; m]; n];
+    for j in 0..m {
+        let mut x = vec![0i64; m];
+        x[j] = 1;
+        let y = forward(prog, &x);
+        for i in 0..n {
+            a[i][j] = y[i];
+        }
+    }
+    a
+}
+
+fn mat_transpose_vec(a: &[Vec<i64>], y: &[i64]) -> Vec<i64> {
+    let n = a.len();
+    let m = if n > 0 { a[0].len() } else { 0 };
+    (0..m).map(|j| (0..n).fold(0i64, |acc, i| acc + a[i][j] * y[i])).collect()
+}
+
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+        z ^ (z >> 31)
+    }
+    fn range(&mut self, lo: i64, hi: i64) -> i64 {
+        lo + (self.next() % ((hi - lo + 1) as u64)) as i64
+    }
+}
+
+fn random_program(rng: &mut Rng) -> Program {
+    let k = rng.range(2, 8) as usize;
+    let m = rng.range(1, k as i64) as usize;
+    let n = rng.range(1, k as i64) as usize;
+    let q = rng.range(0, 15) as usize;
+    let load_positions: Vec<usize> = (0..m).map(|_| rng.range(0, k as i64 - 1) as usize).collect();
+    let store_positions: Vec<usize> = (0..n).map(|_| rng.range(0, k as i64 - 1) as usize).collect();
+    let ops: Vec<(usize, usize, i64)> = (0..q)
+        .map(|_| {
+            let a = rng.range(0, k as i64 - 1) as usize;
+            let b = rng.range(0, k as i64 - 1) as usize;
+            let c = rng.range(-5, 5);
+            (a, b, c)
+        })
+        .collect();
+    Program { k, load_positions, ops, store_positions }
+}
+
+fn interval_sum_naive(n: usize, queries: &[(usize, usize)], x: &[i64]) -> Vec<i64> {
+    let _ = n;
+    queries.iter().map(|&(l, r)| x[l..=r].iter().sum()).collect()
+}
+
+fn interval_add_naive(n: usize, queries: &[(usize, usize)], y: &[i64]) -> Vec<i64> {
+    (0..n)
+        .map(|j| {
+            queries
+                .iter()
+                .zip(y.iter())
+                .filter(|&(&(l, r), _)| l <= j && j <= r)
+                .map(|(_, &yi)| yi)
+                .sum()
+        })
+        .collect()
 }
 
 fn subset_zeta_naive(n: usize, a: &[i64]) -> Vec<i64> {

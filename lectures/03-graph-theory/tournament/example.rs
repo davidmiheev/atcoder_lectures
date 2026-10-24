@@ -5,37 +5,7 @@
 // path (Redei's theorem), a Hamiltonian cycle for strongly connected
 // tournaments (Camion's theorem), and a 2-king (Landau's theorem).
 
-struct Rng(u64);
-impl Rng {
-    fn next(&mut self) -> u64 {
-        // splitmix64
-        self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);
-        let mut z = self.0;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
-        z ^ (z >> 31)
-    }
-    fn bool(&mut self) -> bool {
-        self.next() & 1 == 1
-    }
-}
-
-/// beats[i][j] = true iff i -> j (i beat j). Exactly one of beats[i][j],
-/// beats[j][i] is true for every i != j.
-fn random_tournament(n: usize, rng: &mut Rng) -> Vec<Vec<bool>> {
-    let mut beats = vec![vec![false; n]; n];
-    for i in 0..n {
-        for j in (i + 1)..n {
-            if rng.bool() {
-                beats[i][j] = true;
-            } else {
-                beats[j][i] = true;
-            }
-        }
-    }
-    beats
-}
-
+// PDFBEGIN
 fn is_transitive(beats: &[Vec<bool>], n: usize) -> bool {
     // Equivalent to "contains no 3-cycle".
     for a in 0..n {
@@ -145,20 +115,6 @@ fn hamiltonian_path(beats: &[Vec<bool>], n: usize) -> Vec<usize> {
     path
 }
 
-fn is_valid_hamiltonian_path(beats: &[Vec<bool>], path: &[usize], n: usize) -> bool {
-    if path.len() != n {
-        return false;
-    }
-    let mut seen = vec![false; n];
-    for &v in path {
-        if seen[v] {
-            return false;
-        }
-        seen[v] = true;
-    }
-    path.windows(2).all(|w| beats[w[0]][w[1]])
-}
-
 /// Camion's theorem: for a strongly connected tournament with n >= 3,
 /// extend a Hamiltonian path's growing prefix cycle one step at a time
 /// until it covers everything.
@@ -227,13 +183,6 @@ fn hamiltonian_cycle(beats: &[Vec<bool>], n: usize, path: &[usize]) -> Vec<usize
     order
 }
 
-fn is_valid_hamiltonian_cycle(beats: &[Vec<bool>], cycle: &[usize], n: usize) -> bool {
-    if !is_valid_hamiltonian_path(beats, cycle, n) {
-        return false;
-    }
-    beats[cycle[n - 1]][cycle[0]]
-}
-
 /// Landau's theorem: the maximum out-degree vertex reaches every other
 /// vertex within distance 2.
 fn find_2_king(beats: &[Vec<bool>], n: usize) -> usize {
@@ -244,6 +193,61 @@ fn is_2_king(beats: &[Vec<bool>], v: usize, n: usize) -> bool {
     (0..n).all(|x| {
         x == v || beats[v][x] || (0..n).any(|y| beats[v][y] && beats[y][x])
     })
+}
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        // splitmix64
+        self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+        z ^ (z >> 31)
+    }
+    fn bool(&mut self) -> bool {
+        self.next() & 1 == 1
+    }
+}
+
+/// beats[i][j] = true iff i -> j (i beat j). Exactly one of beats[i][j],
+/// beats[j][i] is true for every i != j.
+fn random_tournament(n: usize, rng: &mut Rng) -> Vec<Vec<bool>> {
+    let mut beats = vec![vec![false; n]; n];
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if rng.bool() {
+                beats[i][j] = true;
+            } else {
+                beats[j][i] = true;
+            }
+        }
+    }
+    beats
+}
+
+fn is_valid_hamiltonian_path(beats: &[Vec<bool>], path: &[usize], n: usize) -> bool {
+    if path.len() != n {
+        return false;
+    }
+    let mut seen = vec![false; n];
+    for &v in path {
+        if seen[v] {
+            return false;
+        }
+        seen[v] = true;
+    }
+    path.windows(2).all(|w| beats[w[0]][w[1]])
+}
+
+fn is_valid_hamiltonian_cycle(beats: &[Vec<bool>], cycle: &[usize], n: usize) -> bool {
+    if !is_valid_hamiltonian_path(beats, cycle, n) {
+        return false;
+    }
+    beats[cycle[n - 1]][cycle[0]]
 }
 
 fn main() {

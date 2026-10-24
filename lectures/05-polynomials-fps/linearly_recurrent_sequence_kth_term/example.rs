@@ -7,14 +7,17 @@
 // naive O(d^2) kind, so the overall cost is O(d^2 log K), matching what
 // the lecture describes as the straightforward (non-FFT) implementation.
 
+// PDFBEGIN
 const MOD: i64 = 998244353;
 
 fn add(a: i64, b: i64) -> i64 {
     (a + b) % MOD
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a % MOD) * (b % MOD) % MOD
 }
+
 fn sub(a: i64, b: i64) -> i64 {
     ((a - b) % MOD + MOD) % MOD
 }
@@ -118,6 +121,7 @@ fn negate_odd(a: &[i64]) -> Vec<i64> {
 fn even_part(a: &[i64]) -> Vec<i64> {
     a.iter().step_by(2).cloned().collect()
 }
+
 fn odd_part(a: &[i64]) -> Vec<i64> {
     if a.len() < 2 {
         return vec![0];
@@ -151,6 +155,8 @@ fn kth_term_bostan_mori(init: &[i64], c: &[i64], k: u64) -> i64 {
     let p: Vec<i64> = full[..d].to_vec();
     bostan_mori(p, q, k)
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 // ---------------------------------------------------------------------
 // Direct O(K) unrolling, for cross-checking on small K.

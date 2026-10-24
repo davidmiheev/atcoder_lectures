@@ -1,6 +1,7 @@
 // Degree sequences of simple undirected graphs: the Erdos-Gallai
 // realizability test and the Havel-Hakimi construction algorithm.
 
+// PDFBEGIN
 /// Is `d` (any order) the degree sequence of some simple undirected graph?
 /// Checks the handshake-lemma parity condition and, for every prefix
 /// length k of the sorted-descending sequence, the Erdos-Gallai
@@ -89,6 +90,8 @@ fn havel_hakimi(d: &[i64]) -> Option<Vec<(usize, usize)>> {
     }
     Some(edges)
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn verify_degrees(n: usize, edges: &[(usize, usize)], want: &[i64]) -> bool {
     let mut got = vec![0i64; n];

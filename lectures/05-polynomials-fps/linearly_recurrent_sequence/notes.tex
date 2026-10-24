@@ -101,6 +101,20 @@ $A_0,\ldots,A_5 = 1,4,11,34,101,304$ (reproduced exactly by the
 reference code below as a cross-check).
 \end{examplebox}
 
+% FIGURE: lrs_triangle
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\node[lnode,minimum width=6.6cm,lhi] (R) at (0,0) {recurrence\\ $A_i=c_1A_{i-1}+\dots+c_dA_{i-d}$ for $i\ge d$};
+\node[lnode,minimum width=5.2cm] (G) at (-3.9,-3.0) {rational generating function\\ $A(x)=P(x)/Q(x)$,\\ $\deg P<d$, $Q(0)=1$};
+\node[lnode,minimum width=5.2cm] (M) at (3.9,-3.0) {matrix power\\ $A_i=\sum_{p,q}w_{p,q}(M^i)_{p,q}$\\ for a $d\times d$ matrix $M$};
+\draw[larrow,<->] (R) -- (G) node[midway,above left,llabel,align=right] {$Q=1-\sum_k c_kx^k$\\[-1pt] $P=(AQ)\bmod x^d$};
+\draw[larrow,<->] (R) -- (M) node[midway,above right,llabel,align=left] {companion matrix $M$;\\[-1pt] Cayley--Hamilton};
+\draw[larrow,<->,lectureink!50] (G) -- (M);
+\end{tikzpicture}
+\caption{Three equivalent descriptions of a linearly recurrent sequence. Each arrow is a theorem proved in this lecture; closure under sums, convolutions and termwise products is easiest to see in the generating-function and matrix views respectively.}\label{fig:lrs_triangle}
+\end{figure}
+
 \section{Recognizing Linearly Recurrent Sequences}
 The rational-generating-function criterion makes it easy to build new
 linearly recurrent sequences from old ones.
@@ -316,11 +330,12 @@ recurrence correctly extrapolates dozens of further terms it was never
 shown --- exactly what ``the sequence is linearly recurrent of that
 order'' means operationally.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

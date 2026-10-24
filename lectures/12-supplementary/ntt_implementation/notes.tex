@@ -94,6 +94,106 @@ adjacent blocks of doubling size with an $O(1)$-per-pair ``butterfly''
 update, for $O(\log n)$ passes of $O(n)$ work each --- $O(n \log n)$
 total, and in-place.
 
+% FIGURE: ntt_butterfly
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.7cm,y=0.78cm]
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_0) at (0,0) {$a_0$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_1) at (0,-1) {$a_4$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_2) at (0,-2) {$a_2$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_3) at (0,-3) {$a_6$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_4) at (0,-4) {$a_1$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_5) at (0,-5) {$a_5$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_6) at (0,-6) {$a_3$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_7) at (0,-7) {$a_7$};
+\fill[lectureink!70] (1,0) circle (2pt);
+\fill[lectureink!70] (1,-1) circle (2pt);
+\fill[lectureink!70] (1,-2) circle (2pt);
+\fill[lectureink!70] (1,-3) circle (2pt);
+\fill[lectureink!70] (1,-4) circle (2pt);
+\fill[lectureink!70] (1,-5) circle (2pt);
+\fill[lectureink!70] (1,-6) circle (2pt);
+\fill[lectureink!70] (1,-7) circle (2pt);
+\fill[lectureink!70] (2,0) circle (2pt);
+\fill[lectureink!70] (2,-1) circle (2pt);
+\fill[lectureink!70] (2,-2) circle (2pt);
+\fill[lectureink!70] (2,-3) circle (2pt);
+\fill[lectureink!70] (2,-4) circle (2pt);
+\fill[lectureink!70] (2,-5) circle (2pt);
+\fill[lectureink!70] (2,-6) circle (2pt);
+\fill[lectureink!70] (2,-7) circle (2pt);
+\fill[lectureink!70] (3,0) circle (2pt);
+\fill[lectureink!70] (3,-1) circle (2pt);
+\fill[lectureink!70] (3,-2) circle (2pt);
+\fill[lectureink!70] (3,-3) circle (2pt);
+\fill[lectureink!70] (3,-4) circle (2pt);
+\fill[lectureink!70] (3,-5) circle (2pt);
+\fill[lectureink!70] (3,-6) circle (2pt);
+\fill[lectureink!70] (3,-7) circle (2pt);
+\draw[lectureaccent,thick] (0.30,0) -- (1,-1);
+\draw[lectureaccent,thick] (0.30,-1) -- (1,0);
+\draw[lectureaccent,thick] (0.30,0) -- (1,0);
+\draw[lectureaccent,thick] (0.30,-1) -- (1,-1);
+\draw[lectureaccent,thick] (0.30,-2) -- (1,-3);
+\draw[lectureaccent,thick] (0.30,-3) -- (1,-2);
+\draw[lectureaccent,thick] (0.30,-2) -- (1,-2);
+\draw[lectureaccent,thick] (0.30,-3) -- (1,-3);
+\draw[lectureaccent,thick] (0.30,-4) -- (1,-5);
+\draw[lectureaccent,thick] (0.30,-5) -- (1,-4);
+\draw[lectureaccent,thick] (0.30,-4) -- (1,-4);
+\draw[lectureaccent,thick] (0.30,-5) -- (1,-5);
+\draw[lectureaccent,thick] (0.30,-6) -- (1,-7);
+\draw[lectureaccent,thick] (0.30,-7) -- (1,-6);
+\draw[lectureaccent,thick] (0.30,-6) -- (1,-6);
+\draw[lectureaccent,thick] (0.30,-7) -- (1,-7);
+\draw[lecturewarn,thick] (1.00,0) -- (2,-2);
+\draw[lecturewarn,thick] (1.00,-2) -- (2,0);
+\draw[lecturewarn,thick] (1.00,0) -- (2,0);
+\draw[lecturewarn,thick] (1.00,-2) -- (2,-2);
+\draw[lecturewarn,thick] (1.00,-1) -- (2,-3);
+\draw[lecturewarn,thick] (1.00,-3) -- (2,-1);
+\draw[lecturewarn,thick] (1.00,-1) -- (2,-1);
+\draw[lecturewarn,thick] (1.00,-3) -- (2,-3);
+\draw[lecturewarn,thick] (1.00,-4) -- (2,-6);
+\draw[lecturewarn,thick] (1.00,-6) -- (2,-4);
+\draw[lecturewarn,thick] (1.00,-4) -- (2,-4);
+\draw[lecturewarn,thick] (1.00,-6) -- (2,-6);
+\draw[lecturewarn,thick] (1.00,-5) -- (2,-7);
+\draw[lecturewarn,thick] (1.00,-7) -- (2,-5);
+\draw[lecturewarn,thick] (1.00,-5) -- (2,-5);
+\draw[lecturewarn,thick] (1.00,-7) -- (2,-7);
+\draw[green!45!black,thick] (2.00,0) -- (3,-4);
+\draw[green!45!black,thick] (2.00,-4) -- (3,0);
+\draw[green!45!black,thick] (2.00,0) -- (3,0);
+\draw[green!45!black,thick] (2.00,-4) -- (3,-4);
+\draw[green!45!black,thick] (2.00,-1) -- (3,-5);
+\draw[green!45!black,thick] (2.00,-5) -- (3,-1);
+\draw[green!45!black,thick] (2.00,-1) -- (3,-1);
+\draw[green!45!black,thick] (2.00,-5) -- (3,-5);
+\draw[green!45!black,thick] (2.00,-2) -- (3,-6);
+\draw[green!45!black,thick] (2.00,-6) -- (3,-2);
+\draw[green!45!black,thick] (2.00,-2) -- (3,-2);
+\draw[green!45!black,thick] (2.00,-6) -- (3,-6);
+\draw[green!45!black,thick] (2.00,-3) -- (3,-7);
+\draw[green!45!black,thick] (2.00,-7) -- (3,-3);
+\draw[green!45!black,thick] (2.00,-3) -- (3,-3);
+\draw[green!45!black,thick] (2.00,-7) -- (3,-7);
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,0) {$\hat a_0$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-1) {$\hat a_1$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-2) {$\hat a_2$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-3) {$\hat a_3$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-4) {$\hat a_4$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-5) {$\hat a_5$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-6) {$\hat a_6$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-7) {$\hat a_7$};
+\node[llabel,align=center] at (0.5,1.2) {stage 1\\ length 2};
+\node[llabel,align=center] at (1.5,1.2) {stage 2\\ length 4};
+\node[llabel,align=center] at (2.5,1.2) {stage 3\\ length 8};
+\node[llabel,align=center] at (0,-7.9) {bit-reversed\\ input};
+\end{tikzpicture}
+\caption{The iterative Cooley--Tukey NTT for $n=8$: after the bit-reversal permutation, three stages of butterflies combine entries at distance $1$, $2$, and $4$. Each butterfly maps a pair $(u,v)$ to $(u+\omega v,\;u-\omega v)$ for the appropriate power $\omega$ of the root of unity, so the transform takes $\log_2 n$ stages of $n/2$ butterflies.}\label{fig:ntt_butterfly}
+\end{figure}
+
 \section{Reference Implementations}
 Both examples below implement the iterative, in-place NTT (forward and
 inverse) and use it for polynomial multiplication, cross-checked against
@@ -101,11 +201,12 @@ the naive $O(nm)$ definition on hundreds of random polynomial pairs, and
 verified to round-trip (forward transform then inverse transform recovers
 the original array) across various sizes.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

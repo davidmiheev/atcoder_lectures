@@ -37,6 +37,30 @@ the fourth car (wanting spot $4$) arrives, spots $1,3,4$ are already
 taken by earlier cars, and no free spot $\ge 4$ remains.
 \end{examplebox}
 
+% FIGURE: pf_street
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.45cm,y=1.0cm]
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p1) at (1,0) {car 2};
+\node[llabel] at (1,-0.75) {spot 1};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p2) at (2,0) {car 1};
+\node[llabel] at (2,-0.75) {spot 2};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p3) at (3,0) {car 3};
+\node[llabel] at (3,-0.75) {spot 3};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p4) at (4,0) {car 4};
+\node[llabel] at (4,-0.75) {spot 4};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p5) at (5,0) {car 5};
+\node[llabel] at (5,-0.75) {spot 5};
+\node[llabel,text=lectureaccent] at (2,1.0) {};
+\node[llabel,text=lectureaccent] at (1,1.0) {};
+\draw[larrow,lecturewarn,bend left=45] ([yshift=0.0cm]p2.north) to node[above,llabel] {car 3} (p3.north);
+\draw[larrow,lecturewarn,bend left=45] ([yshift=0.0cm]p1.north) to node[above,llabel] {car 4} (p4.north);
+\node[llabel,text=lectureaccent] at (5,1.0) {};
+\node[llabel,anchor=west,align=left] at (0.2,-1.55) {preferences $(a_1,\dots,a_5)=(2,1,2,1,5)$: cars 1, 2, 5 park at their preferred spot;\\ car 3 prefers 2 (taken) and moves on to 3; car 4 prefers 1 and drives on to 4.};
+\end{tikzpicture}
+\caption{Cars park one at a time; each takes its preferred spot or, if that is taken, the first free spot after it. Brown arcs show the cars that had to move past their preference. All five cars park, so $(2,1,2,1,5)$ is a parking function: its sorted entries $(1,1,2,2,5)$ satisfy $b_i\le i$.}\label{fig:pf_street}
+\end{figure}
+
 \section{Equivalent Characterizations}
 \begin{theorembox}
 For $a = (a_1,\ldots,a_n)$ with values in $\{1,\ldots,n\}$, the following
@@ -128,11 +152,12 @@ condition, and the circular extension, cross-checking all three against
 each other (and against Proposition 5's generalized count) by brute
 force, plus reproducing the lecture's own worked examples exactly.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

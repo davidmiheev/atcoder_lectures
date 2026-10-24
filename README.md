@@ -18,7 +18,10 @@ Every lecture folder under [`lectures/`](lectures/) contains:
 - `notes.tex` / `notes.pdf` — the write-up, typeset with the shared style in
   [`tex/lecturestyle.sty`](tex/lecturestyle.sty)
 - `example.rs` — a self-contained Rust reference implementation
-- `example.py` — a self-contained Python reference implementation
+- `example.py` — a self-contained Python reference implementation (both
+  files put the core algorithm first, then a `PDFEND` comment, then the
+  randomized test harness; the PDF prints only the part between the
+  `PDFBEGIN` and `PDFEND` marker comments)
 - `README.md` — a one-paragraph summary and link to the source AtCoder entry
 
 ## Building

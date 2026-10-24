@@ -6,6 +6,7 @@
 // does not work since Z/p^eZ is not a field), then recombine coefficient-
 // wise with the Chinese Remainder Theorem.
 
+// PDFBEGIN
 fn mod_pow(mut base: i64, mut exp: u32, m: i64) -> i64 {
     let mut result = 1i64 % m;
     base %= m;
@@ -216,6 +217,8 @@ fn extrapolate(known: &[i64], q: &[i64], m: i64, count: usize) -> Vec<i64> {
     }
     s[known.len()..].to_vec()
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- Example 1: composite, non-prime-power modulus ---------------

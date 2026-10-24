@@ -16,24 +16,22 @@ an APPROXIMATE eigenfunction once you truncate too early, which is
 exactly why those algorithms pad the working degree to N+M before
 truncating back down.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
 
 MOD = 998244353
 
-
 def mul(a: int, b: int) -> int:
     return (a % MOD) * (b % MOD) % MOD
-
 
 def mod_pow(base: int, exp: int) -> int:
     return pow(base % MOD, exp, MOD)
 
-
 def mod_inv(a: int) -> int:
     return mod_pow(a, MOD - 2)
-
 
 # ---------------------------------------------------------------------
 # Problem 2: A_{i+1} = (1+x) A_i'.  Eigenfunctions (1+x)^k, eigenvalue k.
@@ -48,7 +46,6 @@ def binomial_table(n: int) -> list[list[int]]:
         for j in range(1, i + 1):
             c[i][j] = (c[i - 1][j - 1] + (c[i - 1][j] if j <= i - 1 else 0)) % MOD
     return c
-
 
 def taylor_shift(a: list[int], t: int) -> list[int]:
     """Taylor shift: given P of degree <= n, compute Q(x) = P(x + t), O(n^2)."""
@@ -65,7 +62,6 @@ def taylor_shift(a: list[int], t: int) -> list[int]:
         q[i] = s
     return q
 
-
 def solve_problem2_eigenfunction(a0: list[int], m: int) -> list[int]:
     """Solve Problem 2 via the eigenfunction method: O(N^2) here (Taylor
     shift implemented naively); O(N log N) with a fast Taylor shift.
@@ -75,7 +71,6 @@ def solve_problem2_eigenfunction(a0: list[int], m: int) -> list[int]:
     c = [mul(ck, mod_pow(k, m)) for k, ck in enumerate(c)]
     # Recombine: A_M(x) = sum_k c_k (1+x)^k = D(x+1), shift by +1.
     return taylor_shift(c, 1)
-
 
 def solve_problem2_direct(a0: list[int], m: int) -> list[int]:
     """The definition, directly: simulate the DP table. O(N*M). Used only
@@ -90,7 +85,6 @@ def solve_problem2_direct(a0: list[int], m: int) -> list[int]:
             nxt[j] = (mul(j, dp[j]) + mul(j + 1, dp_j1)) % MOD
         dp = nxt
     return dp
-
 
 # ---------------------------------------------------------------------
 # Power series exp, from scratch (O(n^2)), used to numerically verify the
@@ -113,19 +107,15 @@ def power_series_exp(f: list[int], n: int) -> list[int]:
         e[k] = mul(s, mod_inv(k))
     return e
 
-
 def derivative(a: list[int]) -> list[int]:
     return [mul(i, a[i]) for i in range(1, len(a))]
-
 
 def poly_add(a: list[int], b: list[int]) -> list[int]:
     n = max(len(a), len(b))
     return [((a[i] if i < len(a) else 0) + (b[i] if i < len(b) else 0)) % MOD for i in range(n)]
 
-
 def poly_scale(a: list[int], s: int) -> list[int]:
     return [mul(x, s) for x in a]
-
 
 def x_pow_k_times_exp_neg_x(k: int, length: int) -> list[int]:
     """x^k * e^{-x}, as a power series truncated to `length` terms."""
@@ -139,6 +129,7 @@ def x_pow_k_times_exp_neg_x(k: int, length: int) -> list[int]:
             out[k + i] = v
     return out
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 def main() -> None:
     # --- Problem 2: eigenfunction method vs. direct DP simulation --------
@@ -210,7 +201,6 @@ def main() -> None:
             p4_ok = False
             print(f"PROBLEM4 EIGEN MISMATCH k={k}: f(A)={f_a[:check_len]} k*A={want[:check_len]}")
     print(f"Problem 4 eigenfunction identity x(A+A')=kA holds (for x^k e^-x) with enough padding: {'PASS' if p4_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

@@ -5,22 +5,11 @@ connected-component decomposition purely from in-degrees, a Hamiltonian
 path (Redei's theorem), a Hamiltonian cycle for strongly connected
 tournaments (Camion's theorem), and a 2-king (Landau's theorem).
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
-
-
-def random_tournament(n: int, rng: random.Random) -> list[list[bool]]:
-    """beats[i][j] = True iff i -> j (i beat j)."""
-    beats = [[False] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(i + 1, n):
-            if rng.random() < 0.5:
-                beats[i][j] = True
-            else:
-                beats[j][i] = True
-    return beats
-
 
 def is_transitive(beats: list[list[bool]], n: int) -> bool:
     """Equivalent to "contains no 3-cycle"."""
@@ -33,10 +22,8 @@ def is_transitive(beats: list[list[bool]], n: int) -> bool:
                     return False
     return True
 
-
 def in_degrees(beats: list[list[bool]], n: int) -> list[int]:
     return [sum(1 for u in range(n) if beats[u][v]) for v in range(n)]
-
 
 def scc_by_reachability(beats: list[list[bool]], n: int) -> list[list[int]]:
     """Reference SCC decomposition via mutual reachability (O(n^3)
@@ -65,7 +52,6 @@ def scc_by_reachability(beats: list[list[bool]], n: int) -> list[list[int]]:
         comps.append(comp)
     return comps
 
-
 def scc_by_indegree(beats: list[list[bool]], n: int) -> list[list[int]]:
     """SCC decomposition using ONLY in-degrees: sort vertices ascending by
     in-degree, then cut wherever the running sum of in-degrees among the
@@ -85,7 +71,6 @@ def scc_by_indegree(beats: list[list[bool]], n: int) -> list[list[int]]:
             comps.append(order[start:k])
             start = k
     return comps
-
 
 def hamiltonian_path(beats: list[list[bool]], n: int) -> list[int]:
     """Redei's theorem: build a Hamiltonian path by inserting vertices one
@@ -108,13 +93,6 @@ def hamiltonian_path(beats: list[list[bool]], n: int) -> list[int]:
                     break
             path.insert(idx, v)
     return path
-
-
-def is_valid_hamiltonian_path(beats: list[list[bool]], path: list[int], n: int) -> bool:
-    if len(path) != n or len(set(path)) != n:
-        return False
-    return all(beats[path[i]][path[i + 1]] for i in range(n - 1))
-
 
 def hamiltonian_cycle(beats: list[list[bool]], n: int, path: list[int]) -> list[int]:
     """Camion's theorem: for a strongly connected tournament with n >= 3,
@@ -165,18 +143,10 @@ def hamiltonian_cycle(beats: list[list[bool]], n: int, path: list[int]) -> list[
                 k = q0 + 1
     return order
 
-
-def is_valid_hamiltonian_cycle(beats: list[list[bool]], cycle: list[int], n: int) -> bool:
-    if not is_valid_hamiltonian_path(beats, cycle, n):
-        return False
-    return beats[cycle[n - 1]][cycle[0]]
-
-
 def find_2_king(beats: list[list[bool]], n: int) -> int:
     """Landau's theorem: the maximum out-degree vertex reaches every other
     vertex within distance 2."""
     return max(range(n), key=lambda v: sum(1 for u in range(n) if beats[v][u]))
-
 
 def is_2_king(beats: list[list[bool]], v: int, n: int) -> bool:
     return all(
@@ -184,6 +154,28 @@ def is_2_king(beats: list[list[bool]], v: int, n: int) -> bool:
         for x in range(n)
     )
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def random_tournament(n: int, rng: random.Random) -> list[list[bool]]:
+    """beats[i][j] = True iff i -> j (i beat j)."""
+    beats = [[False] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if rng.random() < 0.5:
+                beats[i][j] = True
+            else:
+                beats[j][i] = True
+    return beats
+
+def is_valid_hamiltonian_path(beats: list[list[bool]], path: list[int], n: int) -> bool:
+    if len(path) != n or len(set(path)) != n:
+        return False
+    return all(beats[path[i]][path[i + 1]] for i in range(n - 1))
+
+def is_valid_hamiltonian_cycle(beats: list[list[bool]], cycle: list[int], n: int) -> bool:
+    if not is_valid_hamiltonian_path(beats, cycle, n):
+        return False
+    return beats[cycle[n - 1]][cycle[0]]
 
 def main() -> None:
     rng = random.Random(12345)
@@ -250,7 +242,6 @@ def main() -> None:
     beats[2][0] = True  # Paper beats Rock
     print(f"\nrock-paper-scissors tournament transitive? {is_transitive(beats, n)}")
     print(f"its SCCs (in-degree method): {scc_by_indegree(beats, n)}")
-
 
 if __name__ == "__main__":
     main()

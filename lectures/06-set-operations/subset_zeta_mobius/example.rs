@@ -12,20 +12,7 @@
 // transform back; AND-convolution is the superset-relation mirror image.
 // All of these are cross-checked against brute-force O(4^n) definitions.
 
-/// O(4^n): definition-level double loop.
-fn subset_zeta_naive(n: usize, a: &[i64]) -> Vec<i64> {
-    let size = 1usize << n;
-    let mut b = vec![0i64; size];
-    for t in 0..size {
-        for s in 0..size {
-            if s & t == s {
-                b[t] += a[s];
-            }
-        }
-    }
-    b
-}
-
+// PDFBEGIN
 /// O(3^n): enumerate submasks of T directly via the standard
 /// `for (s = t; ; s = (s-1)&t)` trick.
 fn subset_zeta_submask_enum(n: usize, a: &[i64]) -> Vec<i64> {
@@ -69,21 +56,6 @@ fn subset_mobius_fast(n: usize, mut a: Vec<i64>) -> Vec<i64> {
         }
     }
     a
-}
-
-/// O(4^n): definition-level double loop for the superset zeta transform,
-/// B_T = sum_{S superseteq T} A_S.
-fn superset_zeta_naive(n: usize, a: &[i64]) -> Vec<i64> {
-    let size = 1usize << n;
-    let mut b = vec![0i64; size];
-    for t in 0..size {
-        for s in 0..size {
-            if s & t == t {
-                b[t] += a[s];
-            }
-        }
-    }
-    b
 }
 
 /// O(n*2^n): fast superset zeta transform (mirror image of the subset one:
@@ -131,6 +103,37 @@ fn and_convolution(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
     superset_mobius_fast(n, d)
 }
 
+// PDFEND -- everything below is the test harness and is not printed in the PDF
+
+/// O(4^n): definition-level double loop.
+fn subset_zeta_naive(n: usize, a: &[i64]) -> Vec<i64> {
+    let size = 1usize << n;
+    let mut b = vec![0i64; size];
+    for t in 0..size {
+        for s in 0..size {
+            if s & t == s {
+                b[t] += a[s];
+            }
+        }
+    }
+    b
+}
+
+/// O(4^n): definition-level double loop for the superset zeta transform,
+/// B_T = sum_{S superseteq T} A_S.
+fn superset_zeta_naive(n: usize, a: &[i64]) -> Vec<i64> {
+    let size = 1usize << n;
+    let mut b = vec![0i64; size];
+    for t in 0..size {
+        for s in 0..size {
+            if s & t == t {
+                b[t] += a[s];
+            }
+        }
+    }
+    b
+}
+
 /// Brute-force O(4^n) reference for OR-convolution.
 fn or_convolution_naive(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
     let size = 1usize << n;
@@ -156,6 +159,7 @@ fn and_convolution_naive(n: usize, a: &[i64], b: &[i64]) -> Vec<i64> {
 }
 
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);

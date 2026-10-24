@@ -16,14 +16,17 @@
 // exactly why those algorithms pad the working degree to N+M before
 // truncating back down.
 
+// PDFBEGIN
 const MOD: i64 = 998244353;
 
 fn add(a: i64, b: i64) -> i64 {
     (a + b).rem_euclid(MOD)
 }
+
 fn mul(a: i64, b: i64) -> i64 {
     (a.rem_euclid(MOD) * b.rem_euclid(MOD)).rem_euclid(MOD)
 }
+
 fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
     let mut result = 1i64;
     base = base.rem_euclid(MOD);
@@ -36,6 +39,7 @@ fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
     }
     result
 }
+
 fn mod_inv(a: i64) -> i64 {
     mod_pow(a, MOD - 2)
 }
@@ -153,6 +157,8 @@ fn x_pow_k_times_exp_neg_x(k: usize, len: usize) -> Vec<i64> {
     }
     out
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn main() {
     // --- Problem 2: eigenfunction method vs. direct DP simulation --------

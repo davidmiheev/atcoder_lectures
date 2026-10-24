@@ -123,6 +123,24 @@ This turns the general problem into: \emph{solve the recovery problem modulo
 a single prime power $p^e$.} That is where Reeds--Sloane's real content
 lives.
 
+% FIGURE: rec_crt
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm and 1.0cm]
+\node[lnode,minimum width=3.1cm] (in) {sequence $A_0,A_1,\dots$ \\ and modulus $m$};
+\node[lnode,minimum width=2.4cm,right=of in] (fac) {factor\\ $m=\prod p_j^{e_j}$};
+\node[lnode,minimum width=3.4cm,lhi,above right=0.2cm and 1.0cm of fac] (a) {Reeds--Sloane\\ modulo $p_1^{e_1}$};
+\node[lnode,minimum width=3.4cm,lhi,below right=0.2cm and 1.0cm of fac] (b) {Reeds--Sloane\\ modulo $p_2^{e_2}$};
+\node[lnode,minimum width=3.0cm,right=3.1cm of fac,yshift=0pt] (crt) {CRT, coefficient\\ by coefficient};
+\node[lnode,minimum width=3.4cm,lhi2,right=of crt] (out) {recurrence mod $m$\\ of length $\max_j L_j$};
+\draw[larrow] (in) -- (fac);
+\draw[larrow] (fac) -- (a); \draw[larrow] (fac) -- (b);
+\draw[larrow] (a) -- (crt); \draw[larrow] (b) -- (crt);
+\draw[larrow] (crt) -- (out);
+\end{tikzpicture}
+\caption{Recovering a recurrence modulo a composite $m$. The modulus is factored, a minimal recurrence is found modulo each prime power by the Reeds--Sloane algorithm (which avoids dividing by non-units), and the results are glued by the Chinese remainder theorem; the length is the maximum of the per-prime-power lengths.}\label{fig:rec_crt}
+\end{figure}
+
 \section{The Prime-Power Case}
 
 Fix $m = p^e$. The obstruction identified earlier was division: Berlekamp--
@@ -219,11 +237,12 @@ all steps, and the $\log m$ factor accounts for the modular inverses.
 Both examples below implement the full pipeline: factor $m$, run the
 prime-power algorithm on each factor, and recombine with CRT.
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Examples}
 \begin{examplebox}

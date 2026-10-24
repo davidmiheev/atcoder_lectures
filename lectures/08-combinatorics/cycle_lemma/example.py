@@ -4,30 +4,18 @@ every prefix sum (after the empty prefix) strictly positive. Several
 classical counting formulas -- Catalan, Fuss-Catalan, Narayana, and the
 Catalan convolution identity -- follow from it via a "prepend +1" trick.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import itertools
-import math
-import random
 
+import math
+
+import random
 
 def catalan(n: int) -> int:
     return math.comb(2 * n, n) // (n + 1)
-
-
-def all_sequences(total: int, num_plus: int, plus_val: int, minus_val: int) -> list[list[int]]:
-    """Every length-`total` sequence with `plus_val` at `num_plus`
-    positions (chosen every possible way) and `minus_val` everywhere
-    else.
-    """
-    sequences = []
-    for combo in itertools.combinations(range(total), num_plus):
-        seq = [minus_val] * total
-        for idx in combo:
-            seq[idx] = plus_val
-        sequences.append(seq)
-    return sequences
-
 
 def prefix_always_nonneg(a: list[int]) -> bool:
     s = 0
@@ -37,7 +25,6 @@ def prefix_always_nonneg(a: list[int]) -> bool:
             return False
     return True
 
-
 def prefix_positive_after_first(a: list[int]) -> bool:
     s = 0
     for x in a:
@@ -45,7 +32,6 @@ def prefix_positive_after_first(a: list[int]) -> bool:
         if s <= 0:
             return False
     return True
-
 
 def cycle_lemma_count(a: list[int]) -> int:
     """The Cycle Lemma count: how many of A's N cyclic shifts have every
@@ -59,6 +45,20 @@ def cycle_lemma_count(a: list[int]) -> int:
             count += 1
     return count
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def all_sequences(total: int, num_plus: int, plus_val: int, minus_val: int) -> list[list[int]]:
+    """Every length-`total` sequence with `plus_val` at `num_plus`
+    positions (chosen every possible way) and `minus_val` everywhere
+    else.
+    """
+    sequences = []
+    for combo in itertools.combinations(range(total), num_plus):
+        seq = [minus_val] * total
+        for idx in combo:
+            seq[idx] = plus_val
+        sequences.append(seq)
+    return sequences
 
 def main() -> None:
     # --- Core theorem, on the lecture's own worked example ---------------
@@ -162,7 +162,6 @@ def main() -> None:
                 conv_ok = False
                 print(f"CONVOLUTION MISMATCH n={n} m={m}: sum={total_sum} formula={formula}")
     print(f"Catalan convolution formula (Theorem 7) verified for small N,M: {'PASS' if conv_ok else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

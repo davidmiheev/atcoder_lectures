@@ -9,7 +9,11 @@
 \ProvidesPackage{lecturestyle}[2026/01/01 Lecture note style]
 
 \RequirePackage{fontspec}
-\setmainfont{DejaVu Serif}
+% DejaVu Serif ships no italic face, so emphasis uses a slanted upright
+% (otherwise \emph silently renders upright and LaTeX warns on every build).
+\setmainfont{DejaVu Serif}[
+  ItalicFont={DejaVu Serif}, ItalicFeatures={FakeSlant=0.2},
+  BoldItalicFont={DejaVu Serif Bold}, BoldItalicFeatures={FakeSlant=0.2}]
 \setsansfont{DejaVu Sans}
 \setmonofont{DejaVu Sans Mono}[Scale=0.88]
 \RequirePackage[a4paper,margin=2.2cm]{geometry}
@@ -27,6 +31,12 @@
 \RequirePackage{hyperref}
 \RequirePackage{booktabs}
 \RequirePackage{graphicx}
+\RequirePackage{float}
+\RequirePackage[font={small,sf},labelfont=bf,labelsep=period,margin=1em]{caption}
+\RequirePackage{xurl} % lets long URLs break at any character instead of overflowing the margin
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric,
+  decorations.pathreplacing,backgrounds,matrix}
 
 % ---- palette (original, not a copy of any third-party brand) ----
 \definecolor{lectureink}{HTML}{1B2733}
@@ -81,6 +91,22 @@
   \vspace{10pt}
 }
 
+% ---- shared TikZ styles for the illustrations ----
+\tikzset{
+  lnode/.style={draw=lectureaccent,fill=lecturebg,rounded corners=2pt,
+    minimum height=6mm,inner sep=2.5pt,font=\small\sffamily,align=center},
+  lcell/.style={draw=lectureink!60,minimum width=8mm,minimum height=7mm,
+    inner sep=0pt,font=\small\sffamily,anchor=center},
+  lhi/.style={fill=lectureaccent!28},
+  lhi2/.style={fill=lecturewarn!28},
+  lgray/.style={fill=lectureink!8},
+  larrow/.style={-{Stealth[length=2.2mm]},thick,draw=lectureink!80},
+  lthin/.style={-{Stealth[length=1.8mm]},draw=lectureink!70},
+  llabel/.style={font=\footnotesize\sffamily,text=lectureink!85},
+  lvert/.style={circle,draw=lectureink!80,fill=white,minimum size=6.5mm,
+    inner sep=0pt,font=\small\sffamily},
+}
+
 \pagestyle{fancy}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -92,31 +118,34 @@
 \titleformat{\subsection}{\large\sffamily\bfseries\color{lectureink}}{\thesubsection}{0.6em}{}
 
 % ---- theorem-like boxes ----
+% "Theorem --- Remainder Theorem" when an optional name is given, plain "Theorem" otherwise.
+\newcommand{\boxtitle}[2]{#1\ifx\relax#2\relax\else\,---\,#2\fi}
+
 \newtcolorbox{definitionbox}[1][]{
   enhanced, breakable, colback=lecturebg, colframe=lectureaccent,
   boxrule=0.6pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
-  fonttitle=\sffamily\bfseries, title={Definition #1}
+  fonttitle=\sffamily\bfseries, title={\boxtitle{Definition}{#1}}
 }
 \newtcolorbox{theorembox}[1][]{
   enhanced, breakable, colback=lecturebg, colframe=lectureink,
   boxrule=0.6pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
-  fonttitle=\sffamily\bfseries, title={Theorem #1}
+  fonttitle=\sffamily\bfseries, title={\boxtitle{Theorem}{#1}}
 }
 \newtcolorbox{examplebox}[1][]{
   enhanced, breakable, colback=white, colframe=coderule,
   boxrule=0.6pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
-  fonttitle=\sffamily\bfseries, title={Example #1}
+  fonttitle=\sffamily\bfseries, coltitle=lectureink, title={\boxtitle{Example}{#1}}
 }
 \newtcolorbox{notebox}[1][]{
   enhanced, breakable, colback=white, colframe=lecturewarn,
   boxrule=0.6pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
-  fonttitle=\sffamily\bfseries, coltitle=white, title={Note #1}
+  fonttitle=\sffamily\bfseries, coltitle=white, title={\boxtitle{Note}{#1}}
 }
 
 % ---- code listings ----
 \lstdefinestyle{lecturecode}{
   backgroundcolor=\color{codebg},
-  basicstyle=\ttfamily\small,
+  basicstyle=\ttfamily\footnotesize,
   keywordstyle=\color{lectureaccent}\bfseries,
   commentstyle=\color{lectureink!50}\itshape,
   stringstyle=\color{lecturewarn},
@@ -131,6 +160,18 @@
   xleftmargin=1em
 }
 \lstset{style=lecturecode}
+
+% Prints only the part of an example file between its PDFBEGIN and PDFEND
+% marker comments (the core algorithm); the randomized test harness that
+% follows PDFEND stays in the repository file but out of the PDF.
+\newcommand{\corelisting}[2]{%
+  \lstinputlisting[language=#1,linerange={PDFBEGIN-PDFEND},includerangemarker=false]{#2}}
+\newcommand{\codenote}{%
+  {\small\color{lectureink!70}The listings show the core algorithm only. The
+   complete files --- including the randomized cross-checks against brute
+   force that produced the results quoted below --- are \texttt{example.rs}
+   and \texttt{example.py} in this lecture's folder of the repository.\par}
+  \vspace{4pt}}
 
 \lstdefinelanguage{Rust}{
   keywords={fn,let,mut,if,else,match,for,while,loop,struct,enum,impl,trait,pub,use,mod,return,break,continue,self,Self,as,in,ref,move,unsafe,where,const,static,dyn,async,await},

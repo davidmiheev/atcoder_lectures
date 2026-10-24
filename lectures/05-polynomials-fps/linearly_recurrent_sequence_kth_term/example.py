@@ -7,10 +7,11 @@ each round via an even/odd split. Polynomial arithmetic here is the naive
 O(d^2) kind, so the overall cost is O(d^2 log K), matching what the
 lecture describes as the straightforward (non-FFT) implementation.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 MOD = 998244353
-
 
 # ---------------------------------------------------------------------
 # Fiduccia's algorithm
@@ -30,7 +31,6 @@ def mul_x_mod_gamma(poly: list[int], c: list[int]) -> list[int]:
     for j in range(d):
         out[d - 1 - j] = (out[d - 1 - j] + carry * c[j]) % MOD
     return out
-
 
 def mulmod_gamma(a: list[int], b: list[int], c: list[int]) -> list[int]:
     """Multiply two degree-<d polynomials and reduce modulo Gamma(x), by
@@ -53,7 +53,6 @@ def mulmod_gamma(a: list[int], b: list[int], c: list[int]) -> list[int]:
             raw[e - 1 - j] = (raw[e - 1 - j] + coeff * c[j]) % MOD
     return raw[:d]
 
-
 def xk_mod_gamma(k: int, d: int, c: list[int]) -> list[int]:
     """x^k mod Gamma(x), via the doubling recursion in which the "multiply
     by x" step (for odd k) uses the cheap O(d) helper above.
@@ -68,7 +67,6 @@ def xk_mod_gamma(k: int, d: int, c: list[int]) -> list[int]:
         r = mul_x_mod_gamma(r, c)
     return r
 
-
 def fiduccia(init: list[int], c: list[int], k: int) -> int:
     """A_K for a sequence satisfying A_i = c[0]A_{i-1} + ... +
     c[d-1]A_{i-d}, given initial values A_0..A_{d-1}.
@@ -78,7 +76,6 @@ def fiduccia(init: list[int], c: list[int], k: int) -> int:
         return init[k]
     r = xk_mod_gamma(k, d, c)
     return sum(r[i] * init[i] for i in range(d)) % MOD
-
 
 # ---------------------------------------------------------------------
 # Bostan-Mori's algorithm
@@ -94,18 +91,14 @@ def poly_mul(a: list[int], b: list[int]) -> list[int]:
             out[i + j] = (out[i + j] + av * bv) % MOD
     return out
 
-
 def negate_odd(a: list[int]) -> list[int]:
     return [(-v % MOD) if i % 2 == 1 else v for i, v in enumerate(a)]
-
 
 def even_part(a: list[int]) -> list[int]:
     return a[0::2]
 
-
 def odd_part(a: list[int]) -> list[int]:
     return a[1::2] if len(a) >= 2 else [0]
-
 
 def bostan_mori(p: list[int], q: list[int], k: int) -> int:
     """[x^k] P(x)/Q(x), given Q(0) = 1."""
@@ -118,7 +111,6 @@ def bostan_mori(p: list[int], q: list[int], k: int) -> int:
         k //= 2
     return p[0] if p else 0
 
-
 def kth_term_bostan_mori(init: list[int], c: list[int], k: int) -> int:
     """Same recurrence as `fiduccia`, solved via the generating function
     A(x) = P(x)/Q(x) with Q(x) = 1 - c[0]x - ... - c[d-1]x^d.
@@ -129,6 +121,7 @@ def kth_term_bostan_mori(init: list[int], c: list[int], k: int) -> int:
     p = full[:d]
     return bostan_mori(p, q, k)
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 # ---------------------------------------------------------------------
 # Direct O(K) unrolling, for cross-checking on small K.
@@ -144,7 +137,6 @@ def direct(init: list[int], c: list[int], k: int) -> int:
         nxt = sum(c[j] * a[i - 1 - j] for j in range(d)) % MOD
         a.append(nxt)
     return a[k]
-
 
 def main() -> None:
     # --- The lecture's own worked example: A_i = A_{i-1}+A_{i-2}+A_{i-3},
@@ -193,7 +185,6 @@ def main() -> None:
     f = fiduccia(fib_init, fib_c, huge_k)
     b = kth_term_bostan_mori(fib_init, fib_c, huge_k)
     print(f"\nFibonacci(10^12) mod {MOD}: Fiduccia = {f}, Bostan-Mori = {b}, agree = {f == b}")
-
 
 if __name__ == "__main__":
     main()

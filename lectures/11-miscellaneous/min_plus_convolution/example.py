@@ -7,32 +7,19 @@ pick i items from a bag priced by A's differences," and the convolution
 becomes "cheapest way to pick k items from the two bags combined" -- i.e.
 just merge the two (already-sorted) difference sequences.
 """
+
+# PDFBEGIN
 from __future__ import annotations
 
 import random
-
-
-def min_plus_convolution_naive(a: list[int], b: list[int]) -> list[int]:
-    """General min-plus convolution, O(N*M): the definition, directly."""
-    n, m = len(a) - 1, len(b) - 1
-    c = [float("inf")] * (n + m + 1)
-    for i in range(n + 1):
-        for j in range(m + 1):
-            s = a[i] + b[j]
-            if s < c[i + j]:
-                c[i + j] = s
-    return c
-
 
 def is_convex(a: list[int]) -> bool:
     """"Convex below": differences A_{i+1} - A_i are nondecreasing."""
     diffs = [a[i + 1] - a[i] for i in range(len(a) - 1)]
     return all(diffs[i] <= diffs[i + 1] for i in range(len(diffs) - 1))
 
-
 def differences(a: list[int]) -> list[int]:
     return [a[i + 1] - a[i] for i in range(len(a) - 1)]
-
 
 def merge_sorted(a: list[int], b: list[int]) -> list[int]:
     """Merge two already-sorted (nondecreasing) lists in O(n+m)."""
@@ -49,7 +36,6 @@ def merge_sorted(a: list[int], b: list[int]) -> list[int]:
     result.extend(b[j:])
     return result
 
-
 def min_plus_convolution_convex(a: list[int], b: list[int]) -> list[int]:
     """Min-plus convolution of two convex sequences, O(N+M): merge their
     (individually nondecreasing) difference sequences and re-accumulate.
@@ -61,6 +47,18 @@ def min_plus_convolution_convex(a: list[int], b: list[int]) -> list[int]:
         c.append(c[-1] + d)
     return c
 
+# PDFEND -- everything below is the test harness and is not printed in the PDF
+
+def min_plus_convolution_naive(a: list[int], b: list[int]) -> list[int]:
+    """General min-plus convolution, O(N*M): the definition, directly."""
+    n, m = len(a) - 1, len(b) - 1
+    c = [float("inf")] * (n + m + 1)
+    for i in range(n + 1):
+        for j in range(m + 1):
+            s = a[i] + b[j]
+            if s < c[i + j]:
+                c[i + j] = s
+    return c
 
 def random_convex_sequence(length: int, rng: random.Random) -> list[int]:
     """A random convex sequence of the given length: nondecreasing random
@@ -71,7 +69,6 @@ def random_convex_sequence(length: int, rng: random.Random) -> list[int]:
     for d in diffs:
         seq.append(seq[-1] + d)
     return seq
-
 
 def main() -> None:
     # --- The lecture's own worked examples ---------------------------------
@@ -157,7 +154,6 @@ def main() -> None:
                 print(f"DP NOT CONVEX a={a} partial dp={dp}")
     print(f"naive O(N^2) knapsack-min dp matches sort-and-prefix-sum: {'PASS' if dp_ok else 'FAIL'}")
     print(f"the dp table stays convex at every step (as the theorem predicts): {'PASS' if dp_stays_convex else 'FAIL'}")
-
 
 if __name__ == "__main__":
     main()

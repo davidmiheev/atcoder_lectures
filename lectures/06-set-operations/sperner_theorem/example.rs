@@ -5,6 +5,7 @@
 // -- plus an independent cross-check via Dilworth's theorem (max antichain
 // = min chain cover, computed by bipartite matching).
 
+// PDFBEGIN
 fn binomial(n: usize, k: usize) -> u128 {
     if k > n {
         return 0;
@@ -52,6 +53,8 @@ fn symmetric_chain_decomposition(n: usize) -> Vec<Vec<u32>> {
     }
     result
 }
+
+// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 fn verify_symmetric_chain_decomposition(n: usize, chains: &[Vec<u32>]) -> bool {
     let total = 1usize << n;
@@ -108,10 +111,12 @@ fn gcd(a: i128, b: i128) -> i128 {
 }
 
 #[derive(Clone, Copy)]
+
 struct Frac {
     num: i128,
     den: i128,
 }
+
 impl Frac {
     fn new(num: i128, den: i128) -> Self {
         let g = gcd(num, den).max(1);
@@ -136,6 +141,7 @@ fn lym_sum(n: usize, antichain: &[u32]) -> Frac {
 }
 
 struct Rng(u64);
+
 impl Rng {
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E3779B97F4A7C15);
