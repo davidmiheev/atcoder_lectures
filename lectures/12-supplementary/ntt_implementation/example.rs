@@ -114,6 +114,134 @@ fn multiply_via_ntt(a: &[i64], b: &[i64]) -> Vec<i64> {
     fa
 }
 
+// ---- For comparison: the same transform over the complex numbers -------
+
+/// In-place iterative complex FFT (Cooley-Tukey). Same bit-reversal and
+/// butterfly structure as `ntt`; only the field differs. Twiddle factors
+/// are evaluated directly with cos/sin (accuracy matters here, unlike in
+/// the NTT where every root is exact).
+fn fft(a: &mut [(f64, f64)], invert: bool) {
+    let n = a.len();
+    debug_assert!(n.is_power_of_two());
+
+    let mut j = 0usize;
+    for i in 1..n {
+        let mut bit = n >> 1;
+        while j & bit != 0 {
+            j ^= bit;
+            bit >>= 1;
+        }
+        j |= bit;
+        if i < j {
+            a.swap(i, j);
+        }
+    }
+
+    let mut len = 2usize;
+    while len <= n {
+        let sign = if invert { -1.0 } else { 1.0 };
+        let ang = sign * 2.0 * std::f64::consts::PI / len as f64;
+        let mut i = 0;
+        while i < n {
+            for k in 0..len / 2 {
+                let (wr, wi) = ((ang * k as f64).cos(), (ang * k as f64).sin());
+                let (ur, ui) = a[i + k];
+                let (xr, xi) = a[i + k + len / 2];
+                let (vr, vi) = (xr * wr - xi * wi, xr * wi + xi * wr);
+                a[i + k] = (ur + vr, ui + vi);
+                a[i + k + len / 2] = (ur - vr, ui - vi);
+            }
+            i += len;
+        }
+        len <<= 1;
+    }
+
+    if invert {
+        for x in a.iter_mut() {
+            x.0 /= n as f64;
+            x.1 /= n as f64;
+        }
+    }
+}
+
+/// Real polynomial product via the complex FFT. The result is only an
+/// approximation of the true product; see the lecture for when rounding
+/// it to integers is safe.
+fn multiply_via_fft(a: &[f64], b: &[f64]) -> Vec<f64> {
+    if a.is_empty() || b.is_empty() {
+        return vec![];
+    }
+    let result_len = a.len() + b.len() - 1;
+    let mut size = 1usize;
+    while size < result_len {
+        size <<= 1;
+    }
+    let mut fa: Vec<(f64, f64)> = a.iter().map(|&x| (x, 0.0)).collect();
+    let mut fb: Vec<(f64, f64)> = b.iter().map(|&x| (x, 0.0)).collect();
+    fa.resize(size, (0.0, 0.0));
+    fb.resize(size, (0.0, 0.0));
+    fft(&mut fa, false);
+    fft(&mut fb, false);
+    for i in 0..size {
+        let (ar, ai) = fa[i];
+        let (br, bi) = fb[i];
+        fa[i] = (ar * br - ai * bi, ar * bi + ai * br);
+    }
+    fft(&mut fa, true);
+    fa.iter().take(result_len).map(|c| c.0).collect()
+}
+
+/// Product mod MOD using only floating-point FFTs, by splitting every
+/// coefficient into 15-bit halves so each partial product stays far below
+/// 2^53. Needs 4 forward and 3 inverse transforms (7 in total), against
+/// 3 for `multiply_via_ntt`.
+fn multiply_mod_via_fft_split(a: &[i64], b: &[i64]) -> Vec<i64> {
+    if a.is_empty() || b.is_empty() {
+        return vec![];
+    }
+    let result_len = a.len() + b.len() - 1;
+    let mut size = 1usize;
+    while size < result_len {
+        size <<= 1;
+    }
+    let split = |v: &[i64]| -> (Vec<(f64, f64)>, Vec<(f64, f64)>) {
+        let mut lo = vec![(0.0, 0.0); size];
+        let mut hi = vec![(0.0, 0.0); size];
+        for (i, &x) in v.iter().enumerate() {
+            let x = x.rem_euclid(MOD);
+            lo[i] = ((x & 0x7FFF) as f64, 0.0);
+            hi[i] = ((x >> 15) as f64, 0.0);
+        }
+        fft(&mut lo, false);
+        fft(&mut hi, false);
+        (lo, hi)
+    };
+    let (a0, a1) = split(a);
+    let (b0, b1) = split(b);
+    let mul = |x: &[(f64, f64)], y: &[(f64, f64)]| -> Vec<(f64, f64)> {
+        x.iter().zip(y).map(|(&(ar, ai), &(br, bi))| (ar * br - ai * bi, ar * bi + ai * br)).collect()
+    };
+    let add = |x: Vec<(f64, f64)>, y: Vec<(f64, f64)>| -> Vec<(f64, f64)> {
+        x.iter().zip(&y).map(|(&(ar, ai), &(br, bi))| (ar + br, ai + bi)).collect()
+    };
+    let mut c00 = mul(&a0, &b0);
+    let mut c01 = add(mul(&a0, &b1), mul(&a1, &b0));
+    let mut c11 = mul(&a1, &b1);
+    fft(&mut c00, true);
+    fft(&mut c01, true);
+    fft(&mut c11, true);
+    let shift15 = 1i64 << 15;
+    let shift30 = (1i64 << 30) % MOD;
+    (0..result_len)
+        .map(|k| {
+            let r00 = (c00[k].0.round() as i64).rem_euclid(MOD);
+            let r01 = (c01[k].0.round() as i64).rem_euclid(MOD);
+            let r11 = (c11[k].0.round() as i64).rem_euclid(MOD);
+            (r00 + r01 * shift15 % MOD + r11 * shift30 % MOD) % MOD
+        })
+        .collect()
+}
+
 // PDFEND -- everything below is the test harness and is not printed in the PDF
 
 /// The definition, directly: O(n*m). Used only to cross-check the NTT.
@@ -198,4 +326,77 @@ fn main() {
     println!("\n(1+2x+3x^2)(4+5x+6x^2) via NTT   = {:?}", multiply_via_ntt(&a, &b));
     println!("(1+2x+3x^2)(4+5x+6x^2) via naive = {:?}", multiply_naive(&a, &b));
     // Expected by hand: 4 + 13x + 28x^2 + 27x^3 + 18x^4
+
+    // --- NTT vs FFT: roots of unity in Z/17Z mirror the complex ones -----
+    {
+        let p = 17i64;
+        let w = mod_pow(3, ((p - 1) / 8) as u64, p); // 3 is a primitive root mod 17
+        let powers: Vec<i64> = (0..8).map(|k| mod_pow(w, k, p)).collect();
+        let ok = w == 9 && powers == vec![1, 9, 13, 15, 16, 8, 4, 2] && mod_pow(w, 4, p) == p - 1 && mod_pow(w, 8, p) == 1;
+        println!("\nroots of unity mod 17: w=9 has powers {:?}, w^4 = -1: {}", powers, if ok { "PASS" } else { "FAIL" });
+    }
+
+    // --- NTT vs FFT: when is rounding an FFT result safe? -----------------
+    // Deterministic pseudo-random coefficients (same LCG in Rust and Python).
+    fn lcg_values(seed: u64, count: usize, bound: u64) -> Vec<i64> {
+        let mut state = seed;
+        (0..count)
+            .map(|_| {
+                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                ((state >> 33) % bound) as i64
+            })
+            .collect()
+    }
+    // Rounding noise makes exact counts of wrong coefficients chaotic once the
+    // values pass 2^53, so report them by category only.
+    fn describe(wrong: usize, total: usize) -> String {
+        if wrong == 0 {
+            "none".to_string()
+        } else if wrong * 100 >= total * 99 {
+            "essentially all (>= 99%)".to_string()
+        } else {
+            format!("about {}%", ((wrong * 100 + total / 2) / total + 5) / 10 * 10)
+        }
+    }
+    let n = 1024usize;
+    println!("\nplain FFT product of two length-{n} polynomials with coefficients in [0, B):");
+    for bits in [8u32, 14, 18, 22, 30] {
+        let bound = 1u64 << bits;
+        let a = lcg_values(11 + bits as u64, n, bound);
+        let b = lcg_values(97 + bits as u64, n, bound);
+        let af: Vec<f64> = a.iter().map(|&x| x as f64).collect();
+        let bf: Vec<f64> = b.iter().map(|&x| x as f64).collect();
+        let approx = multiply_via_fft(&af, &bf);
+        let mut exact = vec![0u128; 2 * n - 1];
+        for i in 0..n {
+            for j in 0..n {
+                exact[i + j] += a[i] as u128 * b[j] as u128;
+            }
+        }
+        let mut max_dev = 0.0f64;
+        let mut wrong = 0usize;
+        for k in 0..approx.len() {
+            max_dev = max_dev.max((approx[k] - approx[k].round()).abs());
+            if approx[k].round() as i128 != exact[k] as i128 {
+                wrong += 1;
+            }
+        }
+        let dev = if max_dev == 0.0 { "0".to_string() } else { format!("~1e{}", max_dev.log10().floor() as i32) };
+        println!("  B = 2^{bits:<2}: max distance to nearest integer {dev:>6}, wrong coefficients: {}", describe(wrong, approx.len()));
+    }
+
+    // --- NTT vs FFT: arbitrary values mod p -------------------------------
+    {
+        let a = lcg_values(5, 1024, MOD as u64);
+        let b = lcg_values(6, 1024, MOD as u64);
+        let via_ntt = multiply_via_ntt(&a, &b);
+        let af: Vec<f64> = a.iter().map(|&x| x as f64).collect();
+        let bf: Vec<f64> = b.iter().map(|&x| x as f64).collect();
+        let plain: Vec<i64> = multiply_via_fft(&af, &bf).iter().map(|x| (x.round() as i64).rem_euclid(MOD)).collect();
+        let plain_wrong = plain.iter().zip(&via_ntt).filter(|(x, y)| x != y).count();
+        let split = multiply_mod_via_fft_split(&a, &b);
+        println!("\nfull-range coefficients mod p (length 1024 each):");
+        println!("  plain FFT then reduce mod p: wrong residues: {}", describe(plain_wrong, via_ntt.len()));
+        println!("  FFT with 15-bit splitting equals the NTT result: {}", if split == via_ntt { "PASS" } else { "FAIL" });
+    }
 }

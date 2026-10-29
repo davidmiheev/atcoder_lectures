@@ -21,3 +21,9 @@ implement the iterative NTT and NTT-based polynomial multiplication,
 cross-checked against the naive O(nm) convolution on hundreds of random
 polynomial pairs, plus a forward/inverse round-trip check and a
 hand-verifiable worked example.
+
+The lecture also compares the NTT with the complex FFT: what changes when the
+field changes, a measured experiment on when rounding an FFT result is safe,
+two ways to multiply modulo an arbitrary modulus (several NTT primes with CRT,
+or FFT with 15-bit splitting, the latter implemented and checked against the
+NTT), and a short guide to choosing between them.
