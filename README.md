@@ -122,6 +122,7 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 | [Ackermann & Inverse Ackermann Functions](lectures/11-miscellaneous/ackermann_function/) | 7/9 |
 | [Min-Plus Convolution of Convex Sequences](lectures/11-miscellaneous/min_plus_convolution/) | 4/9 |
 | [Color-Coding](lectures/11-miscellaneous/color_coding/) | 5/9 |
+| [Todd–Coxeter Algorithm](lectures/11-miscellaneous/todd_coxeter/) | 7/9 |
 
 ### 12. Supplementary (original, not from AtCoder's index)
 | Lecture | Difficulty |

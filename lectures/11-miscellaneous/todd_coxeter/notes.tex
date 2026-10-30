@@ -1,0 +1,266 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Todd--Coxeter Algorithm}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Miscellaneous}{Todd--Coxeter Algorithm}{7}
+
+\section{Overview}
+Here is a puzzle. You may rewrite a word over the letters $a,b$ by inserting or deleting the block $aaa$ or the block $bb$ anywhere, or by replacing an occurrence of $ba$ by $aab$ (or back).
+Given two words, decide whether one can be turned into the other.
+Such a rule set \emph{presents} a monoid: the words are the elements to be multiplied, the rules say which words must be equal, and two words are interchangeable exactly when they name the same element.
+For these particular rules the words fall into just six classes, and a table with six rows and two columns, saying which class you land in after appending $a$ or $b$, answers every instance in time proportional to the length of the words.
+
+This lecture shows how to build such a table mechanically. After recalling generators and Cayley graphs (Section~\ref{sec:cayley}) and how relations define a monoid (Section~\ref{sec:presentation}),
+we describe the \emph{Todd--Coxeter algorithm} (Section~\ref{sec:algorithm}): it grows a graph of provisional vertices, creating vertices where edges are missing and merging vertices that must be equal.
+It stops and returns the Cayley graph whenever the monoid is finite, and runs forever when it is not. Section~\ref{sec:proof} proves both statements.
+The algorithm was invented for enumerating cosets of subgroups; the monoid version here is the simplest variant, and implementations differ in the order in which they do the work.
+Assumes the basic vocabulary of monoids (associativity, identity) and of union-find.
+
+\section{Generators and Cayley Graphs}\label{sec:cayley}
+In this lecture a monoid $M$ is written multiplicatively, with identity $1$.
+
+\begin{definitionbox}[Generating set]
+A subset $X\subseteq M$ \emph{generates} $M$ if every element of $M$ is a finite product of elements of $X$ (the empty product being $1$).
+\end{definitionbox}
+For example, $\{1\}$ generates the non-negative integers under addition, $\{1\}$ generates $\mathbb{Z}/6\mathbb{Z}$, and $\{(0\,1\,2),(0\,1)\}$ generates the symmetric group $S_3$.
+The monoid of positive integers under multiplication needs infinitely many generators (the primes), so we restrict attention to finitely generated monoids.
+
+\begin{definitionbox}[Right Cayley graph, transition table]
+For a monoid $M$ with generating set $X$, the \emph{right Cayley graph} has the elements of $M$ as vertices and, for every $g\in M$ and $x\in X$, an edge labelled $x$ from $g$ to $gx$.
+Every vertex has exactly one outgoing edge per generator, and every element is reachable from the vertex $1$.
+Numbering the vertices $0,\dots,N-1$ with the identity as $0$, the \emph{transition table} $T[v][x]$ records the target of the $x$-edge leaving $v$.
+\end{definitionbox}
+
+% FIGURE: tc_s3
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily,lhi] (v0) at (0.000,2.800) {$\varepsilon$};
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily] (v1) at (-2.425,-1.400) {$a$};
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily] (v2) at (0.000,1.250) {$b$};
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily] (v3) at (2.425,-1.400) {$aa$};
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily] (v4) at (-1.083,-0.625) {$ab$};
+\node[lvert,minimum size=9.5mm,font=\footnotesize\sffamily] (v5) at (1.083,-0.625) {$ba$};
+\draw[larrow,lectureaccent,thick] (v0) to[bend left=8] (v1);
+\draw[larrow,lectureaccent,thick] (v1) to[bend left=8] (v3);
+\draw[larrow,lectureaccent,thick] (v2) to[bend left=8] (v5);
+\draw[larrow,lectureaccent,thick] (v3) to[bend left=8] (v0);
+\draw[larrow,lectureaccent,thick] (v4) to[bend left=8] (v2);
+\draw[larrow,lectureaccent,thick] (v5) to[bend left=8] (v4);
+\draw[Stealth-Stealth,lecturewarn,thick] (v0) -- (v2);
+\draw[Stealth-Stealth,lecturewarn,thick] (v1) -- (v4);
+\draw[Stealth-Stealth,lecturewarn,thick] (v3) -- (v5);
+\node[llabel,anchor=west,align=left] at (4.0,0.9) {\textcolor{lectureaccent}{blue}: right-multiplication by $a$\\ \textcolor{lecturewarn}{brown}: right-multiplication by $b$\\ (two-way, since $bb=\varepsilon$)};
+\node[llabel,anchor=west,align=left] at (4.0,-0.5) {identity vertex shaded};
+\end{tikzpicture}
+\caption{The right Cayley graph of $\langle a,b\mid aaa=\varepsilon,\ bb=\varepsilon,\ ba=aab\rangle$, which the algorithm produces with six vertices (labels are shortest words). Multiplying by $a$ cycles through the outer triangle $\varepsilon\to a\to aa\to\varepsilon$ and, in the opposite sense, through the inner triangle; multiplying by $b$ swaps the two triangles. This is the group $S_3$.}\label{fig:tc_s3}
+\end{figure}
+
+The graph contains the whole multiplication table. To multiply $g$ by $h$, find a path from $1$ to $h$ with edge labels $x_1x_2\cdots x_k$ (so $h=x_1\cdots x_k$) and follow the same labels starting from $g$: you arrive at $gh$.
+So a finite monoid can be described by $|X|\cdot|M|$ numbers.
+
+\begin{examplebox}
+In Figure~\ref{fig:tc_s3}, take $g=ba$ and $h=ab$. The path from $\varepsilon$ to $h$ is labelled $a,b$. Start at the vertex $ba$ and follow $a$, reaching $ab$, then follow $b$, reaching the vertex $a$.
+So $ba\cdot ab=a$ in this monoid. One can confirm it by hand: $baab=(aab)ab=aa(ba)b=aa(aab)b=a^4b^2=a$.
+\end{examplebox}
+
+\section{Monoids Defined by Relations}\label{sec:presentation}
+Now reverse the direction: start from letters and rules, and ask what monoid they define.
+
+Let $X$ be a finite alphabet and $X^*$ the set of words over it, a monoid under concatenation with the empty word $\varepsilon$ as identity. A \emph{relation} is a pair of words, written $u=v$; it does not say that $u$ and $v$ are the same string,
+only that we want them to stand for the same element. Given finitely many relations $R=\{u_1=v_1,\dots,u_m=v_m\}$, write $s\sim_R t$ if $s$ can be turned into $t$ by a finite sequence of steps each replacing an occurrence of some $u_i$ by $v_i$, or an occurrence of $v_i$ by $u_i$.
+This is an equivalence relation (do nothing; reverse the steps; chain the steps), and it is compatible with concatenation: if $s\sim_R t$ then $psq\sim_R ptq$, because the same steps work inside a longer word.
+Therefore the product $[s]\cdot[t]:=[st]$ on classes $[s]=\{t: t\sim_R s\}$ does not depend on the chosen representatives (if $s\sim s'$ and $t\sim t'$ then $st\sim s't\sim s't'$), is associative, and has identity $[\varepsilon]$.
+
+\begin{definitionbox}[Monoid presented by $\langle X\mid R\rangle$]
+The monoid $M=\{[s]:s\in X^*\}$ with the product above. It is generated by the classes $[x]$, $x\in X$, satisfies every relation in $R$, and satisfies no equation that does not follow from $R$.
+\end{definitionbox}
+
+\begin{examplebox}
+$\langle a\mid a^4=\varepsilon\rangle$: every word reduces to one of $\varepsilon,a,a^2,a^3$, and the four are different, because a single step changes the length by a multiple of $4$, so the length modulo $4$ is invariant.
+The monoid is $\mathbb{Z}/4\mathbb{Z}$ under addition, with $a^i\leftrightarrow i$, and its Cayley graph is a directed $4$-cycle.
+\end{examplebox}
+
+\paragraph{The problem.} Given $X$ and $R$ such that $M$ is finite, compute the right Cayley graph of $M$ with respect to the classes of the letters, i.e.\ the number of elements $N$ and the table $T$ with the identity numbered $0$.
+Distinct letters get distinct edge labels even if they happen to denote the same element.
+A caveat: finitely many relations do not make $M$ finite, and deciding whether $M$ is finite is undecidable in general (a known result for finitely presented monoids; see the references).
+So no algorithm can be promised to stop on every input. The algorithm below stops exactly when $M$ is finite and says nothing otherwise: if it has not stopped after a long time, you cannot conclude that $M$ is infinite.
+
+\section{The Todd--Coxeter Algorithm}\label{sec:algorithm}
+\subsection{Provisional vertices}
+The algorithm maintains a directed graph whose vertices are \emph{provisional} elements, numbered in order of creation, with at most one outgoing edge per letter and vertex; missing edges are \emph{undefined}.
+Initially there is one vertex, $0$, standing for the empty word. Different vertices may turn out to stand for the same element; the algorithm records this with a union-find structure and treats each class as one vertex.
+Two operations modify the graph.
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{Define an edge.} If the $x$-edge leaving $v$ is undefined, create a new vertex $w$ and set $T[v][x]=w$. The new vertex stands for the element of $v$ times $x$, and all its edges are undefined.
+  \item \textbf{Merge.} If vertices $p$ and $q$ are known to stand for the same element, unite their classes. For every letter $x$: if only one of them has an $x$-edge, the merged vertex keeps it;
+        if both have one, their targets also stand for the same element (an element times $x$ is determined by the element), so these two targets must be merged too, and so on (Figure~\ref{fig:tc_merge}).
+\end{enumerate}
+
+\begin{definitionbox}[Applying a relation at a vertex]
+To apply $u=v$ at the vertex $p$: follow the letters of $u$ from $p$, defining edges as needed; follow the letters of $v$ from $p$ likewise; then merge the two end vertices.
+\end{definitionbox}
+The element of $p$ times $u$ equals the element of $p$ times $v$, which is exactly what the merge records.
+
+\subsection{The main loop}
+Mark every class as \emph{unprocessed}. Go through the vertices in order of creation, $p=0,1,2,\dots$ (new vertices are appended, so the loop sees them later):
+\begin{enumerate}[leftmargin=1.7em]
+  \item If the class of $p$ is already processed, skip $p$.
+  \item Otherwise apply every relation at $p$, then define every still undefined edge leaving $p$, and mark the class of $p$ processed.
+\end{enumerate}
+When two classes are merged the result counts as processed if either part was: all edges of a processed class are defined and all relations hold at it, and merging only adds equalities, so these facts survive.
+The loop ends when $p$ runs past the last vertex. Then every surviving class has all its edges defined; renumber the classes breadth-first from the class of vertex $0$ and read off the table.
+
+% FIGURE: tc_semilattice
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert,minimum size=8mm,font=\footnotesize\sffamily,lhi] (w0) at (0.00,1.70) {$\varepsilon$};
+\node[lvert,minimum size=8mm,font=\footnotesize\sffamily] (w1) at (-2.20,0.00) {$a$};
+\node[lvert,minimum size=8mm,font=\footnotesize\sffamily] (w2) at (2.20,0.00) {$b$};
+\node[lvert,minimum size=8mm,font=\footnotesize\sffamily] (w3) at (0.00,-1.70) {$ab$};
+\draw[larrow,lectureaccent,thick] (w0) to[bend left=12] (w1);
+\draw[larrow,lecturewarn,thick] (w0) to[bend left=12] (w2);
+\draw[larrow,lectureaccent,thick] (w1) to[out=175,in=125,looseness=6] (w1);
+\draw[larrow,lecturewarn,thick] (w1) to[bend left=12] (w3);
+\draw[larrow,lectureaccent,thick] (w2) to[bend left=12] (w3);
+\draw[larrow,lecturewarn,thick] (w2) to[out=55,in=5,looseness=6] (w2);
+\draw[larrow,lectureaccent,thick] (w3) to[out=255,in=205,looseness=6] (w3);
+\draw[larrow,lecturewarn,thick] (w3) to[out=335,in=285,looseness=6] (w3);
+\end{tikzpicture}
+\caption{The Cayley graph of $\langle a,b\mid aa=a,\ bb=b,\ ba=ab\rangle$ (blue: $a$, brown: $b$): four elements $\varepsilon,a,b,ab$. Several edges enter the same vertex: the edge from $\varepsilon$ and the loop at $a$ both carry the label $a$ into the vertex $a$ (that is, $a\cdot a=a$), so $a$ has no inverse and this monoid is not a group.}\label{fig:tc_semilattice}
+\end{figure}
+
+\subsection{A complete run}
+Take $\langle a,b\mid aa=a,\ bb=b,\ ba=ab\rangle$. The run, as printed by an instrumented version of the reference code, is in Table~\ref{tab:trace}; it creates nine vertices, merges five of them away, and leaves four classes $\{0\},\{1,2\},\{3,4\},\{5,6,7,8\}$, i.e.\ the elements $\varepsilon,a,b,ab$ of Figure~\ref{fig:tc_semilattice}.
+
+\begin{table}[H]
+\centering
+\small\sffamily\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{2.6cm}p{11.8cm}@{}}
+\toprule
+\textbf{processing} & \textbf{what happens} \\
+\midrule
+vertex 0, $aa=a$ & create $1$ ($0\xrightarrow{a}1$) and $2$ ($1\xrightarrow{a}2$); the word $a$ ends at $1$; merge $2$ into $1$, so $1\xrightarrow{a}1$ \\
+vertex 0, $bb=b$ & create $3$ ($0\xrightarrow{b}3$) and $4$ ($3\xrightarrow{b}4$); merge $4$ into $3$ \\
+vertex 0, $ba=ab$ & $ba$: create $5$ ($3\xrightarrow{a}5$); $ab$: create $6$ ($1\xrightarrow{b}6$); merge $6$ into $5$ \\
+vertex 1 & $aa=a$ holds already. $bb=b$: $1\xrightarrow{b}5$, create $7$ ($5\xrightarrow{b}7$), merge $7$ into $5$. $ba=ab$: create $8$ ($5\xrightarrow{a}8$), merge $8$ into $5$ \\
+vertices 2, 4, 6, 7, 8 & their classes are already processed: skipped \\
+vertices 3, 5 & every relation already holds and every edge is defined: nothing new \\
+\bottomrule
+\end{tabular}
+\caption{Run of the algorithm on $\langle a,b\mid aa=a,\ bb=b,\ ba=ab\rangle$ (vertices are named by creation number).}
+\label{tab:trace}
+\end{table}
+
+\section{Why It Works}\label{sec:proof}
+Let $M$ be the monoid presented by $\langle X\mid R\rangle$. Say that a path from vertex $0$ with label $w$ \emph{represents} $[w]\in M$.
+
+\begin{theorembox}[Invariant]
+At every moment, every vertex represents a single element of $M$ regardless of the path chosen, every defined edge $v\xrightarrow{x}w$ satisfies $[w]=[v][x]$, and vertices in one union-find class represent the same element.
+\end{theorembox}
+\begin{proof}
+Initially there is only vertex $0$, representing $[\varepsilon]$. Defining an edge creates a vertex representing $[v][x]$. Applying $u=v$ at a vertex representing $g$ merges two vertices representing $g[u]$ and $g[v]$, which are equal in $M$ because $u=v$ is a relation.
+A merge-induced merge of $x$-targets is justified since $[p]=[q]$ implies $[p][x]=[q][x]$.
+\end{proof}
+
+\begin{theorembox}[Correct when it stops]
+If the algorithm stops, the resulting table is the right Cayley graph of $M$.
+\end{theorembox}
+\begin{proof}
+At the end every edge is defined and every relation holds at every vertex (each vertex's class was processed, and facts persist). Every vertex is reachable from $0$, since every vertex was created by an edge from an existing vertex.
+Two facts remain. First, if $s$ and $t$ end at the same vertex then $[s]=[t]$, by the invariant.
+Second, if $s\sim_R t$ then they end at the same vertex: it suffices to treat one replacement step $puq\leftrightarrow pvq$. Follow $p$ from $0$ to a vertex $z$; the relation holds at $z$, so $u$ and $v$ lead from $z$ to the same vertex, and following $q$ from there gives the same end vertex; a chain of such steps preserves the endpoint.
+Hence the map from words to final vertices is constant on the classes of $\sim_R$ and takes different values on different classes; it is onto, because every vertex is reachable from $0$. This is a bijection between the final vertices and the elements of $M$, under which the $x$-edges are multiplication by $[x]$.
+\end{proof}
+
+\begin{theorembox}[Stops for finite monoids]
+If $M$ is finite, the algorithm stops.
+\end{theorembox}
+\begin{proof}
+Suppose it never stops. Each processing step takes finite time, and new vertices keep being created, so the loop reaches every vertex number, and every vertex's class is eventually processed (unless already so) and stays processed.
+By induction on the length of a word $w$: after some finite time the path labelled $w$ from $0$ exists and ends in a processed class. (For $w=\varepsilon$ this is vertex $0$; for $w=w'x$, the end class of $w'$ is processed, so its $x$-edge is defined.)
+Moreover, if $s\sim_R t$ are fixed words, then after some finite time their paths end in the same class: it suffices to look at one replacement step $puq\leftrightarrow pvq$; the end vertex of $p$ lies in a processed class, so $u=v$ has been applied there.
+
+Now let $M$ be finite with elements $g_1=1,g_2,\dots,g_m$, choose a word $w_i$ for each $g_i$ with $w_1=\varepsilon$, and wait until all the finitely many facts above (the paths of $w_i$, of $w_ix$, and the equality of the end classes of $w_ix$ and $w_j$ whenever $g_ix=g_j$) have happened.
+Let $E_i$ be the class at the end of $w_i$. All $E_i$ are processed, $E_1$ contains vertex $0$, and for each $i$ and letter $x$ the $x$-edge from $E_i$ goes to some $E_j$. So the set $\{E_1,\dots,E_m\}$ contains the class of $0$ and is closed under all edges.
+Every vertex is reachable from $0$, hence lies in one of these classes, all of which are processed; from now on the loop only skips and creates nothing. It stops: contradiction.
+\end{proof}
+
+\section{Cost, Strategy and Uses}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Cost.} Let $P$ be the number of vertices ever created, $K=|X|$, and $\ell$ the total length of the relations. Each class is processed once, costing $O(\ell+K)$ steps; there are at most $P-1$ successful merges, each handling $O(K)$ edges.
+        With union-find the total is $O\bigl(P(\ell+K)\,\alpha(P)\bigr)$, and the table takes $O(PK)$ space.
+  \item \textbf{$P$ is not the number of elements.} In $\langle a\mid a^m=\varepsilon,\ a=\varepsilon\rangle$ the monoid is trivial, but processing the first relation first creates $m$ new vertices before the second relation merges them away: for $m=10,50,200$ the code creates $11,51,201$ vertices for one element.
+        The run time depends strongly on the order of work, and the literature on the algorithm is largely about good orders; the order used here (apply all relations at a vertex, then define its edges) is the simplest.
+  \item \textbf{Infinite monoids.} For $\langle a,b\mid ab=\varepsilon\rangle$ (an infinite monoid) the algorithm creates vertices forever. A cap on $P$ is needed in practice, and hitting it proves nothing.
+  \item \textbf{Word problem.} Once the table is built, two words are equal in $M$ if and only if they end at the same vertex, in time proportional to their length.
+  \item \textbf{Exploring small groups.} The Coxeter presentation of the symmetric group $S_n$ gives $24$ elements for $n=4$ (214 vertices created) and $120$ for $n=5$ (2174 vertices created); such tables can reveal the structure of a group that appears in a problem for small parameters.
+\end{itemize}
+
+% FIGURE: tc_merge
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (p) at (0.0,1.0) {$p$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (q) at (0.0,-1.0) {$q$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (pa) at (2.4,1.6) {$p'$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (qa) at (2.4,0.4) {$q'$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (pb) at (2.4,-0.4) {$p''$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (qb) at (2.4,-1.6) {$q''$};
+\draw[larrow,lectureaccent,thick] (p) -- node[above,llabel] {$a$} (pa);
+\draw[larrow,lecturewarn,thick] (p) -- node[below,llabel,pos=0.35] {$b$} (pb);
+\draw[larrow,lectureaccent,thick] (q) -- node[above,llabel,pos=0.35] {$a$} (qa);
+\draw[larrow,lecturewarn,thick] (q) -- node[below,llabel] {$b$} (qb);
+\draw[larrow] (3.4,0) -- (4.6,0) node[midway,above,llabel] {$p=q$};
+\node[lvert,minimum size=9mm,lhi,font=\footnotesize\sffamily] (m) at (5.6,0) {$p{=}q$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (ma) at (8.4,0.9) {$p'$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] (mb) at (8.4,-0.9) {$p''$};
+\draw[larrow,lectureaccent,thick] (m) -- node[above,llabel] {$a$} (ma);
+\draw[larrow,lecturewarn,thick] (m) -- node[below,llabel] {$b$} (mb);
+\draw[dashed,lectureink!60,rounded corners=4pt] (1.9,0.05) rectangle (2.9,2.0);
+\draw[dashed,lectureink!60,rounded corners=4pt] (1.9,-0.05) rectangle (2.9,-2.0);
+\node[llabel,anchor=west,align=left] at (9.2,0.9) {$p'$ and $q'$ must\\ also be merged};
+\node[llabel,anchor=west,align=left] at (9.2,-0.9) {likewise $p''$ and $q''$};
+\end{tikzpicture}
+\caption{Merging two vertices forces further merges. If $p$ and $q$ stand for the same element then so do their $a$-successors and their $b$-successors; each such pair is queued and merged in turn, which may force still more merges. A union-find structure keeps track of the classes.}\label{fig:tc_merge}
+\end{figure}
+
+\section{Reference Implementations}
+The code is a direct implementation of the loop above with an array of edge targets, a union-find forest in which the smaller index becomes the representative, and a queue for the cascading merges; it takes a vertex cap and returns nothing if the cap is exceeded.
+The result is renumbered breadth-first from the identity, which makes the output independent of the order in which vertices happened to be created.
+The test harness runs it on presentations of groups whose answers can be checked independently (it maps each element to a permutation and confirms a bijection with the permutation group), and on random presentations with no known answer.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+On $\langle a,b\mid aa=a,\ bb=b,\ ba=ab\rangle$ the code prints the table $[[1,2],[1,3],[3,2],[3,3]]$ after creating nine vertices, as in Table~\ref{tab:trace}.
+It enumerates the dihedral groups $D_3,\dots,D_8$ (orders $6,\dots,16$) and both presentations of $S_3$ with six elements, and for each group the elements map bijectively onto the corresponding permutation group, so the presentation really defines that group.
+The Coxeter presentations give $S_4$ and $S_5$ with $24$ and $120$ elements. The infinite monoid $\langle a,b\mid ab=\varepsilon\rangle$ hits the vertex cap.
+Of $200$ pseudo-random presentations on two or three letters, $60$ finished within a cap of $400$ vertices; in every one the relations hold at every element, the multiplication read off the table is associative, and every rewriting step between words of length at most $5$ preserves the endpoint.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (the series this topic list follows):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item J.\,A.\ Todd, H.\,S.\,M.\ Coxeter, ``A practical method for enumerating cosets of a finite abstract group'', Proceedings of the Edinburgh Mathematical Society 5 (1936), 26--34.
+  \item T.\,D.\,H.\ Coleman, J.\,D.\ Mitchell, F.\,L.\ Smith, M.\ Tsalakou, ``The Todd--Coxeter algorithm for semigroups and monoids'', Semigroup Forum 108 (2024), 536--593: strategies and their trade-offs.
+  \item A.\ Sattler-Klein, ``New undecidability results for finitely presented monoids'', RTA 1997, LNCS 1232, 68--82.
+  \item Wikipedia, ``Todd--Coxeter algorithm'': \url{https://en.wikipedia.org/wiki/Todd\%E2\%80\%93Coxeter_algorithm}
+  \item Codeforces problems where building a Cayley graph from a presentation helps: ``Gene Editor'' (2172G, \url{https://codeforces.com/contest/2172/problem/G}) and ``Antiparticle Antiphysics'' (1938A, \url{https://codeforces.com/contest/1938/problem/A}).
+\end{itemize}
+
+\end{document}
