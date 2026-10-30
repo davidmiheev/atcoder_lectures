@@ -1,0 +1,13 @@
+# LaTeX build artifacts (the notes.pdf files are committed on purpose)
+*.aux
+*.log
+*.out
+*.xdv
+*.fls
+*.fdb_latexmk
+*.toc
+*.synctex.gz
+build.log
+# Python
+__pycache__/
+*.pyc
