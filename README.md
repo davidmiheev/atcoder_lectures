@@ -103,6 +103,7 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 |---|---|
 | [Parking Function](lectures/08-combinatorics/parking_function/) | 4/9 |
 | [Cycle Lemma](lectures/08-combinatorics/cycle_lemma/) | 5/9 |
+| [Hook Length Formula](lectures/08-combinatorics/hook_length_formula/) | 7/9 |
 
 ### 9. Strings
 | Lecture | Difficulty |

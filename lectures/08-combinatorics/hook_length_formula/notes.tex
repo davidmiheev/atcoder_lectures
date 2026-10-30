@@ -1,0 +1,393 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Hook Length Formula}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Combinatorics}{Hook Length Formula}{7}
+
+\section{Overview}
+A \emph{standard Young tableau} is a way of filling the cells of a staircase-shaped diagram with $1,2,\dots,n$ so that the numbers increase along every row and down every column.
+Counting them looks hard, yet the answer is a single product: $n!$ divided by the product of the \emph{hook lengths} of the cells (the hook formula, Theorem~1 below).
+This lecture proves the formula in two quite different ways.
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{A probabilistic proof} (Greene--Nijenhuis--Wilf). A random walk on the cells, the \emph{hook walk}, ends at a corner of the diagram. Computing where it ends, with one clean
+        identity about lattice paths, shows that $n!/\prod h$ satisfies the same recurrence as the number of tableaux. As a by-product the walk generates a uniformly random tableau.
+  \item \textbf{A determinant proof.} Reading a tableau as a motion of non-colliding walkers on a line, a sign-reversing involution turns the count into a determinant; evaluating it
+        with a Vandermonde determinant gives a product of factorials, which a short ``boundary path'' argument converts into hook lengths.
+\end{itemize}
+The first proof needs nothing beyond elementary probability. The second assumes the definition of a determinant, the sign of a permutation, and the Vandermonde determinant.
+The proofs are independent, so either may be read alone after Sections~2 and~3. The involution in the second proof is the same idea that powers the Lindstr\"om--Gessel--Viennot lemma for counting
+non-intersecting lattice paths.
+
+\section{Tableaux and Hooks}
+\begin{definitionbox}[Partition, Young diagram]
+A \emph{partition} of $n$ is a sequence $\lambda=(\lambda_1\ge\lambda_2\ge\dots\ge\lambda_m>0)$ of positive integers with sum $n$ (the empty sequence partitions $0$).
+Its \emph{Young diagram} has $\lambda_r$ cells in row $r$, left-aligned, with row $1$ at the top; the cell in row $r$ and column $c$ is written $(r,c)$.
+The \emph{column lengths} are $\lambda'_c=\#\{r:\lambda_r\ge c\}$.
+\end{definitionbox}
+
+\begin{definitionbox}[Standard Young tableau]
+A \emph{standard Young tableau} (SYT) of shape $\lambda\vdash n$ is a filling of the diagram with the numbers $1,\dots,n$, each used once, that increases from left to right along every row and from top to bottom
+along every column. Write $f^\lambda$ for the number of them.
+\end{definitionbox}
+
+\begin{definitionbox}[Hook length]
+For a cell $(r,c)$ of $\lambda$, its \emph{arm} is $a(r,c)=\lambda_r-c$ (cells to its right), its \emph{leg} is $\ell(r,c)=\lambda'_c-r$ (cells below it), and its \emph{hook length} is
+$h(r,c)=a(r,c)+\ell(r,c)+1$, the size of the hook formed by the cell, its arm and its leg. A cell with $h=1$ (no arm, no leg) is a \emph{corner}.
+Write $H(\lambda)=\prod_{(r,c)\in\lambda}h(r,c)$.
+\end{definitionbox}
+
+% FIGURE: hl_hooks
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.9cm,y=0.9cm]
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] at (0,0) {6};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi2] at (1,0) {4};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi] at (2,0) {2};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi] at (3,0) {1};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] at (0,-1) {3};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi] at (1,-1) {1};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] at (0,-2) {1};
+\node[llabel,anchor=west,align=left] at (4.6,-0.3) {hook of the shaded cell $(1,2)$:\\ the cell itself, its arm (2 cells),\\ its leg (1 cell), so $h(1,2)=2+1+1=4$};
+\node[llabel,anchor=west,align=left] at (4.6,-1.7) {product of all hooks $=6\cdot4\cdot2\cdot1\cdot3\cdot1\cdot1=144$,\\ $f^{(4,2,1)}=7!/144=35$};
+\end{tikzpicture}
+\caption{The Young diagram of $\lambda=(4,2,1)$ with every cell labelled by its hook length. The hook of cell $(1,2)$ consists of the brown cell, the two blue cells to its right (its arm) and the blue cell below it (its leg).}\label{fig:hl_hooks}
+\end{figure}
+
+\begin{theorembox}[Hook length formula]
+For every partition $\lambda$ of $n$,
+\[
+  f^\lambda \;=\; \frac{n!}{H(\lambda)} \;=\; \frac{n!}{\prod_{(r,c)\in\lambda}h(r,c)}.
+\]
+\end{theorembox}
+
+\begin{examplebox}
+For $\lambda=(4,2,1)$ (Figure~\ref{fig:hl_hooks}) the hooks multiply to $144$, so $f^\lambda=5040/144=35$.
+The shapes $(3,3)$ and $(2,2,2)$ are reflections of one another across the diagonal (rows become columns), and reflecting a tableau shows that they have the same count;
+the hooks of $(3,3)$ are $4,3,2,3,2,1$, so $f^{(3,3)}=720/144=5$ for both.
+The two-row rectangle $(n,n)$ gives $f=\frac{(2n)!}{(n+1)!\,n!}=\frac1{n+1}\binom{2n}{n}$, the Catalan number: a tableau of $(n,n)$ is exactly a path that
+never has more entries in the second row than in the first, i.e.\ a balanced bracket sequence.
+\end{examplebox}
+
+\section{A Recurrence for the Count}
+In any tableau of shape $\lambda\vdash n$ the largest entry $n$ must sit in a corner: a cell with another cell to its right or below it would have to be smaller than that neighbour.
+Removing $n$ leaves a tableau of $\lambda$ minus that corner, and conversely adding $n$ in a corner of a smaller tableau gives a tableau of $\lambda$. Hence, writing $\lambda-c$ for $\lambda$ with the corner $c$ removed,
+\begin{equation}\label{eq:rec}
+  f^\lambda=\sum_{c\ \text{corner of}\ \lambda}f^{\lambda-c},\qquad f^{\emptyset}=1.
+\end{equation}
+These equations determine $f^\lambda$ for all $\lambda$ by induction on $n$. So Theorem~1 follows once we show that $g^\lambda:=n!/H(\lambda)$ satisfies the same recurrence and $g^\emptyset=1$:
+\begin{equation}\label{eq:goal}
+  \sum_{c}\frac{(n-1)!}{H(\lambda-c)}=\frac{n!}{H(\lambda)}
+  \quad\Longleftrightarrow\quad
+  \sum_{c\ \text{corner}}\frac{H(\lambda)}{H(\lambda-c)}=n .
+\end{equation}
+Both proofs below establish exactly this identity, or the formula directly.
+
+\section{Proof 1: The Hook Walk}
+\subsection{The walk}
+\begin{definitionbox}[Hook walk]
+Start at a cell $u$ of $\lambda$. While the current cell is not a corner, jump to a cell chosen uniformly at random from its hook \emph{other than the cell itself} (there are $h-1$ of them: the arm cells and the leg cells).
+Stop at a corner.
+\end{definitionbox}
+Every jump moves right or down, so the walk stops. Write $P(u\to c)$ for the probability that a walk started at $u$ stops at the corner $c$. Since the walk stops at exactly one corner, for every $u$
+\begin{equation}\label{eq:one}
+  \sum_{c}P(u\to c)=1 .
+\end{equation}
+
+% FIGURE: hl_walk
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.9cm,y=0.9cm]
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c00) at (0,0) {\footnotesize 8};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c01) at (1,0) {\footnotesize 6};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c02) at (2,0) {\footnotesize 5};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c03) at (3,0) {\footnotesize 2};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi2] (c04) at (4,0) {\footnotesize 1};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c10) at (0,-1) {\footnotesize 5};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c11) at (1,-1) {\footnotesize 3};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c12) at (2,-1) {\footnotesize 2};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c20) at (0,-2) {\footnotesize 4};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm] (c21) at (1,-2) {\footnotesize 2};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi2] (c22) at (2,-2) {\footnotesize 1};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi2] (c30) at (0,-3) {\footnotesize 1};
+\node[lcell,minimum width=0.9cm,minimum height=0.9cm,lhi,font=\footnotesize\sffamily] at (0,0) {8};
+\draw[larrow,lectureaccent,very thick] (c00.west) to[out=190,in=170,looseness=1.6] (c20.west);
+\draw[larrow,lectureaccent,very thick] (c20.south east) to[out=-60,in=-120,looseness=1.4] (c22.south);
+\node[llabel,anchor=west,align=left] at (5.9,-0.2) {start at $(1,1)$, $h=8$:\\ 7 equally likely targets,\\ the walk jumps to $(3,1)$ (prob.\ $1/7$)};
+\node[llabel,anchor=west,align=left] at (5.9,-1.6) {at $(3,1)$, $h=4$: 3 targets,\\ it jumps to $(3,3)$ (prob.\ $1/3$)};
+\node[llabel,anchor=west,align=left] at (5.9,-2.8) {$(3,3)$ is a corner ($h=1$): stop};
+\end{tikzpicture}
+\caption{A hook walk on $\lambda=(5,3,3,1)$; the cells show hook lengths and the three corners are shaded. At each step the walk jumps to a uniformly chosen other cell of the current hook. This particular walk has probability $\frac17\cdot\frac13=\frac1{21}$. Over all starting cells, the corners $(1,5)$, $(3,3)$, $(4,1)$ are reached with total weights $\frac{24}{7},\frac{20}{3},\frac{40}{21}$, which add up to $n=12$.}\label{fig:hl_walk}
+\end{figure}
+
+\subsection{A weighted path identity}
+\begin{theorembox}[Lemma 1]
+Let $p,q\ge0$, let $x_0,\dots,x_{p-1},y_0,\dots,y_{q-1}$ be positive reals, and put $x_p=y_q=0$. For a lattice path $L$ in the grid $\{0,\dots,p\}\times\{0,\dots,q\}$ from $(0,0)$ to $(p,q)$ using unit steps down ($i\to i+1$)
+and right ($j\to j+1$), define the weight $w(L)=\prod 1/(x_i+y_j)$ over all cells $(i,j)$ of $L$ except the last. Then
+\[
+  \sum_{L}w(L)=\prod_{i=0}^{p-1}\frac1{x_i}\;\prod_{j=0}^{q-1}\frac1{y_j}.
+\]
+\end{theorembox}
+\begin{proof}
+Every denominator is positive, because a cell $(i,j)\ne(p,q)$ has $i<p$ or $j<q$. Run a random walk from $(0,0)$: at $(i,j)\ne(p,q)$ step down with probability $x_i/(x_i+y_j)$ and right with probability $y_j/(x_i+y_j)$.
+At row $p$ the down probability is $x_p=0$, and at column $q$ the right probability is $0$, so the walk stays in the grid and must end at $(p,q)$; the probabilities of all paths sum to $1$.
+A path makes exactly one step down out of each row $i<p$ and one step right out of each column $j<q$, so its probability is $\prod_{i<p}x_i\prod_{j<q}y_j\cdot w(L)$ whatever $L$ is. Summing over $L$ and dividing gives the claim.
+\end{proof}
+
+\subsection{Where the walk ends}
+Fix a corner $c=(r,s)$ of $\lambda$. For $1\le i\le r$ and $1\le j\le s$ define
+\[
+  x_i=h(i,s)-1,\qquad y_j=h(r,j)-1 .
+\]
+Since $c$ is a corner, $\lambda'_s=r$ and $\lambda_r=s$, so $x_i=(\lambda_i-s)+(r-i)$ and $y_j=(s-j)+(\lambda'_j-r)$, whence $x_r=y_s=0$, $x_i>0$ for $i<r$, $y_j>0$ for $j<s$, and, adding,
+\begin{equation}\label{eq:sum}
+  x_i+y_j=(\lambda_i-j)+(\lambda'_j-i)=h(i,j)-1\qquad(i\le r,\ j\le s).
+\end{equation}
+
+\begin{theorembox}[Lemma 2]
+For every corner $c=(r,s)$,
+\[
+  S_c:=\sum_{u\in\lambda}P(u\to c)=\prod_{i=1}^{r-1}\Bigl(1+\frac1{x_i}\Bigr)\prod_{j=1}^{s-1}\Bigl(1+\frac1{y_j}\Bigr).
+\]
+\end{theorembox}
+\begin{proof}
+A walk that ends at $c$ only visits cells $(i,j)$ with $i\le r$ and $j\le s$, all of which lie in $\lambda$. For such a walk let $I\subseteq\{1,\dots,r-1\}$ and $J\subseteq\{1,\dots,s-1\}$ be the rows and columns,
+other than $r$ and $s$, that it visits. Rows and columns only increase along the walk, so a jump goes from a visited row (or column) to the \emph{next} visited one.
+After deleting all unvisited rows and columns, the walk becomes a lattice path with unit steps down and right from the top-left cell of the $(|I|+1)\times(|J|+1)$ grid of visited rows and columns to its bottom-right cell $c$.
+Conversely, for given $I,J$ every such path comes from exactly one walk ending at $c$ (each unit step corresponds to a legal jump along a row or a column). Hence the walks ending at $c$ are in bijection with triples ($I$, $J$, path).
+
+The probability of any single jump out of $(i,j)$ is $1/(h(i,j)-1)=1/(x_i+y_j)$ by~\eqref{eq:sum}, so the probability of a walk equals the weight of its path in Lemma~1, applied to the visited rows (with the values $x_i$, $i\in I$, followed by $0$ for row $r$) and the visited columns.
+Lemma~1 therefore says that for fixed $I,J$ the walks together have probability $\prod_{i\in I}x_i^{-1}\prod_{j\in J}y_j^{-1}$. Summing over all $I$ and $J$ gives
+$\sum_{I,J}\prod_{i\in I}x_i^{-1}\prod_{j\in J}y_j^{-1}=\prod_{i<r}(1+x_i^{-1})\prod_{j<s}(1+y_j^{-1})$.
+\end{proof}
+
+\subsection{The formula}
+Removing the corner $c=(r,s)$ lowers by exactly one the hook length of every other cell in row $r$ and in column $s$, deletes the cell $c$ itself (hook length $1$), and leaves all other hook lengths unchanged. Therefore
+\[
+  \frac{H(\lambda)}{H(\lambda-c)}=\prod_{i<r}\frac{h(i,s)}{h(i,s)-1}\prod_{j<s}\frac{h(r,j)}{h(r,j)-1}
+  =\prod_{i<r}\Bigl(1+\frac1{x_i}\Bigr)\prod_{j<s}\Bigl(1+\frac1{y_j}\Bigr)=S_c
+\]
+by Lemma~2. Now sum over the corners and use~\eqref{eq:one}:
+\[
+  \sum_c\frac{H(\lambda)}{H(\lambda-c)}=\sum_c\sum_{u\in\lambda}P(u\to c)=\sum_{u\in\lambda}1=n,
+\]
+which is the identity~\eqref{eq:goal}. Thus $g^\lambda=n!/H(\lambda)$ satisfies recurrence~\eqref{eq:rec} with $g^\emptyset=1$, and $f^\lambda=g^\lambda$ for all $\lambda$ by induction on $n$. \qed
+
+\subsection{A by-product: uniformly random tableaux}
+Start the walk from a uniformly random cell. The probability that it ends at the corner $c$ is $S_c/n=H(\lambda)/(nH(\lambda-c))=f^{\lambda-c}/f^\lambda$, which is exactly the fraction of tableaux that have $n$ in the cell $c$.
+So the following procedure produces a uniformly random standard tableau: run a hook walk from a random cell of the current shape, write the largest remaining number in the corner where it stops, delete that corner, and repeat.
+It takes $O(n)$ walks, each of which makes at most $\lambda_1+\lambda_1'-1$ jumps. The reference code implements this and checks the output distribution on a small shape.
+
+\section{Proof 2: Non-colliding Walkers and a Determinant}
+\subsection{Tableaux as moving walkers}
+Fill a tableau in the order $1,2,\dots,n$. After $t$ entries the occupied cells form a diagram with row lengths $x_1\ge x_2\ge\dots\ge x_m\ge0$ (rows of length $0$ allowed), starting from all zeros and ending at $\lambda$;
+each step increases one $x_i$ by one and must keep the sequence weakly decreasing. Conversely such a sequence of steps determines a tableau (write $t$ in the cell added at step $t$). So $f^\lambda$ counts these sequences.
+
+Shift the coordinates: let $p_i=x_i+(m-i)$. The condition $x_1\ge\dots\ge x_m$ becomes $p_1>p_2>\dots>p_m$, all distinct. Think of $p_i$ as the position of walker $i$ on a line; a step moves one walker one unit to the right.
+Walker $i$ starts at $a_i=m-i$ and must end at $b_i=\lambda_i+m-i$. A tableau is thus a sequence of $n$ moves during which \emph{no two walkers ever occupy the same position}
+(a walker cannot jump over another, since it moves one unit at a time). Figure~\ref{fig:hl_walkers} shows the case $\lambda=(2,1)$.
+
+% FIGURE: hl_walkers
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.85cm,y=0.62cm]
+\draw[lectureink!12] (0.0,0) -- (0.0,3);
+\draw[lectureink!12] (1.0,0) -- (1.0,3);
+\draw[lectureink!12] (2.0,0) -- (2.0,3);
+\draw[lectureink!12] (3.0,0) -- (3.0,3);
+\draw[lectureink!12] (0.0,0) -- (3.0,0);
+\draw[lectureink!12] (0.0,1) -- (3.0,1);
+\draw[lectureink!12] (0.0,2) -- (3.0,2);
+\draw[lectureink!12] (0.0,3) -- (3.0,3);
+\draw[lectureaccent,very thick] (0.0,1) -- (1.0,2) -- (2.0,3) -- (3.0,3);
+\draw[lecturewarn,very thick] (0.0,0) -- (1.0,0) -- (2.0,0) -- (3.0,1);
+\fill[lectureaccent] (0.0,1) circle (2pt); \fill[lecturewarn] (0.0,0) circle (2pt);
+\fill[lectureaccent] (1.0,2) circle (2pt); \fill[lecturewarn] (1.0,0) circle (2pt);
+\fill[lectureaccent] (2.0,3) circle (2pt); \fill[lecturewarn] (2.0,0) circle (2pt);
+\fill[lectureaccent] (3.0,3) circle (2pt); \fill[lecturewarn] (3.0,1) circle (2pt);
+\node[llabel,below] at (0.0,-0.1) {0};
+\node[llabel,below] at (1.0,-0.1) {1};
+\node[llabel,below] at (2.0,-0.1) {2};
+\node[llabel,below] at (3.0,-0.1) {3};
+\node[llabel,align=center] at (1.5,3.65) {(a) moves $1,1,2$\\ no collision};
+\draw[lectureink!12] (5.0,0) -- (5.0,3);
+\draw[lectureink!12] (6.0,0) -- (6.0,3);
+\draw[lectureink!12] (7.0,0) -- (7.0,3);
+\draw[lectureink!12] (8.0,0) -- (8.0,3);
+\draw[lectureink!12] (5.0,0) -- (8.0,0);
+\draw[lectureink!12] (5.0,1) -- (8.0,1);
+\draw[lectureink!12] (5.0,2) -- (8.0,2);
+\draw[lectureink!12] (5.0,3) -- (8.0,3);
+\draw[lectureaccent,very thick] (5.0,1) -- (6.0,2) -- (7.0,2) -- (8.0,3);
+\draw[lecturewarn,very thick] (5.0,0) -- (6.0,0) -- (7.0,1) -- (8.0,1);
+\fill[lectureaccent] (5.0,1) circle (2pt); \fill[lecturewarn] (5.0,0) circle (2pt);
+\fill[lectureaccent] (6.0,2) circle (2pt); \fill[lecturewarn] (6.0,0) circle (2pt);
+\fill[lectureaccent] (7.0,2) circle (2pt); \fill[lecturewarn] (7.0,1) circle (2pt);
+\fill[lectureaccent] (8.0,3) circle (2pt); \fill[lecturewarn] (8.0,1) circle (2pt);
+\node[llabel,below] at (5.0,-0.1) {0};
+\node[llabel,below] at (6.0,-0.1) {1};
+\node[llabel,below] at (7.0,-0.1) {2};
+\node[llabel,below] at (8.0,-0.1) {3};
+\node[llabel,align=center] at (6.5,3.65) {(b) moves $1,2,1$\\ no collision};
+\draw[lectureink!12] (10.0,0) -- (10.0,3);
+\draw[lectureink!12] (11.0,0) -- (11.0,3);
+\draw[lectureink!12] (12.0,0) -- (12.0,3);
+\draw[lectureink!12] (13.0,0) -- (13.0,3);
+\draw[lectureink!12] (10.0,0) -- (13.0,0);
+\draw[lectureink!12] (10.0,1) -- (13.0,1);
+\draw[lectureink!12] (10.0,2) -- (13.0,2);
+\draw[lectureink!12] (10.0,3) -- (13.0,3);
+\draw[lectureaccent,very thick] (10.0,1) -- (11.0,1) -- (12.0,2) -- (13.0,3);
+\draw[lecturewarn,very thick] (10.0,0) -- (11.0,1) -- (12.0,1) -- (13.0,1);
+\draw[lectureaccent,dashed,thick] (10.0,1) -- (11.0,1) -- (12.0,1) -- (13.0,1);
+\draw[lecturewarn,dashed,thick] (10.0,0) -- (11.0,1) -- (12.0,2) -- (13.0,3);
+\fill[lectureaccent] (10.0,1) circle (2pt); \fill[lecturewarn] (10.0,0) circle (2pt);
+\fill[lectureaccent] (11.0,1) circle (2pt); \fill[lecturewarn] (11.0,1) circle (2pt);
+\fill[lectureaccent] (12.0,2) circle (2pt); \fill[lecturewarn] (12.0,1) circle (2pt);
+\fill[lectureaccent] (13.0,3) circle (2pt); \fill[lecturewarn] (13.0,1) circle (2pt);
+\draw[red!70!black,thick] (11.0,1) circle (5pt);
+\node[llabel,below] at (10.0,-0.1) {0};
+\node[llabel,below] at (11.0,-0.1) {1};
+\node[llabel,below] at (12.0,-0.1) {2};
+\node[llabel,below] at (13.0,-0.1) {3};
+\node[llabel,align=center] at (11.5,3.65) {(c) moves $2,1,1$\\ collide at time 1};
+\node[llabel,anchor=east] at (-0.3,1.5) {position};
+\node[llabel] at (1.5,-1.0) {time (number of moves made)};
+\end{tikzpicture}
+\caption{Two walkers (blue and brown) from positions $(1,0)$ to $(3,1)$ in three unit moves, for $\lambda=(2,1)$. Panels (a) and (b) are the $f^{(2,1)}=2$ collision-free walks, i.e.\ the two standard tableaux. In (c) the walkers meet at time $1$; exchanging what they do afterwards gives the dashed walk, which ends at $(1,3)$ instead of $(3,1)$: the endpoints are swapped, so the two walks carry opposite signs and cancel.}\label{fig:hl_walkers}
+\end{figure}
+
+\subsection{Allowing collisions and counting with signs}
+Consider all \emph{free walks}: sequences of $n$ moves, each choosing a walker, with no restriction on collisions, such that the final positions are the set $\{b_1,\dots,b_m\}$.
+Since the $b_j$ are distinct, each free walk has a permutation $\sigma$ with walker $i$ ending at $b_{\sigma(i)}$. Define $S=\sum_{\text{free walks}}\operatorname{sgn}\sigma$. We evaluate $S$ in two ways.
+
+\textbf{Directly.} Fix $\sigma$. Walker $i$ makes $d_i=b_{\sigma(i)}-a_i$ moves, which must be $\ge0$, and $\sum_i d_i=\sum b-\sum a=n$. The moves can be interleaved in $n!/\prod_i d_i!$ ways. With the convention $1/k!=0$ for $k<0$,
+\begin{equation}\label{eq:det}
+  S=n!\sum_{\sigma}\operatorname{sgn}\sigma\prod_{i=1}^m\frac1{(b_{\sigma(i)}-a_i)!}=n!\,\det\Bigl[\frac1{(b_j-a_i)!}\Bigr]_{i,j=1}^m .
+\end{equation}
+
+\textbf{By cancellation.} Free walks with a collision cancel in pairs. Given such a walk, let $t$ be the first time at which two walkers share a position, and among the walkers sharing a position at time $t$ let $p<q$
+be the pair with smallest $p$, then smallest $q$. Exchange the roles of walkers $p$ and $q$ in all moves after time $t$. Since they stand at the same place at time $t$, the result is again a free walk; its first collision time and chosen pair are the same;
+and walkers $p$ and $q$ now end at each other's former endpoints, so $\sigma$ changes by a transposition and the sign flips. Applying the operation twice returns the original walk, and it never fixes a walk,
+because a fixed walk would have $p$ and $q$ both stationary after time $t$, ending at the same position, which the distinct endpoints forbid. So the colliding walks cancel completely in $S$.
+
+The surviving walks never collide, so the walkers keep their order and $\sigma$ is the identity (sign $+1$): they are exactly the tableaux. Hence $S=f^\lambda$, and by~\eqref{eq:det}
+\begin{equation}\label{eq:fdet}
+  f^\lambda=n!\,\det\Bigl[\frac1{(b_j-a_i)!}\Bigr]_{i,j=1}^m,\qquad a_i=m-i,\quad b_j=\lambda_j+m-j.
+\end{equation}
+For $\lambda=(2,1)$ the matrix is $\bigl(\begin{smallmatrix}1/2&1\\1/6&1\end{smallmatrix}\bigr)$ with determinant $\frac13$, and $3!\cdot\frac13=2$, as Figure~\ref{fig:hl_walkers} shows.
+
+\subsection{Evaluating the determinant}
+Write $(x)_k=x(x-1)\cdots(x-k+1)$ for the falling factorial, a monic polynomial of degree $k$ in $x$ that vanishes at every integer $0\le x<k$. Then $1/(b-a)!=(b)_a/b!$ for all integers $a\ge0$, $b\ge0$,
+including $b<a$ where both sides are $0$. Pulling $1/b_j!$ out of column $j$,
+\[
+  \det\Bigl[\frac1{(b_j-a_i)!}\Bigr]=\prod_j\frac1{b_j!}\,\det\bigl[(b_j)_{a_i}\bigr] .
+\]
+The rows involve $(x)_{m-1},(x)_{m-2},\dots,(x)_0$, monic of degrees $m-1,\dots,0$, so subtracting multiples of lower rows from higher ones turns them into $x^{m-1},\dots,x^0$ without changing the determinant, leaving the Vandermonde determinant
+$\det[b_j^{\,m-i}]=\prod_{i<j}(b_i-b_j)$. We have proved the product formula
+\begin{equation}\label{eq:frob}
+  f^\lambda=n!\;\frac{\prod_{1\le i<j\le m}(b_i-b_j)}{\prod_{i=1}^m b_i!},\qquad b_i=\lambda_i+m-i .
+\end{equation}
+
+\subsection{From factorials to hook lengths}
+It remains to show that the right-hand side of~\eqref{eq:frob} is $n!/H(\lambda)$. This follows from a description of the hooks in one row.
+
+\begin{theorembox}[Lemma 3 (hooks of a row)]
+For each row $i$ the hook lengths $h(i,1),\dots,h(i,\lambda_i)$ and the differences $b_i-b_j$ with $j>i$ are distinct, and together they are exactly $1,2,\dots,b_i$.
+\end{theorembox}
+\begin{proof}
+Walk along the boundary of the diagram from its bottom-left corner to its top-right corner, taking unit steps right ($R$) and up ($U$), and number the steps $0,1,\dots,\lambda_1+m-1$ (Figure~\ref{fig:hl_boundary}).
+The $U$-step that ends row $i$ occurs when the walk is at horizontal position $\lambda_i$, after $\lambda_i$ right-steps and after one up-step for each of the $m-i$ rows below, so its number is $b_i$.
+The up-steps occur in the order of rows $m,m-1,\dots,1$, so the up-steps before number $b_i$ are those at $b_j$, $j>i$, while the right-steps before $b_i$ are exactly $\lambda_i$ in number, one per column $c\le\lambda_i$:
+the right-step of column $c$ has some number $e<b_i$. Among the steps strictly between $e$ and $b_i$, the right-steps are the columns $c+1,\dots,\lambda_i$, that is $a(i,c)$ of them, and the up-steps are the rows below $i$ whose right end lies at or beyond column $c$, that is $\ell(i,c)$ of them. So $b_i-e=a(i,c)+\ell(i,c)+1=h(i,c)$.
+Hence the numbers $0,\dots,b_i-1$ split into the right-step numbers $e$ (giving the hooks $b_i-e$ of row $i$) and the up-step numbers $b_j$ with $j>i$ (giving the differences $b_i-b_j$), and subtracting each from $b_i$ gives $\{1,\dots,b_i\}$.
+\end{proof}
+
+% FIGURE: hl_boundary
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.0cm,y=1.0cm]
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (0.5,-0.5) {6};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (1.5,-0.5) {4};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (2.5,-0.5) {2};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (3.5,-0.5) {1};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (0.5,-1.5) {3};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (1.5,-1.5) {1};
+\node[lcell,minimum width=1.0cm,minimum height=1.0cm,lgray] at (0.5,-2.5) {1};
+\draw[lectureaccent,ultra thick] (0,-3) -- (1,-3);
+\draw[lecturewarn,ultra thick] (1,-3) -- (1,-2);
+\draw[lectureaccent,ultra thick] (1,-2) -- (2,-2);
+\draw[lecturewarn,ultra thick] (2,-2) -- (2,-1);
+\draw[lectureaccent,ultra thick] (2,-1) -- (3,-1);
+\draw[lectureaccent,ultra thick] (3,-1) -- (4,-1);
+\draw[lecturewarn,ultra thick] (4,-1) -- (4,0);
+\node[circle,draw=lectureaccent,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (0.5,-3.0) {0};
+\node[circle,draw=lecturewarn,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (1.0,-2.5) {1};
+\node[circle,draw=lectureaccent,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (1.5,-2.0) {2};
+\node[circle,draw=lecturewarn,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (2.0,-1.5) {3};
+\node[circle,draw=lectureaccent,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (2.5,-1.0) {4};
+\node[circle,draw=lectureaccent,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (3.5,-1.0) {5};
+\node[circle,draw=lecturewarn,fill=white,inner sep=1.2pt,font=\scriptsize\sffamily] at (4.0,-0.5) {6};
+\node[llabel,anchor=west,align=left] at (5.0,-1.5) {steps $0,\dots,6$ read $R\,U\,R\,U\,R\,R\,U$;\\[3pt]
+ the $U$-steps end rows $3,2,1$ at the numbers\\ $1,3,6$, so $b=(b_1,b_2,b_3)=(6,3,1)$;\\[3pt]
+ hooks of row 1: $6-e$ for the $R$-steps\\ $e=0,2,4,5$, i.e.\ $6,4,2,1$;\\[3pt]
+ gaps $b_1-b_j$: $6-3=3$ and $6-1=5$;\\[3pt]
+ $\{6,4,2,1\}\cup\{3,5\}=\{1,\dots,6\}$.};
+\end{tikzpicture}
+\caption{The boundary path of $\lambda=(4,2,1)$ (blue right-steps, brown up-steps), read from the bottom-left to the top-right corner, with the steps numbered from $0$. The up-steps sit at $b_i=\lambda_i+m-i$. For a right-step $e$ before the up-step $b_i$, the number $b_i-e$ is the hook length of the cell in row $i$ and in the column of that right-step.}\label{fig:hl_boundary}
+\end{figure}
+
+By Lemma 3, $\prod_c h(i,c)=b_i!\big/\prod_{j>i}(b_i-b_j)$ for each row $i$, and multiplying over the rows gives
+\[
+  H(\lambda)=\frac{\prod_i b_i!}{\prod_{i<j}(b_i-b_j)} .
+\]
+Substituting into~\eqref{eq:frob} yields $f^\lambda=n!/H(\lambda)$, the hook length formula, for the second time. \qed
+
+\section{Consequences and Uses}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Computing $f^\lambda$.} The hook lengths of all cells take $O(n)$ time. Modulo a prime $p>n$ one multiplies $n!$ by the inverse of the product of hooks; this is how the reference code handles
+        shapes with hundreds of thousands of cells, and exactly for small $n$ with big integers. The product formula~\eqref{eq:frob} needs only $m$ rows and the numbers $b_i$.
+  \item \textbf{Catalan numbers and ballot paths.} Two-row rectangles give $\frac1{n+1}\binom{2n}{n}$, and in general the rows of a tableau record a path in a cone, which is why reflection and sign-cancelling arguments like Proof~2 recur in path counting.
+  \item \textbf{Sum of squares.} Over all partitions of $n$, $\sum_\lambda(f^\lambda)^2=n!$. This is a consequence of the Robinson--Schensted correspondence, which is not covered here; the reference code only verifies it for $n\le12$.
+  \item \textbf{Non-colliding walks.} The cancellation of Proof~2 is the Lindstr\"om--Gessel--Viennot idea: the number of tuples of pairwise non-intersecting paths is a determinant of single-path counts.
+        It applies far beyond Young tableaux, for example to counting non-colliding random robots.
+\end{itemize}
+
+\section{Reference Implementations}
+The code computes hook lengths, the exact count and the count modulo $998244353$, the count from Frobenius' formula~\eqref{eq:frob}, and a uniformly random tableau by the hook walk of Proof~1.
+The full files cross-check these against each other and against three independent computations: the corner recurrence~\eqref{eq:rec}, a determinant evaluated numerically by Gaussian elimination as in~\eqref{eq:fdet},
+and a definition-level brute-force search over fillings.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $\lambda=(4,2,1)$ the code prints the hook lengths $[[6,4,2,1],[3,1],[1]]$ and $f=35$. All four methods (recurrence, hook formula, Frobenius product, determinant) agree on every one of the $272$ partitions of $n\le12$,
+brute-force enumeration agrees for all partitions of $n\le8$, and $\sum_\lambda(f^\lambda)^2=n!$ holds for $n\le12$. For the two-row rectangle $(500,500)$ the hook formula and Frobenius' formula both give the
+Catalan number $C_{500}$ modulo $998244353$. For every corner $c$ of every partition of $n\le10$, the hook walk reaches $c$ with total weight $H(\lambda)/H(\lambda-c)$ (computed in floating point).
+Finally, $16{,}000$ tableaux sampled by the hook walk for $\lambda=(3,2,1)$ ($f=16$) show all $16$ tableaux with counts within four standard deviations of uniform.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (the series this topic list follows):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item J.\,S.\ Frame, G.\,de B.\ Robinson, R.\,M.\ Thrall, ``The hook graphs of the symmetric group'', Canadian Journal of Mathematics 6 (1954), 316--324: the original hook length formula.
+  \item C.\ Greene, A.\ Nijenhuis, H.\,S.\ Wilf, ``A probabilistic proof of a formula for the number of Young tableaux of a given shape'', Advances in Mathematics 31 (1979), 104--109: the hook walk.
+  \item I.\ Gessel, G.\ Viennot, ``Binomial determinants, paths, and hook length formulae'', Advances in Mathematics 58 (1985), 300--321: the determinant approach.
+  \item R.\,P.\ Stanley, \emph{Enumerative Combinatorics}, Volume 2, Cambridge University Press.
+  \item AtCoder ABC216 H, ``Random Robots'', a contest problem solved by counting non-colliding walkers with a determinant:
+        \url{https://atcoder.jp/contests/abc216/tasks/abc216_h}
+\end{itemize}
+
+\end{document}
