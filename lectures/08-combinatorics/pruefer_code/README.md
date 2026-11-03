@@ -14,6 +14,11 @@ of ways to join a forest into a tree (n^(k−2) · ∏ sizes), rooted forests
 with a prescribed root set (k·n^(n−k−1)), and spanning trees of complete
 bipartite graphs (a^(b−1) · b^(a−1)) via a two-sequence variant of the code.
 
+Every lemma and theorem in the notes is proved in full (including the
+correctness of the O(n) pointer-sweep algorithm and the bipartite
+two-sequence code), relying only on elementary tree facts that are
+proved at the start.
+
 See [`notes.pdf`](notes.pdf) / [`notes.tex`](notes.tex). Reference
 implementations in [`example.rs`](example.rs) and [`example.py`](example.py)
 contain both encoders/decoders and cross-check them against brute-force

@@ -20,7 +20,9 @@ constraints at all between the entries, and it does so reversibly.
 Counting trees therefore becomes counting sequences.
 
 This lecture defines the code, proves that it is a bijection, and shows a
-linear-time implementation. The remaining sections turn the bijection into
+linear-time implementation. Every lemma and theorem stated below is proved
+in full; the only things taken for granted are the elementary facts about
+trees listed in Section~\ref{sec:basic}. The remaining sections turn the bijection into
 a counting toolbox: Cayley's formula, trees with prescribed degrees, ways
 to join a forest into a tree, rooted forests with prescribed roots, and
 spanning trees of complete bipartite graphs.
@@ -46,6 +48,42 @@ The proof comes in Section~\ref{sec:bijection}. The point to notice is the
 shape of the answer: $n^{n-2}$ is exactly the number of sequences of
 length $n-2$ over an alphabet of size $n$.
 
+\subsection{Elementary facts about trees}\label{sec:basic}
+We use the following standard facts. A \emph{leaf} is a vertex of degree
+one.
+
+\begin{theorembox}[Basic facts]
+Let $T$ be a tree with $m\ge 2$ vertices.
+\begin{enumerate}[leftmargin=1.8em,itemsep=1pt,label=(\alph*)]
+  \item $T$ has exactly $m-1$ edges, and every connected graph with $m$
+        vertices and $m-1$ edges is a tree.
+  \item $T$ has at least two leaves.
+  \item If $u$ is a leaf, then $T-u$ is a tree.
+  \item Joining a new vertex to one vertex of a tree by a single edge
+        gives a tree.
+\end{enumerate}
+
+\emph{Proof.} (b) Take a longest path $w_0w_1\cdots w_\ell$
+in $T$ ($\ell\ge1$ since $m\ge2$). If $w_0$ had a neighbor other than
+$w_1$, that neighbor would lie off the path (giving a longer path) or on
+it (giving a cycle), both impossible; so $w_0$ is a leaf, and likewise
+$w_\ell$. (c) $T-u$ has no cycle because $T$ has none. It is connected
+because a path between two vertices different from $u$ cannot pass through
+$u$: an inner vertex of a path has two distinct neighbors on it, but $u$
+has only one. (d) The new vertex has degree one, so no cycle can pass
+through it; connectivity is clear.
+
+(a) \emph{Edge count.} Induct on $m$. For $m=2$ a tree has one edge: at
+least one because it is connected, at most one because there are no
+repeated edges. For $m\ge3$ delete a leaf $u$ (it exists by (b)); $T-u$ is
+a tree on $m-1$ vertices by (c), so it has $m-2$ edges by induction, and $T$
+has one more. \emph{Converse.} Let $G$ be connected with $m$ vertices and
+$m-1$ edges. If $G$ had a cycle, deleting one edge of that cycle would keep
+$G$ connected; repeating this until no cycle is left would produce a
+connected acyclic graph, i.e.\ a tree, with fewer than $m-1$ edges,
+contradicting the edge count. So $G$ is acyclic. \qed
+\end{theorembox}
+
 \section{The Prüfer Code}
 \begin{definitionbox}[Prüfer code]
 Let $T$ be a labeled tree on $n\ge 2$ vertices. Repeat $n-2$ times:
@@ -57,9 +95,14 @@ Let $T$ be a labeled tree on $n\ge 2$ vertices. Repeat $n-2$ times:
 The output $P=(p_0,\dots,p_{n-3})$ is the \emph{Prüfer code} of $T$.
 Two vertices (joined by one edge) are left over and are never written
 down. For $n=2$ the code is the empty sequence.
+
+Nothing here uses that the labels are $0,\dots,n-1$: the same definition
+applies to a tree on any finite totally ordered vertex set $S$ and gives a
+sequence in $S^{n-2}$. The proofs below use this generality.
 \end{definitionbox}
-Each step starts with at least three vertices, so a tree with at least two
-leaves is available and ``smallest leaf'' is well defined.
+Each step starts with a tree on at least three vertices (by
+Basic facts (b),(c) the remaining graph is always a tree), so it has at
+least two leaves and ``smallest leaf'' is well defined.
 
 \begin{examplebox}
 Take the labeled tree on $9$ vertices in Figure~\ref{fig:pr_tree}.
@@ -138,23 +181,28 @@ is what the decoder has to reconstruct.}\label{fig:pr_tape}
 \end{figure}
 
 \begin{theorembox}[Degree lemma]
-Let $T$ be a labeled tree on $n\ge2$ vertices with Prüfer code $P$. For
-every vertex $v$,
+Let $T$ be a labeled tree on $n\ge2$ vertices with Pr\"ufer code
+$P=(p_0,\dots,p_{n-3})$. For every vertex $v$,
 \[
   \deg_T(v) \;=\; 1 + \#\{\,i : p_i = v\,\}.
 \]
 In particular the leaves of $T$ are exactly the labels that do \emph{not}
 occur in $P$.
 
-\emph{Proof.} Every edge of $T$ is either the final edge or is deleted at
-exactly one step, together with the leaf $u_i$ at that step. Fix $v$ and
-look at its incident edges. Either $v$ is deleted at some step, and then
-exactly one incident edge (its last one) goes with it; or $v$ is one of the
-two survivors, and its last edge is the final edge. Every other incident
-edge of $v$ was deleted earlier because its other endpoint was a leaf at
-that moment, and that step recorded $v$. Conversely each occurrence of $v$
-in $P$ is such an edge. Hence $\deg_T(v)-1$ edges contribute one record
-each. \qed
+\emph{Proof.} Let $u_i$ be the leaf deleted at step $i$ and
+$e_i=\{u_i,p_i\}$ the edge deleted with it ($0\le i\le n-3$), and let
+$e_*$ be the edge joining the two vertices that survive. Every step
+deletes a different edge, and $e_*$ is never deleted, so $e_0,\dots,e_{n-3},e_*$
+are $n-1$ distinct edges; since $T$ has $n-1$ edges, these are all of them.
+
+Fix a vertex $v$. An edge at $v$ is some $e_i$ with $v=u_i$, some $e_i$
+with $v=p_i$, or $e_*$. A vertex is deleted at most once, so there is at
+most one $i$ with $v=u_i$; and $v$ is an endpoint of $e_*$ exactly when it
+is never deleted. Hence exactly one of the edges at $v$ is of the kind
+``$e_i$ with $v=u_i$'' or ``$e_*$''. All the other edges at $v$ are
+$e_i$ with $v=p_i$ (note $v=u_i=p_i$ is impossible), and there is one for
+each occurrence of $v$ in $P$. So $\deg_T(v)=1+\#\{i:p_i=v\}$. The
+statement about leaves is the case $\deg_T(v)=1$. \qed
 \end{theorembox}
 
 The same lemma applies to every intermediate tree: after $i$ steps the
@@ -228,6 +276,30 @@ The number of labeled trees on $n\ge2$ vertices is $n^{\,n-2}$.
 $\{0,\dots,n-1\}^{n-2}$. \qed
 \end{theorembox}
 
+The decoding procedure of the definition above is exactly what the
+induction in the bijection theorem does, but it is worth stating that it
+indeed works.
+
+\begin{theorembox}[Correctness of decoding]
+For every totally ordered $S$ with $|S|=n\ge2$ and every $P\in S^{n-2}$,
+the decoding procedure is well defined (every step finds the vertex it
+asks for, and exactly two vertices are unused at the end) and returns the
+unique tree on $S$ whose Pr\"ufer code is $P$.
+
+\emph{Proof.} Induct on $n$. For $n=2$ there are no steps and the two
+unused vertices are joined, giving the only tree. Let $n\ge3$. At step $0$
+the procedure needs the smallest vertex that is not in $P$; it exists
+because fewer than $n$ distinct values occur in $P$, and it is the vertex
+$u$ of the proof of the bijection theorem. It adds $\{u,p_0\}$ and marks
+$u$ used. From then on the unused vertices are $S\setminus\{u\}$ and the
+suffixes to be avoided are those of $P'=(p_1,\dots,p_{n-3})\in
+(S\setminus\{u\})^{n-3}$ (recall $u\notin P$), so the rest of the run is
+exactly a run of the procedure on $(S\setminus\{u\},P')$. By induction it
+is well defined and returns the tree $T'$ with code $P'$. The result is
+$T'+\{u,p_0\}$, which the proof of the bijection theorem showed to be the
+unique tree with code $P$. \qed
+\end{theorembox}
+
 \section{Fast Implementations}
 \subsection{With a priority queue: \texorpdfstring{$O(n\log n)$}{O(n log n)}}
 \emph{Encoding.} Keep the current degrees and a min-heap of the current
@@ -240,26 +312,92 @@ count of $p_i$, and push $p_i$ when it reaches zero. Finish by popping the
 last two vertices as the final edge.
 
 \subsection{With a moving pointer: \texorpdfstring{$O(n)$}{O(n)}}
-The heap is only needed to find ``the smallest current leaf''. Observe how
-the leaf set changes in one step: the deleted leaf $u$ disappears, and the
-only vertex that can newly become a leaf is its neighbor $p$. Keep a
-pointer \texttt{ptr} that scans labels upward and a variable \texttt{leaf}
-holding the smallest current leaf. After deleting \texttt{leaf} and
-recording $p$:
+The heap is only needed to find ``the smallest current leaf''. Both
+linear routines (listed in the next section) maintain a set $L$ of
+\emph{current leaves}: when encoding, the leaves of the remaining tree;
+when decoding, the unused vertices that do not occur in the unread part of
+the code (by the degree lemma and the decoding rule, these are the candidates for
+the next deleted leaf in both directions). Each round takes $\min L$, deletes it, and
+changes $L$ in only one way: the neighbor $p$ that was recorded (read) in
+this round may \emph{join} $L$, namely when its degree counter drops to
+$1$. The routines keep a variable \texttt{leaf} (the vertex to be deleted
+in the current round), a pointer \texttt{ptr} and a degree counter
+\texttt{deg} for every vertex, and after each round do:
 \begin{itemize}[leftmargin=1.5em,itemsep=1pt]
-  \item if $p$ just became a leaf and $p<\texttt{ptr}$, then $p$ is smaller
-        than every other leaf (all of those are above \texttt{ptr}), so the
-        next leaf to delete is $p$ itself;
-  \item otherwise advance \texttt{ptr} to the next label whose degree is
-        $1$; this vertex is the new smallest leaf. If $p$ became a leaf
-        with $p>\texttt{ptr}$, the scan will reach it later, when its
-        degree is already $1$.
+  \item if $p$ just joined $L$ and $p<\texttt{ptr}$: set
+        $\texttt{leaf}\gets p$;
+  \item otherwise: increase \texttt{ptr} by one, then keep increasing it
+        while $\texttt{deg}[\texttt{ptr}]\ne1$, and set
+        $\texttt{leaf}\gets\texttt{ptr}$.
 \end{itemize}
-\texttt{ptr} only moves up, so the total work is $O(n)$. For encoding,
-the tree must first be oriented (rooted at $n-1$ is convenient) so that
-each leaf knows its remaining neighbor, which is its parent; the root is
-never deleted before the last two vertices, because it is the largest
-label.
+Initially \texttt{ptr} is the smallest vertex of degree $1$ and
+$\texttt{leaf}=\texttt{ptr}$. For encoding, the tree is first rooted at
+the largest label $n-1$ and the neighbor recorded for a deleted leaf is
+its parent; for decoding, \texttt{deg}$[v]=1+\#\{\text{occurrences of }v
+\text{ in the unread code}\}$, and the final edge joins \texttt{leaf} to
+$n-1$.
+
+\begin{theorembox}[Pointer sweep is correct and linear]
+Both linear routines return the same output as the heap versions and run
+in $O(n)$ time.
+
+\emph{Proof.} Call a vertex \emph{live} if it has not been deleted
+(encoding) or used (decoding). We show by induction over the rounds that
+before each round:
+\begin{enumerate}[leftmargin=1.8em,itemsep=1pt,label=(\roman*)]
+  \item $\texttt{leaf}=\min L$;
+  \item every element of $L$ other than \texttt{leaf} exceeds \texttt{ptr},
+        and $\texttt{leaf}\le\texttt{ptr}$;
+  \item every dead vertex is $\le\texttt{ptr}$, and if
+        $\texttt{leaf}<\texttt{ptr}$ then the vertex \texttt{ptr} is dead;
+  \item for every live $w$: $\texttt{deg}[w]=1$ iff $w\in L$.
+\end{enumerate}
+Initially $\texttt{leaf}=\texttt{ptr}=\min L$ and nothing is dead, so
+(i)--(iv) hold (for (iv): the counters are the degrees, resp.\ $1$ plus the
+number of occurrences). Suppose they hold before a round. The round
+kills \texttt{leaf} ($\le\texttt{ptr}$) and lowers the counter of $p$,
+which is live: for encoding, $p$ is the parent of the deleted leaf, and the
+remaining graph is a tree containing the root $n-1$ and the leaf, hence
+containing the path between them and so the parent; the root itself is
+never deleted, since $L$ always has at least two elements
+(Basic facts (b); when decoding, $m$ unused vertices leave an unread suffix
+of length $m-2$, hence at least two unused vertices outside it) and
+$n-1$ is the largest label and so is never $\min L$. Also
+$p\ne\texttt{leaf}$ (when encoding, $p$ is a neighbor of \texttt{leaf};
+when decoding, $p$ occurs in the unread suffix while \texttt{leaf}, being
+in $L$, does not), and $p\ne\texttt{ptr}$: if $\texttt{leaf}=\texttt{ptr}$
+this is the previous remark, and otherwise \texttt{ptr} is dead by (iii)
+while $p$ is live. Property (iv) is preserved
+for the new counters, and the new set $L'$ is $L\setminus\{\texttt{leaf}\}$,
+possibly together with $p$.
+
+\emph{Case 1:} $p$ joined $L$ and $p<\texttt{ptr}$. All other elements of
+$L'$ exceed \texttt{ptr} by (ii), so $\min L'=p$, which is the new
+\texttt{leaf}; \texttt{ptr} is unchanged, and dead vertices are still
+$\le\texttt{ptr}$; \texttt{ptr} is dead (it is either the killed leaf or
+dead by (iii)), as (iii) requires for $p<\texttt{ptr}$.
+
+\emph{Case 2:} otherwise. Then every element of $L'$ is $>\texttt{ptr}$:
+the elements of $L\setminus\{\texttt{leaf}\}$ by (ii), and $p$, if it
+joined, because it is not $<\texttt{ptr}$ (we are not in Case 1) and not
+equal to \texttt{ptr}. So $\min L'$ is the smallest live
+$w>\texttt{ptr}$ with $\texttt{deg}[w]=1$ by (iv); dead vertices are
+$\le\texttt{ptr}$ by (iii) and are never examined, so the scan stops
+exactly there (and stays in range, since $L'$ is never empty: it has at least two
+elements while rounds remain, and after the last round it consists of the
+two survivors). The new \texttt{leaf} and \texttt{ptr} are equal to this vertex,
+and all other elements of $L'$ are larger. This restores
+(i)--(iv).
+
+So every round deletes $\min L$ and records its neighbor exactly as the
+heap versions do. After the last round the two remaining vertices are
+in $L$ (when decoding the unread suffix is empty, and when encoding both
+are leaves of the remaining edge); the smaller one is \texttt{leaf} by (i),
+and the larger one is $n-1$, which was never deleted, so the final edge of
+the decoder joins \texttt{leaf} to $n-1$. Finally \texttt{ptr} only increases and never exceeds
+$n-1$, and every other operation takes $O(1)$ time, so the total time is
+$O(n)$ (plus $O(n)$ for rooting the tree when encoding). \qed
+\end{theorembox}
 
 \section{Reference Implementations}
 The listings contain all four routines: heap-based and linear-time
@@ -295,7 +433,8 @@ $\deg(v)=d_v$ for all $v$ is
 sequence $d$ correspond to sequences of length $n-2$ in which each label
 $v$ occurs exactly $c_v=d_v-1$ times. Such a sequence exists if and only
 if $c_v\ge0$ and $\sum c_v=n-2$, which is the stated condition (the sum
-condition is also forced by the handshake lemma). The number of such
+condition is also forced, because $T$ has $n-1$ edges and each edge
+contributes $2$ to the sum of the degrees). The number of such
 sequences is the multinomial coefficient. \qed
 \end{theorembox}
 
@@ -319,15 +458,24 @@ $\prod_v x_v\cdot\prod_{i}x_{p_i}$, and summing $\prod_i x_{p_i}$ over all
 free choices of the $n-2$ entries gives $(\sum_v x_v)^{n-2}$. \qed
 \end{theorembox}
 
-Setting all $x_v=1$ recovers Cayley's formula. Setting $x_v=t$ for one
-vertex and $1$ for the others and comparing coefficients gives the
-number of trees in which a given vertex has degree $d$:
+Setting all $x_v=1$ recovers Cayley's formula. The next statement is the
+count by degree of a single vertex.
+
+\begin{theorembox}[Degree of one vertex]
+Let $n\ge2$, let $v$ be a fixed vertex and $1\le d\le n-1$. The number of
+labeled trees on $n$ vertices in which $\deg(v)=d$ is
 \[
   \binom{n-2}{d-1}\,(n-1)^{\,n-1-d}.
 \]
-(Choose which $d-1$ of the $n-2$ positions hold that vertex; the other
-positions take any of the remaining $n-1$ labels.) For $n=4$ and
-$d=1,2,3$ this gives $9,6,1$, which sums to $16$.
+
+\emph{Proof.} By the bijection and the degree lemma, these trees
+correspond to sequences of length $n-2$ in which $v$ occurs exactly $d-1$
+times. Choose the $d-1$ positions of $v$ in $\binom{n-2}{d-1}$ ways;
+each of the other $n-2-(d-1)=n-1-d$ positions holds one of the $n-1$
+labels different from $v$. \qed
+\end{theorembox}
+
+For $n=4$ and $d=1,2,3$ this gives $9,6,1$, which sums to $16$.
 
 \subsection{Joining a forest into a tree}
 \begin{theorembox}[Forest completion]
@@ -339,18 +487,34 @@ turn $F$ into a tree is
 \]
 (For $k=1$ the value is $1$, the empty set.)
 
-\emph{Proof.} Contract every component to a single vertex $j$ of weight
-$s_j$. A valid set of new edges becomes a labeled tree $T$ on
-$\{1,\dots,k\}$ (no loops or multi-edges appear, otherwise the result
-would contain a cycle). Conversely, given $T$, each of its edges $\{i,j\}$
-can be realized by any of $s_is_j$ vertex pairs, independently of the
-other edges. So the answer is
+\emph{Proof.} For $k=1$ there is nothing to prove, so let $k\ge2$.
+Let $\mathcal E$ be the set of valid edge sets $E'$. We build a bijection
+between $\mathcal E$ and the set of pairs $(T,\varphi)$, where $T$ is a
+labeled tree on the components $\{1,\dots,k\}$ and $\varphi$ chooses, for
+every edge $\{i,j\}$ of $T$, one vertex of component $i$ and one of
+component $j$.
+
+Given $E'\in\mathcal E$, contract every component of $F$ to a point. The
+result has $k$ vertices and $k-1$ edges (one per edge of $E'$), and it is
+connected because $F\cup E'$ is. By Basic facts (a) it is a tree; in
+particular there are no loops or repeated edges, so it is a labeled tree
+$T$ on the components, and each edge of $T$ comes from exactly one edge of
+$E'$, which supplies $\varphi$. Conversely, given $(T,\varphi)$, let $E'$
+be the set of the $k-1$ pairs of vertices chosen by $\varphi$. Then
+$F\cup E'$ is connected (the components are connected through $T$) and has
+$(n-k)+(k-1)=n-1$ edges, so it is a tree by Basic facts (a); and the two
+constructions are inverse to each other.
+
+For a fixed $T$ the number of choices of $\varphi$ is
+$\prod_{\{i,j\}\in T}s_is_j=\prod_j s_j^{\deg_T(j)}$, since the factor
+$s_j$ appears once for every edge at $j$. Therefore
 \[
-  \sum_{T}\prod_{\{i,j\}\in T}s_is_j
-  \;=\;\sum_T\prod_{j}s_j^{\deg_T(j)}
-  \;=\;\Bigl(\prod_j s_j\Bigr)\Bigl(\sum_j s_j\Bigr)^{k-2},
+  |\mathcal E|=\sum_T\prod_j s_j^{\deg_T(j)}
+  =\Bigl(\prod_j s_j\Bigr)\Bigl(\sum_j s_j\Bigr)^{k-2}
+  = n^{k-2}\prod_j s_j,
 \]
-by the degree generating function with $x_j=s_j$, and $\sum_js_j=n$. \qed
+by the degree generating function (with $k$ vertices, $x_j=s_j$) and
+$\sum_js_j=n$. \qed
 \end{theorembox}
 
 For example, take $7$ vertices split into components of sizes $1$, $2$ and
@@ -363,19 +527,37 @@ is designated as its root.
 
 \begin{theorembox}[Prescribed root set]
 For $1\le k\le n$, the number of rooted forests on $\{0,\dots,n-1\}$ whose
-set of roots is exactly $R=\{0,\dots,k-1\}$ equals $k\,n^{\,n-k-1}$.
+set of roots is exactly $R=\{0,\dots,k-1\}$ equals $k\,n^{\,n-k-1}$ (for
+$k=n$ read this as $n\cdot n^{-1}=1$).
 
-\emph{Proof.} Add a new vertex $n$ and join it to every root. This is a
-bijection between such forests and labeled trees on $\{0,\dots,n\}$ in
-which the neighbor set of $n$ is exactly $R$: deleting $n$ from such a tree
-leaves a forest in which each component contains exactly one vertex of
-$R$ (two would close a cycle through $n$, none would disconnect the
-tree). By symmetry among labels, every $k$-subset of $\{0,\dots,n-1\}$ is
-the neighbor set of $n$ equally often. Trees on $n+1$ vertices where $n$
-has degree $k$ number $\binom{n-1}{k-1}n^{\,n-k}$ (previous subsection),
-so the answer is
+\emph{Proof.} Let $\mathcal F_R$ be the set of such forests and
+$\mathcal T_R$ the set of labeled trees on $\{0,\dots,n\}$ in which the
+neighbor set of the vertex $n$ is exactly $R$. We claim the map
+$\mathcal F_R\to\mathcal T_R$ that adds the vertex $n$ joined to every
+root is a bijection.
+
+\emph{It lands in $\mathcal T_R$.} The result is connected (each
+component contains a root, which is joined to $n$) and has
+$(n-k)+k=n$ edges on $n+1$ vertices, so it is a tree by Basic facts (a);
+its neighbor set at $n$ is $R$.
+
+\emph{It is bijective.} Given $T\in\mathcal T_R$, delete $n$. Each
+component of $T-n$ contains at least one neighbor of $n$ because $T$ is
+connected, and at most one because two neighbors in one component would
+close a cycle through $n$. So every component contains exactly one vertex
+of $R$, i.e.\ $T-n$ is a forest whose root set is exactly $R$; and
+re-adding $n$ gives back $T$. The two maps are inverse to each other.
+
+Hence $|\mathcal F_R|=|\mathcal T_R|$. Permuting the labels
+$0,\dots,n-1$ maps trees whose neighbor set at $n$ is $R$ bijectively onto
+trees whose neighbor set at $n$ is any other $k$-subset $R'$, so
+$|\mathcal T_R|$ is the same for all $\binom nk$ subsets. Every tree on
+$\{0,\dots,n\}$ with $\deg(n)=k$ has exactly one neighbor set, so by the
+degree-of-one-vertex theorem (with $n+1$ vertices and $d=k$)
 \[
-  \binom{n-1}{k-1}n^{\,n-k}\Big/\binom{n}{k}\;=\;k\,n^{\,n-k-1}. \qed
+  \binom nk|\mathcal T_R|=\binom{n-1}{k-1}n^{\,n-k},
+  \qquad\text{hence}\qquad
+  |\mathcal T_R|=\binom{n-1}{k-1}n^{\,n-k}\Big/\binom nk=k\,n^{\,n-k-1}. \qed
 \]
 \end{theorembox}
 
@@ -383,35 +565,79 @@ For $k=1$ this is Cayley's formula again, since a rooted tree with
 prescribed root $0$ is just a tree.
 
 \subsection{Spanning trees of complete bipartite graphs}
-\begin{theorembox}[$K_{a,b}$]
-The complete bipartite graph $K_{a,b}$ has $a^{\,b-1}b^{\,a-1}$ spanning
-trees.
+Let $A$ and $B$ be disjoint finite sets of labels inside one totally
+ordered set, with $|A|=a\ge1$ and $|B|=b\ge1$, and $n=a+b$. A tree on
+the vertex set $A\cup B$ is called \emph{bipartite} if every edge joins a
+vertex of $A$ to a vertex of $B$; these are exactly the spanning trees of
+the complete bipartite graph $K_{a,b}$. For such a tree $T$ let $P$ be its
+ordinary Pr\"ufer code, let $P_A$ be the subsequence of entries lying in
+$A$, and $P_B$ that of entries lying in $B$. Put $\Phi(T)=(P_A,P_B)$.
 
-\emph{Proof sketch.} Let the parts $A$ and $B$ have sizes $a$ and $b$, and
-run the Prüfer procedure on a spanning tree (labels of the two parts may
-be interleaved arbitrarily), stopping when one vertex of each part is left.
-A deleted leaf in $A$ has its neighbor in $B$, and vice versa. Store each
-recorded neighbor in the sequence belonging to \emph{its own part}: this
-yields $P_A\in A^{b-1}$ (one entry per deleted vertex of $B$) and
-$P_B\in B^{a-1}$.
+\begin{theorembox}[Two-sequence code]
+$\Phi$ is a bijection from the bipartite trees on $A\cup B$ onto
+$A^{\,b-1}\times B^{\,a-1}$. In particular $K_{a,b}$ has
+$a^{\,b-1}b^{\,a-1}$ spanning trees.
 
-The degree lemma still holds with this split: a vertex of $A$ has degree
-one more than its number of occurrences in $P_A$, and likewise for $B$.
-Decoding mimics the ordinary one: the next leaf $u$ is the smallest unused
-vertex absent from the unread part of the sequence of its own part, and
-its neighbor is the next unread entry of the \emph{other} sequence. The
-procedure never gets stuck: when $a'$ vertices of $A$ and $b'$ vertices of
-$B$ are unused, the unread parts of $P_A$ and $P_B$ have lengths $b'-1$ and
-$a'-1$, so a vertex of the larger side (or either, when $a'=b'$) is always
-a leaf, and the other sequence is non-empty until $a'=b'=1$. The induction
-used for the bijection theorem goes through unchanged, so spanning trees
-correspond to pairs $(P_A,P_B)$, and there are $a^{b-1}\cdot b^{a-1}$ of
-them. \qed
+\emph{Proof.} \textbf{Step 1: lengths and degrees.} For a vertex $w\in A$
+the degree lemma gives $\deg_T(w)=1+\#\{\text{occurrences of }w\text{ in
+}P\}$, and the occurrences of $w$ in $P$ are exactly those in $P_A$ (the
+other entries lie in $B$). The same holds for $w\in B$ with $P_B$. Every
+edge has exactly one endpoint in $A$, so
+$n-1=\sum_{w\in A}\deg_T(w)=a+|P_A|$, i.e.\ $|P_A|=b-1$; symmetrically
+$|P_B|=a-1$. Thus $\Phi(T)\in A^{b-1}\times B^{a-1}$, and a vertex is a
+leaf of $T$ if and only if it does not occur in the sequence belonging to
+its own part.
+
+\textbf{Step 2: bijectivity,} by induction on $a+b$. For $a=b=1$ both
+sides have one element. Let $a+b\ge3$ and fix
+$(P_A,P_B)\in A^{b-1}\times B^{a-1}$. Define
+\[
+  L=\bigl(A\setminus\mathrm{set}(P_A)\bigr)\cup\bigl(B\setminus\mathrm{set}(P_B)\bigr).
+\]
+Since $|A\setminus\mathrm{set}(P_A)|\ge a-(b-1)$ and
+$|B\setminus\mathrm{set}(P_B)|\ge b-(a-1)$, and one of $a-b+1$, $b-a+1$ is
+at least $1$, the set $L$ is not empty; let $u=\min L$. By symmetry between
+$A$ and $B$ we may assume $u\in A$. Then $a\ge2$: otherwise $A=\{u\}$,
+every entry of $P_A$ would equal $u$, and $u\notin P_A$ forces $P_A$ to be
+empty, i.e.\ $b=1$ and $a+b=2$. So $P_B$ is non-empty; write
+$P_B=(v,P_B')$ with $v\in B$. As $u\notin P_A$, we have
+$P_A\in(A\setminus\{u\})^{b-1}$, and
+$(P_A,P_B')\in(A\setminus\{u\})^{b-1}\times B^{(a-1)-1}$ is a pair of the
+required kind for the parts $A\setminus\{u\}$ and $B$, both non-empty and
+of total size $a+b-1$.
+
+\emph{At most one tree maps to $(P_A,P_B)$.} Let $\Phi(T)=(P_A,P_B)$.
+By Step 1 the leaves of $T$ are exactly the elements of $L$, so the first
+deleted leaf is $u$. Its neighbor, the first entry of the ordinary code, lies in
+$B$, so it is the first entry of $P_B$, namely $v$. The tree $T-u$ is a
+bipartite tree on $(A\setminus\{u\})\cup B$ whose ordinary code is the
+rest of $P$, so $\Phi(T-u)=(P_A,P_B')$. By induction $T-u$ is determined by
+$(P_A,P_B')$, hence $T=(T-u)+\{u,v\}$ is determined.
+
+\emph{At least one tree maps to $(P_A,P_B)$.} By induction there is a
+bipartite tree $T'$ on $(A\setminus\{u\})\cup B$ with
+$\Phi(T')=(P_A,P_B')$. Let $T=T'+\{u,v\}$; it is a tree by Basic facts (d)
+and bipartite because $u\in A$, $v\in B$. Its leaves are $u$ and the leaves
+of $T'$ other than $v$. If $w\ne v$ is a leaf of $T'$, then by Step 1 for
+$T'$ it does not occur in the sequence of its own part among
+$(P_A,P_B')$; as $w\ne v$, it does not occur in that of
+$(P_A,(v,P_B'))=(P_A,P_B)$ either, so $w\in L$ and therefore $w>u$ (it is
+not $u$ because $u\notin T'$). Thus $u$ is the smallest leaf of $T$, its
+neighbor is $v$, and deleting it leaves $T'$. The ordinary code of $T$ is
+therefore $v$ followed by the code of $T'$; splitting by part, the
+$A$-entries are those of $P_A$ and the $B$-entries are $v$ followed by
+those of $P_B'$. So $\Phi(T)=(P_A,P_B)$.
+
+\textbf{Step 3: counting.} The bijection gives
+$|A^{b-1}|\cdot|B^{a-1}|=a^{b-1}b^{a-1}$ spanning trees. \qed
 \end{theorembox}
 
 As a sanity check, $K_{2,3}$ has $2^2\cdot3^1=12$ spanning trees and
-$K_{3,3}$ has $3^2\cdot3^2=81$. The harness in \texttt{example.py} also
-implements the two-sequence code and checks that it is a bijection.
+$K_{3,3}$ has $3^2\cdot3^2=81$. The decoder for this code is the one
+from the proof: the next leaf is the smallest unused vertex missing from
+the unread part of its own part's sequence, and its neighbor is the next
+unread entry of the \emph{other} sequence; \texttt{example.py} implements
+it and checks the bijection by brute force.
 
 \section{Verification}\label{sec:verify}
 Both reference implementations check the following by brute force.
