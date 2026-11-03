@@ -1,0 +1,481 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Prüfer Code and Cayley's Formula}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Combinatorics}{Prüfer Code and Cayley's Formula}{6}
+
+\section{Overview}
+How many trees can be drawn on $n$ labeled vertices? Writing down a few
+cases ($1, 3, 16, 125, \dots$) suggests a pattern, but a direct proof is
+awkward, because a tree is a global object: its edges are not independent
+of one another. The \emph{Prüfer code} sidesteps the difficulty. It
+turns a labeled tree into a plain sequence of $n-2$ labels, with no
+constraints at all between the entries, and it does so reversibly.
+Counting trees therefore becomes counting sequences.
+
+This lecture defines the code, proves that it is a bijection, and shows a
+linear-time implementation. The remaining sections turn the bijection into
+a counting toolbox: Cayley's formula, trees with prescribed degrees, ways
+to join a forest into a tree, rooted forests with prescribed roots, and
+spanning trees of complete bipartite graphs.
+
+\section{Labeled Trees and Cayley's Formula}
+\begin{definitionbox}[Labeled tree]
+A \emph{labeled tree} on $n$ vertices is a tree whose vertex set is
+$\{0,1,\dots,n-1\}$. Two labeled trees are the same exactly when they have
+the same set of edges; relabeling the vertices of a drawing gives, in
+general, a different labeled tree.
+\end{definitionbox}
+
+For $n=3$ there are three labeled trees: a path is determined by which
+vertex sits in the middle. For $n=4$ there are $16$: $12$ paths (the
+$4!/2$ orderings of the vertices along the path) and $4$ stars (the
+choice of the center).
+
+\begin{theorembox}[Cayley's formula]
+For $n\ge 2$, the number of labeled trees on $n$ vertices is $n^{\,n-2}$.
+\end{theorembox}
+
+The proof comes in Section~\ref{sec:bijection}. The point to notice is the
+shape of the answer: $n^{n-2}$ is exactly the number of sequences of
+length $n-2$ over an alphabet of size $n$.
+
+\section{The Prüfer Code}
+\begin{definitionbox}[Prüfer code]
+Let $T$ be a labeled tree on $n\ge 2$ vertices. Repeat $n-2$ times:
+\begin{enumerate}[leftmargin=1.5em,itemsep=1pt]
+  \item let $u$ be the \emph{smallest-labeled leaf} of the current tree;
+  \item append the label of $u$'s unique neighbor to the output;
+  \item delete $u$ and its edge.
+\end{enumerate}
+The output $P=(p_0,\dots,p_{n-3})$ is the \emph{Prüfer code} of $T$.
+Two vertices (joined by one edge) are left over and are never written
+down. For $n=2$ the code is the empty sequence.
+\end{definitionbox}
+Each step starts with at least three vertices, so a tree with at least two
+leaves is available and ``smallest leaf'' is well defined.
+
+\begin{examplebox}
+Take the labeled tree on $9$ vertices in Figure~\ref{fig:pr_tree}.
+Table~\ref{tab:pr_trace} lists the deletions. The code is
+$P=(4,4,7,7,6,3,6)$; the vertices $6$ and $8$ remain at the end.
+\end{examplebox}
+
+% FIGURE: pr_tree
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.0cm,y=1.0cm]
+\node[lvert,lhi] (n0) at (0.0,1.4) {0};
+\node[lvert,lhi] (n1) at (0.0,-0.2) {1};
+\node[lvert] (n4) at (1.4,0.6) {4};
+\node[lvert,lhi] (n2) at (3.0,1.7) {2};
+\node[lvert] (n7) at (3.0,0.6) {7};
+\node[lvert] (n3) at (4.6,0.6) {3};
+\node[lvert,lhi] (n5) at (6.2,1.7) {5};
+\node[lvert] (n6) at (6.2,0.6) {6};
+\node[lvert,lhi] (n8) at (7.6,0.6) {8};
+\draw[thick,lectureink!70] (n0)--(n4) (n1)--(n4) (n4)--(n7) (n2)--(n7)
+  (n7)--(n3) (n3)--(n6) (n5)--(n6) (n6)--(n8);
+\end{tikzpicture}
+\caption{A labeled tree on nine vertices; shaded vertices are the leaves
+$\{0,1,2,5,8\}$. Its Prüfer code is $(4,4,7,7,6,3,6)$.}\label{fig:pr_tree}
+\end{figure}
+
+\begin{table}[H]
+\centering\small\sffamily
+\begin{tabular}{@{}cccc@{}}
+\toprule
+step $i$ & leaves before the step & deleted leaf $u_i$ & recorded $p_i$\\
+\midrule
+0 & $\{0,1,2,5,8\}$ & 0 & 4\\
+1 & $\{1,2,5,8\}$   & 1 & 4\\
+2 & $\{2,4,5,8\}$   & 2 & 7\\
+3 & $\{4,5,8\}$     & 4 & 7\\
+4 & $\{5,7,8\}$     & 5 & 6\\
+5 & $\{7,8\}$       & 7 & 3\\
+6 & $\{3,8\}$       & 3 & 6\\
+\bottomrule
+\end{tabular}
+\caption{Encoding the tree of Figure~\ref{fig:pr_tree}. Vertex $4$ becomes a
+leaf only after both of its other neighbors $0$ and $1$ have been
+deleted.}\label{tab:pr_trace}
+\end{table}
+
+Look at the table from the point of view of edges. Every step removes the
+edge $\{u_i,p_i\}$, and after the last step the edge $\{6,8\}$ remains.
+So the pairs $(u_i,p_i)$ for $i=0,\dots,n-3$, together with the final
+pair, are exactly the $n-1$ edges of the tree
+(Figure~\ref{fig:pr_tape}). If the deleted leaves $u_i$ could be
+recovered from the code alone, the tree could be rebuilt. That is what the
+next lemma achieves.
+
+% FIGURE: pr_tape
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.95cm,y=1.0cm]
+\foreach \i/\u/\p in {0/0/4,1/1/4,2/2/7,3/4/7,4/5/6,5/7/3,6/3/6}{
+  \node[lcell,lhi] (u\i) at (\i,1.2) {\u};
+  \node[lcell,lhi2] (p\i) at (\i,0) {\p};
+  \draw[lthin] (u\i.south)--(p\i.north);
+}
+\node[lcell,lgray] (uf) at (8.0,1.2) {6};
+\node[lcell,lgray] (pf) at (8.0,0) {8};
+\draw[lthin] (uf.south)--(pf.north);
+\node[llabel,anchor=east] at (-0.6,1.2) {deleted $u_i$};
+\node[llabel,anchor=east] at (-0.6,0) {recorded $p_i$};
+\node[llabel] at (8.0,-0.7) {last edge};
+\node[llabel] at (3.0,-0.7) {code $P$};
+\end{tikzpicture}
+\caption{Each column is one edge of the tree: the deleted leaf above, the
+recorded neighbor below. The Prüfer code is the bottom row; the top row
+is what the decoder has to reconstruct.}\label{fig:pr_tape}
+\end{figure}
+
+\begin{theorembox}[Degree lemma]
+Let $T$ be a labeled tree on $n\ge2$ vertices with Prüfer code $P$. For
+every vertex $v$,
+\[
+  \deg_T(v) \;=\; 1 + \#\{\,i : p_i = v\,\}.
+\]
+In particular the leaves of $T$ are exactly the labels that do \emph{not}
+occur in $P$.
+
+\emph{Proof.} Every edge of $T$ is either the final edge or is deleted at
+exactly one step, together with the leaf $u_i$ at that step. Fix $v$ and
+look at its incident edges. Either $v$ is deleted at some step, and then
+exactly one incident edge (its last one) goes with it; or $v$ is one of the
+two survivors, and its last edge is the final edge. Every other incident
+edge of $v$ was deleted earlier because its other endpoint was a leaf at
+that moment, and that step recorded $v$. Conversely each occurrence of $v$
+in $P$ is such an edge. Hence $\deg_T(v)-1$ edges contribute one record
+each. \qed
+\end{theorembox}
+
+The same lemma applies to every intermediate tree: after $i$ steps the
+remaining tree has code $(p_i,\dots,p_{n-3})$, so \emph{a surviving vertex
+is currently a leaf exactly when it does not occur in the unread suffix of
+the code.}
+
+\section{Decoding and the Bijection}\label{sec:bijection}
+The lemma tells a decoder everything it needs. At step $i$ the deleted leaf
+$u_i$ is the smallest vertex that has not been deleted yet and does not
+occur in $(p_i,\dots,p_{n-3})$, and the edge deleted at that step is
+$\{u_i,p_i\}$.
+
+\begin{definitionbox}[Decoding]
+Given $P=(p_0,\dots,p_{n-3})\in\{0,\dots,n-1\}^{n-2}$, mark all vertices
+unused. For $i=0,1,\dots,n-3$: let $u_i$ be the smallest unused vertex not
+in $(p_i,\dots,p_{n-3})$, add the edge $\{u_i,p_i\}$, and mark $u_i$ used.
+Finally join the two remaining unused vertices.
+\end{definitionbox}
+
+\begin{examplebox}
+Decode $P=(3,3,0,5,0,3)$ with $n=8$. The vertices $1,2,4,6,7$ are absent
+from $P$. Step $0$ picks $u_0=1$, edge $\{1,3\}$. Step $1$ picks $u_1=2$,
+edge $\{2,3\}$. Step $2$ picks $u_2=4$, edge $\{4,0\}$. Now the suffix is
+$(5,0,3)$, and $6$ is the smallest unused vertex missing from it:
+$u_3=6$, edge $\{6,5\}$. Then $5$ itself no longer occurs in the suffix
+$(0,3)$, so $u_4=5$, edge $\{5,0\}$; then $u_5=0$, edge $\{0,3\}$. The
+unused vertices $3$ and $7$ are joined last. The result is a tree, and
+encoding it gives back $(3,3,0,5,0,3)$.
+\end{examplebox}
+
+To make the proof clean, work with an arbitrary finite totally ordered
+label set $S$ instead of $\{0,\dots,n-1\}$; the induction below removes a
+vertex and therefore leaves the label set.
+
+\begin{theorembox}[Prüfer bijection]
+Let $S$ be a totally ordered set with $|S|=n\ge2$. The Prüfer code is a
+bijection between trees on the vertex set $S$ and sequences in $S^{\,n-2}$.
+
+\emph{Proof.} Induct on $n$. For $n=2$ there is one tree and one (empty)
+sequence. Let $n\ge3$ and fix $P=(p_0,\dots,p_{n-3})\in S^{n-2}$. Fewer
+than $n$ distinct values occur in $P$, so
+$u=\min\bigl(S\setminus\{p_0,\dots,p_{n-3}\}\bigr)$ exists. Put
+$P'=(p_1,\dots,p_{n-3})$; since $u$ does not occur in $P$, we have
+$P'\in(S\setminus\{u\})^{n-3}$.
+
+\emph{At most one tree has code $P$.} Suppose $T$ has code $P$. By the
+degree lemma the leaves of $T$ are exactly $S\setminus\{p_0,\dots,p_{n-3}\}$,
+so the first deleted leaf is $u$, with neighbor $p_0$, and $T-u$ has code
+$P'$. By the induction hypothesis $T-u$ is the unique tree on
+$S\setminus\{u\}$ with code $P'$; hence $T$ is that tree plus the edge
+$\{u,p_0\}$.
+
+\emph{At least one tree has code $P$.} Let $T'$ be the tree on
+$S\setminus\{u\}$ with code $P'$ and let $T=T'+\{u,p_0\}$ (note
+$p_0\in S\setminus\{u\}$). The leaves of $T$ are $u$ together with the
+leaves of $T'$ other than $p_0$. Such a leaf $w\ne p_0$ of $T'$ does not
+occur in $P'$ (degree lemma), and $w\ne p_0$, so $w$ does not occur in $P$
+at all; by the choice of $u$ we get $w>u$. Thus $u$ is the smallest leaf of
+$T$, its neighbor is $p_0$, and deleting it leaves $T'$, whose code is
+$P'$. So the code of $T$ is $(p_0,P')=P$. \qed
+\end{theorembox}
+
+The proof is the decoding algorithm in disguise: the vertex $u$ chosen in
+the induction step is the first $u_0$ of the decoding procedure.
+
+\begin{theorembox}[Cayley's formula]
+The number of labeled trees on $n\ge2$ vertices is $n^{\,n-2}$.
+
+\emph{Proof.} By the bijection, it equals the number of sequences in
+$\{0,\dots,n-1\}^{n-2}$. \qed
+\end{theorembox}
+
+\section{Fast Implementations}
+\subsection{With a priority queue: \texorpdfstring{$O(n\log n)$}{O(n log n)}}
+\emph{Encoding.} Keep the current degrees and a min-heap of the current
+leaves. Pop the smallest leaf $u$; its live neighbor $v$ (the one with
+positive degree) is the next code entry; decrease $\deg(v)$, and if it
+reaches $1$ push $v$. \emph{Decoding.} Count how often each vertex occurs
+in $P$ and keep a min-heap of the vertices with zero remaining occurrences.
+For each $p_i$, pop the smallest $u$, output $\{u,p_i\}$, decrease the
+count of $p_i$, and push $p_i$ when it reaches zero. Finish by popping the
+last two vertices as the final edge.
+
+\subsection{With a moving pointer: \texorpdfstring{$O(n)$}{O(n)}}
+The heap is only needed to find ``the smallest current leaf''. Observe how
+the leaf set changes in one step: the deleted leaf $u$ disappears, and the
+only vertex that can newly become a leaf is its neighbor $p$. Keep a
+pointer \texttt{ptr} that scans labels upward and a variable \texttt{leaf}
+holding the smallest current leaf. After deleting \texttt{leaf} and
+recording $p$:
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item if $p$ just became a leaf and $p<\texttt{ptr}$, then $p$ is smaller
+        than every other leaf (all of those are above \texttt{ptr}), so the
+        next leaf to delete is $p$ itself;
+  \item otherwise advance \texttt{ptr} to the next label whose degree is
+        $1$; this vertex is the new smallest leaf. If $p$ became a leaf
+        with $p>\texttt{ptr}$, the scan will reach it later, when its
+        degree is already $1$.
+\end{itemize}
+\texttt{ptr} only moves up, so the total work is $O(n)$. For encoding,
+the tree must first be oriented (rooted at $n-1$ is convenient) so that
+each leaf knows its remaining neighbor, which is its parent; the root is
+never deleted before the last two vertices, because it is the largest
+label.
+
+\section{Reference Implementations}
+The listings contain all four routines: heap-based and linear-time
+encoding and decoding. Both files also cross-check them against each other
+and against brute force, as described in
+Section~\ref{sec:verify}.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Counting with Prüfer Codes}
+The degree lemma says that a vertex of degree $d$ appears exactly $d-1$
+times in the code. Constraints on degrees therefore become constraints on
+the multiset of symbols in a sequence, which is a classical counting
+problem.
+
+\subsection{Trees with prescribed degrees}
+\begin{theorembox}[Degree sequences]
+Let $n\ge2$. A sequence $d=(d_0,\dots,d_{n-1})$ is the degree sequence of
+some labeled tree if and only if $d_v\ge1$ for all $v$ and
+$\sum_v d_v=2(n-1)$. In that case the number of labeled trees with
+$\deg(v)=d_v$ for all $v$ is
+\[
+  \binom{n-2}{d_0-1,\,d_1-1,\,\dots,\,d_{n-1}-1}
+  \;=\;\frac{(n-2)!}{\prod_{v}(d_v-1)!}.
+\]
+
+\emph{Proof.} By the bijection and the degree lemma, trees with degree
+sequence $d$ correspond to sequences of length $n-2$ in which each label
+$v$ occurs exactly $c_v=d_v-1$ times. Such a sequence exists if and only
+if $c_v\ge0$ and $\sum c_v=n-2$, which is the stated condition (the sum
+condition is also forced by the handshake lemma). The number of such
+sequences is the multinomial coefficient. \qed
+\end{theorembox}
+
+For instance, on $n=8$ vertices with $d=(4,1,2,1,1,3,1,1)$ the count is
+\[
+  \frac{6!}{3!\,0!\,1!\,0!\,0!\,2!\,0!\,0!}=60 .
+\]
+
+Summing over all degree sequences packages the whole statement into one
+identity.
+\begin{theorembox}[Degree generating function]
+With one indeterminate $x_v$ per vertex,
+\[
+  \sum_{T}\ \prod_{v=0}^{n-1}x_v^{\deg_T(v)}
+  \;=\; x_0x_1\cdots x_{n-1}\,(x_0+x_1+\cdots+x_{n-1})^{\,n-2},
+\]
+the sum running over all labeled trees on $n$ vertices.
+
+\emph{Proof.} Map each tree to its code $P$; the monomial is
+$\prod_v x_v\cdot\prod_{i}x_{p_i}$, and summing $\prod_i x_{p_i}$ over all
+free choices of the $n-2$ entries gives $(\sum_v x_v)^{n-2}$. \qed
+\end{theorembox}
+
+Setting all $x_v=1$ recovers Cayley's formula. Setting $x_v=t$ for one
+vertex and $1$ for the others and comparing coefficients gives the
+number of trees in which a given vertex has degree $d$:
+\[
+  \binom{n-2}{d-1}\,(n-1)^{\,n-1-d}.
+\]
+(Choose which $d-1$ of the $n-2$ positions hold that vertex; the other
+positions take any of the remaining $n-1$ labels.) For $n=4$ and
+$d=1,2,3$ this gives $9,6,1$, which sums to $16$.
+
+\subsection{Joining a forest into a tree}
+\begin{theorembox}[Forest completion]
+Let $F$ be a forest on $n$ vertices with $k\ge 1$ connected components of
+sizes $s_1,\dots,s_k$. The number of sets of $k-1$ additional edges that
+turn $F$ into a tree is
+\[
+  n^{\,k-2}\prod_{j=1}^{k}s_j .
+\]
+(For $k=1$ the value is $1$, the empty set.)
+
+\emph{Proof.} Contract every component to a single vertex $j$ of weight
+$s_j$. A valid set of new edges becomes a labeled tree $T$ on
+$\{1,\dots,k\}$ (no loops or multi-edges appear, otherwise the result
+would contain a cycle). Conversely, given $T$, each of its edges $\{i,j\}$
+can be realized by any of $s_is_j$ vertex pairs, independently of the
+other edges. So the answer is
+\[
+  \sum_{T}\prod_{\{i,j\}\in T}s_is_j
+  \;=\;\sum_T\prod_{j}s_j^{\deg_T(j)}
+  \;=\;\Bigl(\prod_j s_j\Bigr)\Bigl(\sum_j s_j\Bigr)^{k-2},
+\]
+by the degree generating function with $x_j=s_j$, and $\sum_js_j=n$. \qed
+\end{theorembox}
+
+For example, take $7$ vertices split into components of sizes $1$, $2$ and
+$4$. The number of ways to connect them with two new edges is
+$7^{1}\cdot(1\cdot2\cdot4)=56$.
+
+\subsection{Rooted forests with prescribed roots}
+A \emph{rooted forest} is a forest in which one vertex of each component
+is designated as its root.
+
+\begin{theorembox}[Prescribed root set]
+For $1\le k\le n$, the number of rooted forests on $\{0,\dots,n-1\}$ whose
+set of roots is exactly $R=\{0,\dots,k-1\}$ equals $k\,n^{\,n-k-1}$.
+
+\emph{Proof.} Add a new vertex $n$ and join it to every root. This is a
+bijection between such forests and labeled trees on $\{0,\dots,n\}$ in
+which the neighbor set of $n$ is exactly $R$: deleting $n$ from such a tree
+leaves a forest in which each component contains exactly one vertex of
+$R$ (two would close a cycle through $n$, none would disconnect the
+tree). By symmetry among labels, every $k$-subset of $\{0,\dots,n-1\}$ is
+the neighbor set of $n$ equally often. Trees on $n+1$ vertices where $n$
+has degree $k$ number $\binom{n-1}{k-1}n^{\,n-k}$ (previous subsection),
+so the answer is
+\[
+  \binom{n-1}{k-1}n^{\,n-k}\Big/\binom{n}{k}\;=\;k\,n^{\,n-k-1}. \qed
+\]
+\end{theorembox}
+
+For $k=1$ this is Cayley's formula again, since a rooted tree with
+prescribed root $0$ is just a tree.
+
+\subsection{Spanning trees of complete bipartite graphs}
+\begin{theorembox}[$K_{a,b}$]
+The complete bipartite graph $K_{a,b}$ has $a^{\,b-1}b^{\,a-1}$ spanning
+trees.
+
+\emph{Proof sketch.} Let the parts $A$ and $B$ have sizes $a$ and $b$, and
+run the Prüfer procedure on a spanning tree (labels of the two parts may
+be interleaved arbitrarily), stopping when one vertex of each part is left.
+A deleted leaf in $A$ has its neighbor in $B$, and vice versa. Store each
+recorded neighbor in the sequence belonging to \emph{its own part}: this
+yields $P_A\in A^{b-1}$ (one entry per deleted vertex of $B$) and
+$P_B\in B^{a-1}$.
+
+The degree lemma still holds with this split: a vertex of $A$ has degree
+one more than its number of occurrences in $P_A$, and likewise for $B$.
+Decoding mimics the ordinary one: the next leaf $u$ is the smallest unused
+vertex absent from the unread part of the sequence of its own part, and
+its neighbor is the next unread entry of the \emph{other} sequence. The
+procedure never gets stuck: when $a'$ vertices of $A$ and $b'$ vertices of
+$B$ are unused, the unread parts of $P_A$ and $P_B$ have lengths $b'-1$ and
+$a'-1$, so a vertex of the larger side (or either, when $a'=b'$) is always
+a leaf, and the other sequence is non-empty until $a'=b'=1$. The induction
+used for the bijection theorem goes through unchanged, so spanning trees
+correspond to pairs $(P_A,P_B)$, and there are $a^{b-1}\cdot b^{a-1}$ of
+them. \qed
+\end{theorembox}
+
+As a sanity check, $K_{2,3}$ has $2^2\cdot3^1=12$ spanning trees and
+$K_{3,3}$ has $3^2\cdot3^2=81$. The harness in \texttt{example.py} also
+implements the two-sequence code and checks that it is a bijection.
+
+\section{Verification}\label{sec:verify}
+Both reference implementations check the following by brute force.
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item The tree of Figure~\ref{fig:pr_tree} encodes to
+        $(4,4,7,7,6,3,6)$, and $(3,3,0,5,0,3)$ decodes to the edges
+        $\{0,3\},\{0,4\},\{0,5\},\{1,3\},\{2,3\},\{3,7\},\{5,6\}$.
+  \item Enumerating all edge subsets confirms that there are
+        $1,3,16,125,1296$ labeled trees for $n=2,\dots,6$ (both files) and
+        $16807$ for $n=7$ (Python), and that encoding is injective on
+        them (Python).
+  \item For every sequence in $\{0,\dots,n-1\}^{n-2}$ with $n\le7$,
+        decoding yields a tree whose code is that sequence.
+  \item On hundreds of random trees with up to a few hundred vertices, the heap and
+        linear encoders agree, decoding returns the original tree, and
+        $\deg(v)=1+\#\{i:p_i=v\}$ holds (the random trees are generated
+        without using the code, so the test is not circular).
+  \item Python only: the multinomial degree-sequence count for all $n\le7$,
+        the single-vertex degree distribution, the forest-completion count
+        on sampled forests (including the sizes $1,2,4$ above, giving
+        $56$), the prescribed-roots count for all $k\le n\le7$, and the
+        $K_{a,b}$ counts together with the two-sequence code.
+\end{itemize}
+
+\section{Using the Technique}
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item \textbf{Count or sum over trees with degree constraints.} Pass to
+        sequences: a vertex of degree $d$ is a symbol used $d-1$ times. A
+        weight $\prod_v w_v^{\deg(v)}$ becomes the generating function
+        above.
+  \item \textbf{Connect a given forest.} Use the forest-completion formula;
+        only the component sizes matter. Remember that $k=1$ gives $1$.
+  \item \textbf{Generate or reconstruct a tree.} A random uniform labeled
+        tree is a random sequence plus the $O(n)$ decoder; conversely a
+        tree can be stored as $n-2$ integers.
+  \item \textbf{Modular arithmetic.} Powers like $n^{k-2}$ with $k=1$ need
+        the modular inverse of $n$ (or a special case); multinomials need
+        factorials and inverse factorials up to $n$.
+\end{itemize}
+Problems on the same theme, roughly from easier to harder:
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item Luogu P6086 --- implement encoding and decoding.
+  \item Codeforces 156D \emph{Clues} --- forest completion.
+  \item Codeforces 1109D \emph{Sasha and Interesting Fact from Graph
+        Theory} --- trees with a prescribed path between two vertices.
+  \item Codeforces 917D \emph{Stranger Trees} --- trees containing a
+        given forest, via inclusion--exclusion.
+  \item AtCoder ABC303 Ex \emph{Constrained Tree Degree} and AtCoder
+        ARC106 F \emph{Figures} --- degree-sequence counting.
+\end{itemize}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item H.\ Prüfer, ``Neuer Beweis eines Satzes über Permutationen'',
+        \emph{Archiv der Mathematik und Physik} 27 (1918), pp.\ 142--144.
+  \item A.\ Cayley, ``A theorem on trees'', \emph{Quarterly Journal of
+        Pure and Applied Mathematics} 23 (1889), pp.\ 376--378.
+  \item M.\ Aigner and G.\ M.\ Ziegler, \emph{Proofs from THE BOOK},
+        chapter ``Cayley's formula for the number of trees'' (four
+        different proofs).
+  \item cp-algorithms, \emph{Prüfer code}:
+        \url{https://cp-algorithms.com/graph/pruefer_code.html}
+\end{itemize}
+
+\end{document}
