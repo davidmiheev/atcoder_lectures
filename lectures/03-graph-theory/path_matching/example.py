@@ -117,6 +117,8 @@ def max_k_subarrays(a: list[int], k: int) -> int:
         p.append(p[-1] + v)
     return max_profit_k_trades(p, k)
 
+# PDFEND -- everything below (range-query structures and the test harness) is not printed in the PDF
+
 # ---------------------------------------------------------------- Section 6
 class Fenwick:
     def __init__(self, n: int):
@@ -306,7 +308,6 @@ class RangeMatching:
                 self._flip(i, False); self._flip(j, False)
         return res
 
-# PDFEND -- everything below is the test harness and is not printed in the PDF
 
 # ------------------------------------------------------------ brute force
 def brute_f(x: list[int]) -> list[int]:

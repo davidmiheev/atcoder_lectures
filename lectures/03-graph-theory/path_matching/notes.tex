@@ -707,10 +707,13 @@ below deliberately use weights in $\{-1,0,1\}$ to force many ties.
 \end{notebox}
 
 \section{Reference Implementations}\label{sec:code}
-Both listings contain the heap greedy, the stack algorithm with selection,
-the reductions of Section~\ref{sec:reductions} (non-adjacent picks, $K$
-trades, $K$ disjoint subarrays) and the offline range-query structure.
-They are cross-checked against dynamic programming on thousands of random
+The printed listings contain the heap greedy, the stack algorithm with
+selection and the reductions of Section~\ref{sec:reductions} (non-adjacent
+picks, $K$ trades, $K$ disjoint subarrays). The offline range-query
+structure of Section~\ref{sec:range} (Fenwick trees, wavelet matrix, sparse
+tables, segment tree and the query routine) is long and is not printed;
+it is in the repository files, following the structure described in
+Section~\ref{sec:range}. Everything is cross-checked against dynamic programming on thousands of random
 inputs, including the tie-heavy small-range ones: all three ways of computing
 $f$ agree, the reductions match direct DPs for non-adjacent picks and for
 exactly $K$ subarrays, and about $10^5$ range queries per language

@@ -131,6 +131,8 @@ fn max_k_subarrays(a: &[i64], k: usize) -> i64 {
     max_profit_k_trades(&p, k)
 }
 
+// PDFEND -- everything below (range-query structures and the test harness) is not printed in the PDF
+
 // ---------------------------------------------------------------- Section 6
 struct Fenwick {
     n: usize,
@@ -413,7 +415,6 @@ impl RangeMatching {
         res
     }
 }
-// PDFEND -- everything below is the test harness and is not printed in the PDF
 
 // ------------------------------------------------------------ brute force
 struct Rng(u64);
