@@ -1,12 +1,11 @@
 # Competitive Programming Lecture Notes
 
-This repository is an **original**, English-language set of lecture notes on
+This repository is English-language set of lecture notes on
 competitive-programming topics, organized after the table of contents of
 AtCoder's ["AtCoder Algorithm Lectures"](https://info.atcoder.jp/entry/algorithm_lectures/index)
 series.
 
-**Important:** this is not a translation of AtCoder's lecture text, and it is
-not affiliated with or endorsed by AtCoder Inc. AtCoder's own lecture pages
+It is not affiliated with or endorsed by AtCoder Inc. AtCoder's own lecture pages
 (in Japanese, with video) remain the canonical source; each note here links
 back to the matching entry in their index. Everything in this repo —
 explanations, worked examples, and code — was written independently, from the
