@@ -61,6 +61,7 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 | [Euler Tour Technique](lectures/03-graph-theory/euler_tour_technique/) | 4/9 |
 | [Heavy-Light Decomposition](lectures/03-graph-theory/heavy_light_decomposition/) | 4/9 |
 | [Linear Time LCA](lectures/03-graph-theory/linear_time_lca/) | 6/9 |
+| [Matchings on a Path and Their Applications](lectures/03-graph-theory/path_matching/) | 8/9 |
 | [Tournament](lectures/03-graph-theory/tournament/) | 5/9 |
 
 ### 4. Number Theory

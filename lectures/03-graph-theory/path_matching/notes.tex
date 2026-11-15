@@ -1,0 +1,806 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Matchings on a Path and Their Applications}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Graph Theory}{Matchings on a Path and Their Applications}{8}
+
+\section{Overview}
+Three problems that look unrelated turn out to be the same problem.
+
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item \emph{Non-adjacent picks.} Choose exactly $K$ entries of an array,
+        no two of them neighbours, with the largest possible sum.
+  \item \emph{Disjoint subarrays.} Choose exactly $K$ pairwise disjoint
+        non-empty subarrays of an array with the largest possible total.
+  \item \emph{Stock trading.} Given the prices on days $0,\dots,N$, make
+        exactly $K$ trades (buy, then sell later, holding one share at a
+        time) with the largest possible profit.
+\end{itemize}
+
+Each has a well-known greedy solution that raises $K$ one step at a time
+and repairs the previous optimum locally. Such greedy methods are usually
+presented as tricks to be memorised. Here they are \emph{derived}: all three
+problems become a maximum-weight matching problem on a path
+(Sections~\ref{sec:path} and~\ref{sec:reductions}), and a general theorem
+about augmenting paths (Section~\ref{sec:greedy}) produces the greedy
+algorithm, with its correctness proof, in one stroke. A closer look at
+the order in which the greedy takes its decisions
+(Section~\ref{sec:linear}) gives a stack-based $O(n)$ algorithm for one
+fixed $K$. The last part (Section~\ref{sec:range}) goes further and
+answers \emph{static range queries} --- the best size-$K$ matching on a
+sub-interval --- in $O(\log n)$ each.
+
+\paragraph{Prerequisites.} Basic notions about matchings (covered vertex,
+alternating path) and a priority queue. Section~\ref{sec:range} also uses
+a Fenwick tree, a range-minimum structure, a segment tree and a wavelet
+matrix (see the Wavelet Matrix lectures in this series for the latter).
+
+\paragraph{Summary of results.} Let $n$ be the number of vertices.
+\begin{center}\small\sffamily
+\begin{tabular}{@{}ll@{}}
+\toprule
+task & time\\
+\midrule
+all values $f(0),f(1),\dots$ (heap greedy) & $O(n\log n)$\\
+all values, via the stack and one sort & $O(n\log n)$, small constant\\
+a single value $f(K)$ (stack + selection) & $O(n)$\\
+$q$ range queries $(L,R,K)$, offline & $O((n+q)\log n)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Matchings on a Path}\label{sec:path}
+Throughout, the \emph{path} on $n$ vertices has vertices $0,1,\dots,n-1$ and
+edges $\{i,i+1\}$. A \emph{matching} is a set of pairwise disjoint edges;
+a vertex on one of its edges is \emph{covered}. A matching of size $k$
+covers $2k$ vertices, and a matching of size $k$ exists iff
+$0\le k\le\lfloor n/2\rfloor$.
+
+\begin{definitionbox}[Vertex-weighted path matching]
+Every vertex $i$ carries a weight $x_i\in\mathbb Z$. The \emph{value} of a
+matching is the total weight of the vertices it covers, and
+\[
+  f_x(k)\;=\;\max\{\text{value of }M:\ M\text{ a matching of size }k\},
+  \qquad 0\le k\le\lfloor n/2\rfloor .
+\]
+We usually drop the subscript. Note that $f(0)=0$.
+\end{definitionbox}
+
+\subsection{Which vertex sets can be covered?}
+\begin{theorembox}[Covered sets]
+A set $S\subseteq\{0,\dots,n-1\}$ is the set of covered vertices of some
+matching if and only if every maximal run of consecutive elements of $S$
+has even length. The matching is then unique.
+\end{theorembox}
+\begin{proof}
+Let $M$ cover $S$ and take a maximal run $r,r+1,\dots,r+\ell-1$ of $S$.
+Vertex $r-1\notin S$ is uncovered, so $r$ cannot be matched to the left;
+its only other neighbour is $r+1$, so $\{r,r+1\}\in M$. Removing these two
+vertices and repeating shows that the run is split into the pairs
+$\{r,r+1\},\{r+2,r+3\},\dots$ --- hence $\ell$ is even, and $M$ is forced.
+Conversely, if all runs are even, these pairs form a matching covering
+exactly $S$.
+\end{proof}
+
+So $f(k)=\max\{x(S):|S|=2k,\ \text{all runs of }S\text{ even}\}$, where
+$x(S)=\sum_{i\in S}x_i$. In particular, the \emph{uncovered} vertices
+of a matching, read from left to right, split the covered ones into even
+blocks; this is the picture used all the time below.
+
+\subsection{Edge weights versus vertex weights}
+Many problems put the weights on \emph{edges}: a path with vertices
+$0,\dots,n$ and edge weights $w_0,\dots,w_{n-1}$, where $w_i$ belongs to
+$\{i,i+1\}$, and one maximises the total weight of the chosen edges.
+
+\begin{theorembox}[Edge weights $\leftrightarrow$ vertex weights]
+Given $w_0,\dots,w_{n-1}$ put $x_0=0$ and $x_{i+1}=w_i-x_i$. Then
+$w_i=x_i+x_{i+1}$ for all $i$, so every matching has the same total
+edge weight and covered-vertex weight. Conversely, vertex weights $x$
+give edge weights $w_i=x_i+x_{i+1}$ with the same property.
+\end{theorembox}
+\begin{proof}
+The edge $\{i,i+1\}$ covers exactly the vertices $i$ and $i+1$, and
+distinct edges of a matching cover distinct vertices. Hence
+$\sum_{e\in M}w_e=\sum_{i\text{ covered}}x_i$ as soon as
+$w_i=x_i+x_{i+1}$. The recursion is just this equation solved for
+$x_{i+1}$.
+\end{proof}
+(The $x_i$ are alternating sums of the $w$'s, so they stay within
+$n\cdot\max|w_i|$ in absolute value; 64-bit integers are enough in
+practice.) From now on we work with vertex weights only.
+
+\section{Three Problems, One Structure}\label{sec:reductions}
+\subsection{Non-adjacent picks}
+Let $B_0,\dots,B_{N-1}$ be the array. Build the path with $N+1$ vertices and
+edge weights $w_i=B_i$. Two edges of this path share a vertex exactly
+when their indices are neighbours, so a set of pairwise non-adjacent
+entries is the same thing as a matching, with the same total weight.
+Hence the answer for $K$ picks ($0\le K\le\lceil N/2\rceil$) is $f_x(K)$ with
+$x$ obtained from $w=B$ by the previous theorem.
+
+\subsection{Trades and subarrays}
+The two other problems are one problem in two guises. Given
+$A_0,\dots,A_{N-1}$ define prefix sums $P_0=0,\ P_i=A_0+\dots+A_{i-1}$,
+and read them as prices. The subarray $[l,r)$ has sum $P_r-P_l$:
+exactly the profit of buying at the end of day $l$ and selling on the
+morning of day $r$. Subarrays $[l_1,r_1),\dots,[l_K,r_K)$ are disjoint
+exactly when $l_1<r_1\le l_2<r_2\le\dots\le l_K<r_K$, which is exactly
+the rule ``sell, then possibly buy again on the same day''. Conversely
+prices give the array $A_i=P_{i+1}-P_i$. So it suffices to solve:
+
+\begin{quote}
+\textbf{$K$-trade problem.} Given $P_0,\dots,P_N$, maximise
+$\sum_{j=1}^K(P_{r_j}-P_{l_j})$ over $0\le l_1<r_1\le l_2<r_2\le\dots\le l_K<r_K\le N$.
+\end{quote}
+
+Create a path with $2N$ vertices
+\[
+  v_0,v_1,\dots,v_{2N-1}\;=\;B_0,\,S_1,\,B_1,\,S_2,\,B_2,\,\dots,\,S_{N-1},\,B_{N-1},\,S_N,
+\]
+i.e.\ $v_{2l}=B_l$ is ``buy on day $l$'' and $v_{2r-1}=S_r$ is ``sell on
+day $r$''; give $B_l$ the weight $+P_l$ and $S_r$ the weight $-P_r$.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.7cm,y=1cm]
+\draw[thick,lectureink!70] (0,0)--(5,0);
+\draw[line width=2.4pt,lectureaccent] (3,0)--(4,0);
+\foreach \i/\lab/\w/\st in {0/B_0/P_0/lhi2, 1/S_1/-P_1/lhi2, 2/B_1/P_1/lhi2,
+                             3/S_2/-P_2/lhi, 4/B_2/P_2/lhi, 5/S_3/-P_3/lhi2}{
+  \node[lvert,\st] at (\i,0) {$\lab$};
+  \node[llabel] at (\i,-0.75) {$\w$};
+}
+\node[llabel,anchor=west] at (-0.4,1.0) {orange = uncovered = the trades (buy $B_0$, sell $S_1$, buy $B_1$, sell $S_3$)};
+\end{tikzpicture}
+\caption{The path for $N=3$ and a matching of size $N-K=1$. The $2K=4$
+uncovered vertices alternate buy, sell, buy, sell, and read as the two trades
+$0\to1$ and $1\to3$.}\label{fig:trade}
+\end{figure}
+
+\begin{theorembox}[Trades $=$ matchings of size $N-K$]
+A set $U\subseteq\{v_0,\dots,v_{2N-1}\}$ of $2K$ vertices is the uncovered
+set of a matching of size $N-K$ if and only if, listed in path order,
+it consists of a buy, a sell, a buy, a sell, \dots, i.e.\ it is
+$B_{l_1},S_{r_1},B_{l_2},S_{r_2},\dots,B_{l_K},S_{r_K}$ with
+$l_1<r_1\le l_2<r_2\le\dots$ --- a valid $K$-trade schedule. Moreover
+\[
+  (\text{weight covered by the matching})=P_0-P_N+(\text{profit of the schedule}),
+\]
+so the best profit with exactly $K$ trades is $f(N-K)-f(N)$.
+\end{theorembox}
+\begin{proof}
+By the Covered-sets theorem, $U$ is an uncovered set iff the gaps before the
+first element of $U$, between consecutive elements, and after the last one
+all have even length. In terms of positions $p_1<\dots<p_{2K}$ in the
+path $0,\dots,2N-1$ this says: $p_1$ is even, $p_{t+1}-p_t$ is odd, and
+$2N-1-p_{2K}$ is even. So the positions alternate even, odd, even,
+\dots, ending odd. Buys sit at even positions and sells at odd ones, hence
+this is exactly ``buy, sell, \dots, buy, sell''. For the day numbers:
+$2l<2r-1\iff l<r$ and $2r-1<2l'\iff r\le l'$, which are the schedule
+rules.
+
+For the weights, a schedule contributes $\sum_j(P_{l_j}-P_{r_j})=-\text{profit}$
+to the weight of $U$. The whole path weighs $\sum_{i<N}P_i-\sum_{i\ge1}P_i=P_0-P_N$.
+The covered weight is the total minus the weight of $U$, which gives the
+formula. Finally $f(N)=P_0-P_N$ is the weight of the unique perfect
+matching, so $f(N-K)-f(N)$ is the best profit.
+\end{proof}
+
+\section{The Greedy Algorithm}\label{sec:greedy}
+\subsection{Augmenting one step at a time}
+For an arbitrary graph with edge weights, let $M$ be a matching. An
+\emph{$M$-augmenting path} is a path whose two end vertices are uncovered
+by $M$ and whose edges alternately lie outside $M$ and in $M$, starting
+and ending outside. Flipping it (taking the symmetric difference
+$M\triangle C$) gives a matching with one more edge.
+
+\begin{theorembox}[Successive optimal matchings]
+Let $M$ be a maximum-weight matching among all matchings of size $k$, and
+suppose a matching of size $k+1$ exists. Then there is an $M$-augmenting
+path $C$ such that $M\triangle C$ has maximum weight among matchings of
+size $k+1$. Consequently, if $C^*$ is an $M$-augmenting path maximising
+$w(M\triangle C)$, then $M\triangle C^*$ is optimal for size $k+1$.
+\end{theorembox}
+\begin{proof}
+Let $N$ be an optimal matching of size $k+1$. In $M\triangle N$ every
+vertex has at most one edge from each matching, so the components are
+paths and cycles whose edges alternate between $M$ and $N$. For a
+component $C$ let $d(C)=|N\cap C|-|M\cap C|$; it is $0$ for cycles
+and in $\{-1,0,1\}$ for paths. As $\sum_Cd(C)=|N|-|M|=1$, some path
+component $C$ has $d(C)=+1$, so it starts and ends with $N$-edges.
+
+\emph{$C$ is augmenting.} Let $z$ be an end vertex of $C$. It has no
+$M$-edge on $C$. An $M$-edge at $z$ outside $C$ cannot lie in $M\triangle N$
+(it would belong to the component $C$), so it would lie in $M\cap N$ and
+then $z$ would have two different $N$-edges. Hence $z$ is uncovered by
+$M$.
+
+\emph{$M\triangle C$ is optimal.} A vertex of $C$ cannot lie on an edge of
+$M\cap N$ (the same argument), so all $M$- and $N$-edges at vertices of
+$C$ belong to $C$, and therefore $M\triangle C$ and $N\triangle C$ are
+matchings, of sizes $k+1$ and $k$. Optimality of $M$ gives
+$w(N\triangle C)\le w(M)$ and optimality of $N$ gives
+$w(M\triangle C)\le w(N)$. But swapping the edges of $C$ between the two
+matchings does not change the sum:
+$w(M\triangle C)+w(N\triangle C)=w(M)+w(N)$. Both inequalities are
+therefore equalities, and $M\triangle C$ is optimal.
+
+For the last sentence: every augmenting path $C'$ yields a matching of
+size $k+1$, hence $w(M\triangle C')\le f(k+1)$, while some $C$
+attains $f(k+1)$; so the maximiser $C^*$ does too.
+\end{proof}
+
+\subsection{What augmenting paths look like on a path}
+\begin{theorembox}[Augmenting paths on a path]
+Let $M$ be a matching of the path. The $M$-augmenting paths are exactly
+the segments $u,u+1,\dots,v$ where $u<v$ are \emph{consecutive uncovered
+vertices} (no uncovered vertex strictly between them). With vertex weights
+the flip changes the value by exactly $x_u+x_v$.
+\end{theorembox}
+\begin{proof}
+An alternating path has an $M$-edge at each interior vertex, so interior
+vertices are covered, so no uncovered vertex lies between the ends.
+Conversely let $u<v$ be consecutive uncovered. The vertices strictly
+between are covered and form a maximal run, which has even length by the
+Covered-sets theorem and is matched as $\{u+1,u+2\},\{u+3,u+4\},\dots$.
+So the segment alternates: non-$M$, $M$, non-$M$, \dots, non-$M$. After the flip the
+matching is $\{u,u+1\},\{u+2,u+3\},\dots,\{v-1,v\}$, whose covered set is
+the old one plus $\{u,v\}$. Only $u$ and $v$ are newly covered.
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.15cm,y=1cm]
+\foreach \y in {0,1.9}{ \draw[thick,lectureink!35] (0,\y)--(7,\y); }
+% before (y=1.9): M = {1,2},{4,5}
+\draw[line width=2.4pt,lectureaccent] (1,1.9)--(2,1.9) (4,1.9)--(5,1.9);
+\foreach \i/\st in {0/{},1/lhi,2/lhi,3/{},4/lhi,5/lhi,6/{},7/{}}{
+  \node[lvert,\st] at (\i,1.9) {\i};
+}
+% after (y=0): M = {1,2},{3,4},{5,6}
+\draw[line width=2.4pt,lectureaccent] (1,0)--(2,0) (3,0)--(4,0) (5,0)--(6,0);
+\foreach \i/\st in {0/{},1/lhi,2/lhi,3/lhi2,4/lhi,5/lhi,6/lhi2,7/{}}{
+  \node[lvert,\st] at (\i,0) {\i};
+}
+\draw[decorate,decoration={brace,amplitude=5pt}] (2.75,2.5)--(6.25,2.5)
+  node[midway,above=5pt,llabel] {augmenting path $3,4,5,6$};
+\draw[larrow] (4.5,1.35)--(4.5,0.6);
+\node[llabel,anchor=east] at (-0.6,1.9) {before};
+\node[llabel,anchor=east] at (-0.6,0) {after};
+\end{tikzpicture}
+\caption{Uncovered vertices $3$ and $6$ are consecutive. Flipping the path
+between them re-pairs the covered block $\{4,5\}$ and adds exactly the
+two end vertices to the covered set.}\label{fig:augment}
+\end{figure}
+
+\subsection{The algorithm}
+\begin{theorembox}[Greedy algorithm]
+Keep the list of uncovered vertices in path order, initially all
+vertices. Repeat $\lfloor n/2\rfloor$ times: among the \emph{adjacent pairs
+of the list} choose one $(u,v)$ with largest $x_u+x_v$, record the
+\emph{gain} $g_t=x_u+x_v$ and delete $u$ and $v$ from the list.
+Then $f(k)=g_0+g_1+\dots+g_{k-1}$ for every $k$.
+\end{theorembox}
+\begin{proof}
+Induction on $k$; $f(0)=0$ is the empty matching. If the matching $M_k$
+built so far has value $f(k)$, the list is the sequence of uncovered
+vertices of $M_k$, adjacent list entries are consecutive uncovered
+vertices, and by the previous theorem the best augmenting path has gain
+$\max(x_u+x_v)$ over them. The Successive-optimal-matchings theorem then
+shows the flipped matching is optimal of size $k+1$.
+\end{proof}
+
+\paragraph{Implementation.} A doubly linked list stores the uncovered
+vertices; a max-heap stores the candidate pairs $(x_u+x_v,u,v)$. After
+deleting $u,v$ with list neighbours $a$ and $d$ push the new candidate
+$(a,d)$. A popped entry is stale unless both vertices are still in the list
+and still neighbours. Each of the $O(n)$ pushes and pops costs $O(\log n)$.
+This is \texttt{greedy\_pairs} in the listings, and it yields every
+$f(k)$ in $O(n\log n)$.
+
+\paragraph{The same trick for edge weights.} On edge weights
+$w_i=x_i+x_{i+1}$ the new candidate $(a,d)$ has the value
+$a+d=(a+b)+(c+d)-(b+c)=w_{\text{left}}+w_{\text{right}}-w_{\text{chosen}}$:
+\emph{take the largest edge weight, then replace it and its two
+neighbours by one edge of weight ``left $+$ right $-$ chosen''}. This is the
+familiar ``regret'' trick for picking non-adjacent elements; here it is
+just a vertex-weighted deletion in disguise.
+
+\begin{theorembox}[Gains never increase]
+In the greedy algorithm $g_0\ge g_1\ge\dots\ge g_{\lfloor n/2\rfloor-1}$.
+Hence $f$ is concave, and the best value over all matchings of size
+\emph{at most} $k$ is $g_0+\dots+g_{k'-1}$ with $k'=\min(k,\#\{t:g_t>0\})$.
+\end{theorembox}
+\begin{proof}
+Let $(b,c)$ be the chosen pair, with list neighbours $a$ (left) and $d$ (right)
+when they exist. Maximality gives $b+c\ge a+b$ and $b+c\ge c+d$, i.e.\ $c\ge a$
+and $b\ge d$. The only new candidate is $(a,d)$, with
+$a+d\le c+d\le b+c$. All other candidates were present before and are
+$\le b+c$. So the next maximum is at most $g_t$.
+\end{proof}
+
+\section{Local Maxima and Linear Time}\label{sec:linear}
+The heap always takes the \emph{global} maximum. This section shows that
+any \emph{locally} largest pair may be taken instead, in any order. That
+freedom allows a one-pass stack algorithm.
+
+Fix a list $S$ of weights. A \emph{candidate} is a pair of neighbouring
+entries; its value is their sum. Two candidates are \emph{neighbours} if
+they share an entry. A candidate is a \emph{local maximum} if its value is
+at least the value of each of its (at most two) neighbouring candidates.
+The global maximum is a local maximum. Write $G(S)$ for the multiset of
+gains $g_0,\dots,g_{\lfloor|S|/2\rfloor-1}$ of the greedy algorithm on $S$;
+by the correctness of the greedy algorithm these are the increments $f_S(k+1)-f_S(k)$, so
+$G(S)$ does not depend on how ties are broken.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=2.3cm,y=1cm]
+\foreach \i/\n in {0/a,1/b,2/c,3/d}{ \node[lvert] (t\i) at (\i,1.9) {$\n$}; }
+\draw[thick,lectureink!70] (t0)--(t1) node[midway,above,llabel]{$a+b$};
+\draw[line width=2.4pt,lectureaccent] (t1)--(t2) node[midway,above,llabel]{$b+c$};
+\draw[thick,lectureink!70] (t2)--(t3) node[midway,above,llabel]{$c+d$};
+\node[llabel,text=lectureaccent] at (1.5,1.25) {local maximum};
+\node[lvert] (u0) at (0,0) {$a$}; \node[lvert] (u3) at (3,0) {$d$};
+\draw[thick,lecturewarn] (u0)--(u3) node[midway,above,llabel]{$a+d\le\min(a+b,\,c+d)$};
+\draw[larrow] (1.5,1.0)--(1.5,0.5);
+\node[llabel,anchor=west] at (1.62,0.75) {delete $b,c$};
+\end{tikzpicture}
+\caption{Deleting a local maximum $(b,c)$ replaces its two neighbouring
+candidates by one new candidate $(a,d)$ that is not larger than either.}\label{fig:peel}
+\end{figure}
+
+\begin{theorembox}[Deleting a local maximum]
+Let $(b,c)$ be a local maximum of $S$ with neighbours $a$ and $d$ (either may
+be missing), and let $S'=S\setminus\{b,c\}$. The candidates of $S'$ are those
+of $S$ not touching $b,c$, plus $(a,d)$ if both exist, and
+\[ a+d\;\le\;\min(a+b,\;c+d)\;\le\;b+c . \]
+If $(b,c)$ is strictly larger than both neighbours, the first inequality is strict.
+\end{theorembox}
+\begin{proof}
+$b+c\ge a+b$ and $b+c\ge c+d$ give $c\ge a$ and $b\ge d$. Hence
+$a+d\le c+d$ (from $a\le c$) and $a+d\le a+b$ (from $d\le b$), and
+$\min(a+b,c+d)\le b+c$ by assumption. The strict case is the
+same with strict inequalities.
+\end{proof}
+
+\begin{theorembox}[Peeling]
+For every local maximum $(b,c)$ of a list $S$,
+\[ G(S)\;=\;\{b+c\}\ \uplus\ G(S\setminus\{b,c\}) . \]
+Consequently the following process records exactly $G(S)$, whichever local
+maximum is chosen at each step: while at least two entries remain, pick
+\emph{any} local maximum, record its value and delete it.
+\end{theorembox}
+\begin{proof}
+\emph{Generic case.} Assume all subsets of the vertices have different
+weight sums. Then all candidates of every sublist have different values, so
+``local maximum'' means strictly larger than both neighbours. Call the
+process in the statement a \emph{run}; the greedy algorithm is a run, since the
+global maximum is a local maximum.
+
+(A) \emph{If $p\ne q$ are local maxima of $T$ then they are disjoint, and $q$
+is a local maximum of $T\setminus p$.} Overlapping candidates are neighbours,
+and neighbours cannot each be strictly larger than the other. Deleting
+$p=(b,c)$ changes the neighbours of $q$ only if $q=(d,e)$ or $q=(y,a)$; then
+the neighbour $(c,d)$ resp.\ $(a,b)$ of $q$ is replaced by $(a,d)$, which is
+smaller by the previous lemma. So $q$ still beats all its neighbours.
+
+(B) \emph{All runs on $T$ record the same multiset $R(T)$.} Induction on
+$|T|$; the cases $|T|\le1$ are empty. Let one run start with $p$ and another
+with $q\ne p$. By (A) and the induction hypothesis, the first records
+$\{p\}\uplus R(T\setminus p)$, and since a run on $T\setminus p$ may
+start with $q$ (by (A)), this is $\{p,q\}\uplus R(T\setminus\{p,q\})$. By
+symmetry the second run records the same.
+
+Now $G(S)=R(S)$ because greedy is a run. Choosing the run that begins with
+$(b,c)$ gives $R(S)=\{b+c\}\uplus R(S')=\{b+c\}\uplus G(S')$.
+
+\emph{General case (ties).} For $\varepsilon>0$ raise $x_b$ and $x_c$ by
+$\varepsilon$ and then add a further tiny perturbation $<\varepsilon/8$ to
+every weight so that the weights are generic (non-generic vectors lie on
+finitely many hyperplanes). The pair $(b,c)$ is then a strict local maximum of
+the perturbed list, so the generic case applies. Let $\varepsilon\to0$. Each
+$f_S(k)$ is a maximum of finitely many linear functions of the weights,
+hence continuous, so the sorted gain sequence is continuous in the weights;
+the same holds for $S'$. The identity passes to the limit.
+\end{proof}
+
+\subsection{A stack does it in one pass}\label{sec:stack}
+Process the weights from left to right, keeping a stack $s_1,\dots,s_m$ of
+the surviving entries so far (together with the unread entries it is the
+current list). We maintain the invariant
+
+\begin{quote}
+\textbf{(I)} none of the candidates $(s_j,s_{j+1})$ with $j\le m-2$ is a
+local maximum of the list.
+\end{quote}
+(Their neighbours $(s_{j-1},s_j)$ and $(s_{j+1},s_{j+2})$ lie inside the
+stack, so this does not depend on the unread entries.)
+
+\begin{theorembox}[Stack algorithm]
+\begin{enumerate}[leftmargin=1.8em,itemsep=1pt]
+  \item Push the next entry $v$. Let the top of the stack be $\dots,a,b,c,v$.
+        While the candidate $(b,c)$ is a local maximum --- that is,
+        $c\ge a$ (if $a$ exists) and $b\ge v$ --- record $b+c$ and delete $b,c$;
+        then look at the new top again.
+  \item After the last entry, while at least two entries remain, record the
+        sum of the top two entries and delete them.
+\end{enumerate}
+The recorded values are exactly $G(S)$, and the running time is $O(n)$.
+\end{theorembox}
+\begin{proof}
+\emph{Invariant.} After pushing $v$, only the candidate $(s_{m-1},s_m)$ of
+the old stack has acquired a right neighbour $(s_m,v)$; for all
+other $j$ the neighbours were already in the stack. So testing it restores
+(I) unless it is a local maximum. If it is, delete it; the new candidate is
+$(s_{m-2},v)$ at the top, and the only candidate whose neighbours changed is
+$(s_{m-3},s_{m-2})$, namely the one now below the top --- exactly the one tested next.
+Hence the loop re-establishes (I).
+
+\emph{Correctness.} Every deleted candidate is a local maximum of the
+current list, so by the Peeling theorem the recorded multiset plus the gains of
+the remaining list is always $G(S)$. For the final phase: when all entries
+are read the list is the stack. Some candidate has the globally maximal
+value; it is a local maximum, so by (I) it is the top pair. Deleting
+it keeps (I) true, because only the topmost candidate is then
+exempt. Repeating until fewer than two entries remain records all
+gains.
+
+\emph{Time.} Each entry is pushed once and deleted at most once, and each
+test costs $O(1)$.
+\end{proof}
+
+\subsection{Consequences}
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item \textbf{All $f(k)$.} Sort the $\lfloor n/2\rfloor$ recorded values in
+        decreasing order and take prefix sums. By the gains-never-increase and peeling theorems the result equals the heap's output; the
+        constant factor is smaller.
+  \item \textbf{One $f(K)$ in $O(n)$.} $f(K)$ is the sum of the $K$ largest
+        recorded values, and a selection algorithm (quickselect, or
+        \texttt{select\_nth\_unstable} in Rust) finds them without sorting.
+        So $K$ non-adjacent picks cost $O(N)$ in total.
+  \item \textbf{$K$ trades in $O(N)$.} Since $f(N)$ is the sum of \emph{all}
+        gains, the Trades theorem of Section~\ref{sec:reductions} gives
+        \[ \text{profit}(K)=f(N-K)-f(N)=-\bigl(\text{sum of the }K\text{ smallest gains}\bigr), \]
+        found by one selection. In words: the best profits come from the
+        $K$ \emph{most negative} gains of the trade path.
+  \item \textbf{``At most $K$'' versions.} By the gains-never-increase theorem drop
+        the non-positive terms (for trades: the non-negative gains).
+\end{itemize}
+
+\section{Static Range Queries}\label{sec:range}
+\begin{definitionbox}[Range queries]
+Given $x_0,\dots,x_{n-1}$, answer $q$ queries $(L,R,K)$: using only the
+vertices $L,\dots,R-1$ (the induced path), what is the maximum value of a
+matching of size $K$, where $0\le K\le\lfloor(R-L)/2\rfloor$?
+\end{definitionbox}
+The queries $K=0$ (answer $0$) and $2K=R-L$ (answer $x_L+\dots+x_{R-1}$)
+are trivial, so assume $1\le K$ and $2K<R-L$. Write $I=[L,R)$.
+
+The idea is to run the greedy algorithm once on the \emph{whole} path, stop it
+at a well-chosen moment, and observe that almost everything it has
+covered inside $I$ may be kept; then finish with $O(1)$ greedy steps.
+
+\subsection{Which covered vertices can be kept?}
+Let $M$ be a maximum-weight matching of the whole path among those of its
+size, with covered set $D$, and put $s=|D\cap I|$. Let $c$ be the number of
+edges of $M$ with exactly one endpoint in $I$ (\emph{crossing} edges; $c\le2$,
+at most one per boundary). If the left boundary is crossed, let
+$u$ be the leftmost uncovered vertex of $I$ and
+\[ B_L=\{L,\,L+2,\,\dots,\,u-1\}, \]
+and let $b_L$ be a vertex of $B_L$ of smallest weight. (Parity: $L$ is matched to
+$L-1$, the vertices $L+1,\dots,u-1$ are paired up consecutively because
+$u$ is uncovered, so $u-L$ is odd and $u-1\in B_L$.) For the right
+boundary let $v$ be the rightmost uncovered vertex of $I$,
+$B_R=\{R-1,R-3,\dots,v+1\}$ and $b_R$ a lightest vertex of $B_R$.
+We call $b_L,b_R$ the \emph{release vertices}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.92cm,y=1cm]
+\tikzset{covd/.style={lvert,lhi},outs/.style={lvert,lgray},rel/.style={lvert,draw=lecturewarn,line width=1.4pt},
+         newv/.style={lvert,lhi2},freev/.style={lvert}}
+\def\xs{{7,-2,9,1,-1,8,4,-5,-8,2,5}}
+% boundaries
+\draw[dashed,lectureink!60] (0.5,-0.7)--(0.5,4.2) (9.5,-0.7)--(9.5,4.2);
+\node[llabel] at (0.5,4.45) {$L=1$}; \node[llabel] at (9.5,4.45) {$R=10$};
+\foreach \y in {0,1.7,3.4}{ \draw[thick,lectureink!35] (0,\y)--(10,\y); }
+% row 1: global state at time T
+\draw[line width=2.4pt,lecturewarn] (0,3.4)--(1,3.4) (9,3.4)--(10,3.4);
+\draw[line width=2.4pt,lectureaccent] (2,3.4)--(3,3.4) (5,3.4)--(6,3.4);
+\foreach \i/\w/\st in {0/7/outs,1/-2/covd,2/9/covd,3/1/covd,4/-1/freev,5/8/covd,6/4/covd,7/-5/freev,8/-8/freev,9/2/covd,10/5/outs}{
+  \node[\st] at (\i,3.4) {\w};
+}
+% row 2: after release
+\draw[line width=2.4pt,lectureaccent] (2,1.7)--(3,1.7) (5,1.7)--(6,1.7);
+\foreach \i/\w/\st in {0/7/outs,1/-2/rel,2/9/covd,3/1/covd,4/-1/freev,5/8/covd,6/4/covd,7/-5/freev,8/-8/freev,9/2/rel,10/5/outs}{
+  \node[\st] at (\i,1.7) {\w};
+}
+% row 3: after greedy
+\draw[line width=2.4pt,lectureaccent] (1,0)--(2,0) (3,0)--(4,0) (5,0)--(6,0) (8,0)--(9,0);
+\foreach \i/\w/\st in {0/7/outs,1/-2/newv,2/9/covd,3/1/covd,4/-1/newv,5/8/covd,6/4/covd,7/-5/freev,8/-8/newv,9/2/newv,10/5/outs}{
+  \node[\st] at (\i,0) {\w};
+}
+\node[llabel,anchor=east] at (-0.7,3.4) {state at time $T$};
+\node[llabel,anchor=east] at (-0.7,1.7) {release $b_L,b_R$};
+\node[llabel,anchor=east] at (-0.7,0) {2 greedy steps};
+\end{tikzpicture}
+\caption{The query $(L,R,K)=(1,10,4)$ on $x=(7,-2,9,1,-1,8,4,-5,-8,2,5)$.
+Top: the global greedy has covered $\{0,1,2,3,5,6,9,10\}$, and the edges
+$\{0,1\}$ and $\{9,10\}$ (orange) cross the boundaries. Middle: $u=4$, $v=8$,
+$B_L=\{1,3\}$, $B_R=\{9\}$; the lightest are $b_L=1$ and $b_R=9$, which are
+released. Bottom: the greedy on the uncovered vertices $1,4,7,8,9$ of $I$ picks $(1,4)$
+and then $(8,9)$. Result $9+1+8+4-3-6=13$.}\label{fig:range}
+\end{figure}
+
+\begin{theorembox}[Release lemma]
+Assume $I$ contains an uncovered vertex of $M$ and $s+c\le 2K$. Then some
+maximum-weight matching of size $K$ inside $I$ covers every vertex of
+$(D\cap I)\setminus\{b_L,b_R\}$. (A release vertex exists only on a side that
+is crossed.)
+\end{theorembox}
+\begin{proof}
+Let $M_I$ be the set of edges of $M$ that meet $I$; it has
+$(s+c)/2\le K$ edges. Among all maximum-weight size-$K$ matchings $H$ inside
+$I$ choose one with $|H\cap M_I|$ as large as possible. The graph
+$M_I\triangle H$ is a union of alternating paths; put
+$d(C)=|H\cap C|-|M_I\cap C|$ for a component $C$, and note
+$\sum_Cd(C)=K-|M_I|\ge0$.
+
+\emph{Components.} A component with a crossing edge is a \emph{boundary}
+component; it starts at the outer endpoint with that $M$-edge (the outer
+vertex has no $H$-edge), so $d\in\{-1,0\}$. No component contains both
+crossing edges: it would contain the whole stretch $L-1,\dots,R$, in
+particular $u$ as an interior vertex, but interior vertices of an alternating
+path are covered by $M$. All other components are \emph{internal}, inside $I$.
+
+\emph{Swapping.} Let $\mathcal A$ be a set of internal components with
+$\sum_{\mathcal A}d=0$. Exchanging $M$ and $H$ on $\mathcal A$ gives two
+matchings (internal vertices lie in $I$, so all their $M$-edges are in
+$M_I$) that keep their sizes. As $M$ is optimal for its size and $H$ for its,
+$w(H\cap\mathcal A)\le w(M_I\cap\mathcal A)\le w(H\cap\mathcal A)$, so the
+two parts weigh the same and the swapped $H$ is again optimal --- and has more
+edges in common with $M_I$ if $\mathcal A\ne\emptyset$ (such an $\mathcal A$
+contains as many $M_I$-edges as $H$-edges, at least one). That contradicts
+the choice of $H$. Hence no nonempty such $\mathcal A$ exists: all internal
+components have the same $d\ne0$ (else take one of each sign). Since
+boundary components have $d\le0$ and the total is $\ge0$, any internal
+components all have $d=+1$; they begin and end with $H$-edges.
+
+\emph{Which covered vertices does $H$ miss?} Let $z\in D\cap I$ be uncovered
+by $H$. Its $M$-edge is not in $H$, so it lies in a component $C$ in which $z$
+is an end vertex whose last edge is an $M$-edge. Internal components
+($d=+1$) have no such end, so $C$ is a boundary component with $d=-1$.
+There is at most one per side. Say $z$ is on the left side. $C$ is the path
+$L-1,L,\dots,z$ with edges $M,H,M,\dots,M$; it cannot reach $u$, so
+$z<u$, and the odd number of edges gives $z\equiv L\pmod2$; thus $z\in B_L$.
+Inside $[L,u)$ the edges of $C$ give $H$-edges $\{L,L+1\},\dots,\{z-2,z-1\}$,
+and the remaining vertices $z+1,\dots,u-1$ are paired by $M$ as
+$\{z+1,z+2\},\dots,\{u-2,u-1\}$. These pairs belong to $H$ too: a pair
+outside $H$ would lie in an internal component, an interval
+with $H$-edges at both ends, whose end vertices are uncovered by $M$ --- but
+all uncovered vertices of $I$ are $\ge u$, a contradiction.
+(It cannot be in the right boundary component either, as that would contain
+$u$ as an interior vertex.)
+
+\emph{Moving the hole.} In $H$ replace the edges inside $[L,u)$ by
+$\{L,L+1\},\dots,\{b-2,b-1\},\{b+1,b+2\},\dots,\{u-2,u-1\}$ with
+$b=b_L$; this is valid because $b\equiv L\pmod2$, and it has the same number
+of edges. It covers $[L,u)\setminus\{b\}$ instead of $[L,u)\setminus\{z\}$,
+changing the weight by $x_z-x_b\ge0$ because $b_L$ is lightest in $B_L$
+and $z\in B_L$. So the new matching is still optimal. Do the same on the right.
+Every vertex of $D\cap I$ other than $b_L,b_R$ is now covered.
+\end{proof}
+
+\subsection{Reducing to a greedy on the rest}
+After releasing, put $D'=(D\cap I)\setminus\{b_L,b_R\}$. Its maximal runs
+inside $I$ are even: runs not touching a released vertex are runs of
+$M$ inside $I$; on the left, $[L,u)\setminus\{b_L\}$ splits into
+$[L,b_L)$ and $(b_L,u)$ of lengths $b_L-L$ and $u-b_L-1$, both even; the
+right side is symmetric. Let $F=I\setminus D'$ be the \emph{free}
+vertices, in path order.
+
+\begin{theorembox}[Finish by greedy]
+The maximum value of a size-$K$ matching inside $I$ is
+\[ x(D')\;+\;f_F\bigl(K-|D'|/2\bigr), \]
+where $f_F$ is the function for the weight sequence $F$ (a path on the free
+vertices, adjacent in $F$ even if not in the original path).
+\end{theorembox}
+\begin{proof}
+By the Release lemma the optimum is attained by a matching whose covered set
+is $Q\supseteq D'$; write $T=Q\setminus D'\subseteq F$. A maximal run of $Q$
+consists of runs of $D'$ (even length) and elements of $T$; the corresponding
+run of $T$ in the list $F$ has the same parity. So $Q$ has only even runs iff
+$T$ has only even runs in $F$, and the optimum is $x(D')$ plus the best
+$T$ with $|T|=2K-|D'|$, i.e.\ $f_F(K-|D'|/2)$.
+\end{proof}
+By the greedy theorem $f_F(m)$ is the sum of the first $m$ gains of
+the greedy algorithm run on $F$. Hence the whole query is: release at most two
+vertices, then perform $m=K-|D'|/2$ greedy steps on the free vertices of
+$I$, and the answer is the total weight of the covered vertices inside $I$
+afterwards. It remains to show that $m\le2$ and that the hypotheses of the
+lemma hold, for a suitable state of the global greedy.
+
+\subsection{The focus time}
+Run the greedy algorithm of Section~\ref{sec:greedy} on the whole path; step
+$t=0,1,\dots$ covers two vertices, and we say these vertices have
+\emph{time} $t$ (if $n$ is odd, the one never covered gets time $\lfloor n/2\rfloor$).
+Let $D_t$ be the set of vertices covered after $t$ steps (those with time
+$<t$). Its unique matching $M_t$ has value $f(t)$, so it is
+optimal for its size, as the Release lemma needs.
+
+For a query let the \emph{focus time} $T$ be the $2K$-th smallest time
+among the vertices of $I$. Then $D_T$ contains fewer than $2K$ vertices
+of $I$ while $D_{T+1}$ contains at least $2K$; as a step adds at most two
+vertices of $I$,
+\[ s=|D_T\cap I|\in\{2K-2,\,2K-1\}. \]
+The crossing edges are determined by parities. At most one run of $D_T$
+contains both $L-1$ and $L$; all other runs lie on one side of the boundary
+and have even length. If the straddling run has $p$ vertices left of $L$, it is
+paired as $(1,2),(3,4),\dots$ and the pair $\{L-1,L\}$ occurs iff $p$ is odd.
+So the left boundary is crossed iff $|D_T\cap[0,L)|$ is odd, and likewise on
+the right with $|D_T\cap[R,n)|$. Since $s\equiv c\pmod 2$ (the total $|D_T|$ is even) and $c\le2$,
+\begin{center}\small\sffamily
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$s$ & $c$ & released vertices & greedy steps $m=K-|D'|/2$\\
+\midrule
+$2K-2$ & $0$ & $0$ & $1$\\
+$2K-1$ & $1$ & $1$ & $1$\\
+$2K-2$ & $2$ & $2$ & $2$\\
+\bottomrule
+\end{tabular}
+\end{center}
+In every case $s+c\le2K$, and $s\le2K-1<R-L$ guarantees an uncovered vertex in
+$I$. So the Release lemma applies, and each query needs one or two greedy
+steps.
+
+\subsection{The offline algorithm and its data structures}
+Sort the queries by focus time and sweep $t=0,1,\dots$ over the global
+greedy; at time $t$ the structures represent $D_t$. For each query with
+focus time $t$:
+\begin{enumerate}[leftmargin=1.8em,itemsep=1pt]
+  \item Count the covered vertices left of $L$ and right of $R-1$ to detect
+        crossings; find $u$ and/or $v$; take the minimum-weight vertex of the
+        right parity in $[L,u)$ and/or $(v,R)$ and \emph{uncover} it.
+  \item Repeat $m$ times: find the adjacent uncovered pair inside $I$ with the
+        largest sum and cover it.
+  \item The answer is the total weight of the covered vertices inside $I$.
+  \item Undo steps 1--2 in reverse order.
+\end{enumerate}
+Then apply global step $t$ and continue. The structures needed are:
+
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item The focus time of $(L,R,K)$ is the $(2K-1)$-st value (0-indexed) of
+        the array of times restricted to $[L,R)$: a \textbf{wavelet matrix}
+        built once, $O(\log n)$ per query.
+  \item A \textbf{Fenwick tree of 0/1 flags} (uncovered) gives counts of
+        covered vertices in a range, the next/previous uncovered vertex by
+        binary descent, and a second Fenwick tree of the weights of
+        covered vertices gives the final sum.
+  \item Two \textbf{sparse tables}, one for even and one for odd indices,
+        give the lightest vertex of a given parity in a range.
+  \item A \textbf{segment tree} indexed by $i$ storing $x_i+x_{\mathrm{next}(i)}$
+        for each uncovered $i$ (neighbour in the list of uncovered vertices)
+        gives the best adjacent uncovered pair inside $I$: query the range
+        $[L,p)$, where $p$ is the last uncovered vertex of $I$, so that
+        the right element of the pair is also in $I$.
+\end{itemize}
+Covering or uncovering a vertex changes $O(1)$ entries of these
+structures, each in $O(\log n)$. Each query makes $O(1)$ changes and
+undoes them, so the total time is $O((n+q)\log n)$ after the
+$O(n\log n)$ global greedy.
+
+\begin{notebox}[On ties]
+Neither the heap, the focus-time argument nor the Release lemma needs
+distinct weights: the Release lemma is proved for arbitrary weights (the
+extremal choice of $H$ replaces genericity), and the greedy theorem allows
+any maximiser at each step. The reference code uses whatever tie-breaking
+its heap, sparse tables and segment tree happen to give, and the tests
+below deliberately use weights in $\{-1,0,1\}$ to force many ties.
+\end{notebox}
+
+\section{Reference Implementations}\label{sec:code}
+The printed listings contain the heap greedy, the stack algorithm with
+selection and the reductions of Section~\ref{sec:reductions} (non-adjacent
+picks, $K$ trades, $K$ disjoint subarrays). The offline range-query
+structure of Section~\ref{sec:range} (Fenwick trees, wavelet matrix, sparse
+tables, segment tree and the query routine) is long and is not printed;
+it is in the repository files, following the structure described in
+Section~\ref{sec:range}. Everything is cross-checked against dynamic programming on thousands of random
+inputs, including the tie-heavy small-range ones: all three ways of computing
+$f$ agree, the reductions match direct DPs for non-adjacent picks and for
+exactly $K$ subarrays, and about $10^5$ range queries per language
+agree with a DP on the slice. The harness also confirmed that the
+cases $(s-2K,c)\in\{(-2,0),(-2,2),(-1,1)\}$ of the table above are the
+only ones that occur.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Examples}
+\begin{examplebox}[Stack algorithm]
+Take $x=(3,-1,4,1,-5,9,2,-6)$. Pushing $3,-1,4,1$ changes nothing: with
+$a,b,c,v=3,-1,4,1$ the candidate $(-1,4)$ has $c=4\ge a=3$ but $b=-1<v=1$. Pushing
+$-5$ gives the top $-1,4,1,-5$: here $(4,1)$ satisfies $1\ge-1$ and
+$4\ge-5$, so record $5$ and delete; the stack is $3,-1,-5$, where $(3,-1)$ is
+at the list start and $3\ge-5$: record $2$, stack $-5$. Push $9,2$ and
+then $-6$: the top is $-5,9,2,-6$ and $(9,2)$ is a local maximum:
+record $11$. The stack is $-5,-6$; the final phase records $-11$. The
+multiset of gains is $\{11,5,2,-11\}$, so
+\[ f(0..4)=0,\ 11,\ 16,\ 18,\ 7 . \]
+The heap greedy takes the same pairs in the order $(9,2),(4,1),(3,-1),(-5,-6)$.
+\end{examplebox}
+
+\begin{examplebox}[Non-adjacent picks]
+$B=(5,-2,6,4,-1,3)$ becomes $x=(0,5,-7,13,-9,8,-5)$ and the greedy gains are
+$6,5,3,\dots$, so the best sums for $K=1,2,3$ are $6,\ 11,\ 14$
+(for $K=3$: indices $0,2,5$ give $5+6+3$).
+\end{examplebox}
+
+\begin{examplebox}[Stock trading]
+Prices $P=(5,2,4,1,6,3,7)$, $N=6$. The trade path has weights
+$5,-2,\,2,-4,\,4,-1,\,1,-6,\,6,-3,\,3,-7$ and the smallest gains of
+the matching problem are $-6,-3,-2,\dots$. The best profits for
+$K=1,2,3$ are therefore $6,\ 9,\ 11$: the single best trade is buy at $1$,
+sell at $7$; three trades are $2\to4$, $1\to6$ and $3\to7$. For
+$K=4$ the remaining gains are positive, so the profit drops to $8$: you
+are \emph{forced} to make four trades.
+\end{examplebox}
+
+\begin{examplebox}[Range query]
+Figure~\ref{fig:range} follows $x=(7,-2,9,1,-1,8,4,-5,-8,2,5)$ and
+the query $(L,R,K)=(1,10,4)$. The global greedy picks
+$(5,6),(2,3),(9,10),(0,1),\dots$; the times of vertices $1,\dots,9$ are
+$3,1,1,4,0,0,4,\ast,2$, so the focus time is $T=4$ and $D_4=\{0,1,2,3,5,6,9,10\}$ gives
+$s=6=2K-2$ and $c=2$. Release $b_L=1$ and $b_R=9$; the free vertices
+are $1,4,7,8,9$; two greedy steps take $(1,4)$ with sum $-3$ and then
+$(8,9)$ with sum $-6$. The answer is
+$x(D')+(-3)+(-6)=9+1+8+4-9=13$, which a direct DP on $x_1..x_9$ confirms.
+\end{examplebox}
+
+\section{Practice Problems}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
+  \item JOISC 2018 Day 4 \emph{Candies} --- pick exactly $K$ non-adjacent
+        elements for every $K$ up to $\lceil N/2\rceil$; the standard
+        test for the heap greedy of Section~\ref{sec:greedy}.
+  \item APIO/CTSC 2007 \emph{Data Backup} --- pair up $2K$ of the points on a
+        line to minimise total cable length: non-adjacent gaps, negated.
+  \item Codeforces 958E2 \emph{Guard Duty (medium)} --- the same idea with
+        larger limits.
+  \item Codeforces 391F3 \emph{Stock Trading} --- at most $K$ trades with
+        $N$ up to $4\cdot10^6$; use the linear-time algorithm of
+        Section~\ref{sec:linear}.
+  \item Codeforces 280D \emph{k-Maximum Subsequence Sum} --- the dynamic
+        cousin: updates and range queries for $\le K$ disjoint subarrays.
+        The static version is Section~\ref{sec:range}.
+  \item Luogu P1484 \emph{Planting Trees} --- non-adjacent picks, the
+        simplest form.
+\end{itemize}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item M.\ Cs\H{u}r\"os, ``Maximum-scoring segment sets'', \emph{IEEE/ACM
+        Transactions on Computational Biology and Bioinformatics} 1(4),
+        2004, pp.\ 139--150.
+  \item F.\ Bengtsson and J.\ Chen, \emph{Computing maximum-scoring
+        segments optimally}, Lule\aa{} University of Technology Research
+        Report 2007:3, 2007 (a linear-time algorithm for $K$ disjoint
+        maximum-sum segments).
+  \item L.\ Lov\'asz and M.\ D.\ Plummer, \emph{Matching Theory}, for the
+        general theory of augmenting paths in weighted matching.
+\end{itemize}
+
+\end{document}
