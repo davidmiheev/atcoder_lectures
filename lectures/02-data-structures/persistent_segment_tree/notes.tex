@@ -1,0 +1,235 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Persistent Segment Tree}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Data Structures}{Persistent Segment Tree}{7}
+
+\section{Overview}
+An ordinary data structure is \emph{ephemeral}: an update discards the old
+state and keeps only the new one. A \emph{persistent} data structure keeps
+every version reachable instead, and a \emph{fully persistent} one --- the
+kind this lecture builds --- allows querying \emph{and further updating}
+any past version, not just the most recent one. The \textbf{persistent
+segment tree} is the most broadly useful persistent structure in
+competitive programming: cheap to build from an ordinary pointer-based
+segment tree, and the basis for a wide family of range-query techniques.
+Assumes familiarity with segment trees and lazy (range-update) segment
+trees.
+
+\subsection{Why this is needed}
+\begin{definitionbox}
+Array $A_0 = (A_{0,1}, \ldots, A_{0,N})$ is given. Each query either sets
+$A_t$'s $i$-th entry to $x$ (creating a new array $A_q$), or asks for the
+minimum of $A_t$ over a range --- for an arbitrary earlier version $t$, not
+necessarily the most recent one.
+\end{definitionbox}
+
+If every query is known in advance (\emph{offline}), this is manageable:
+treat each update as spawning a new version from an existing one, so the
+versions form a tree, and answer queries while DFS-ing that tree with an
+ordinary segment tree, undoing each update on the way back up. But if
+queries must be answered \emph{online} --- each one before the next is
+revealed --- that rollback trick is unusable, since which version comes
+next isn't known ahead of time. Storing a full copy of the array at every
+version costs $O(N)$ time and space per update, which is usually too slow.
+A persistent segment tree answers every such query in $O(\log N)$ time and
+space, online, by sharing almost everything between versions.
+
+\section{Structure}
+
+\subsection{Pointer-based segment trees, briefly}
+A persistent segment tree is built on top of a \emph{pointer-based} (or
+\emph{recursive}) segment tree: an internal node holds two pointers, to
+its left and right child, rather than living at a fixed array index. An
+ordinary point update on such a tree walks root to leaf and overwrites the
+$O(\log N)$ nodes on that path; the pointer structure elsewhere is
+untouched.
+
+\subsection{Path copying: element updates}
+The problem with overwriting those $O(\log N)$ nodes is that it destroys
+the old version. The fix is \textbf{path copying}: instead of mutating
+those nodes in place, clone each one, write the updated value into the
+clone, and point the clone's children at whichever \emph{child} nodes are
+correct for the new version (freshly cloned children where the path
+continues, the original untouched children everywhere else). The clones
+form a new root-to-leaf path; every other pointer in the entire tree
+--- and so every subtree not on that path --- is simply shared between
+old and new versions, unmodified.
+
+\begin{theorembox}
+A persistent segment tree update touches $O(\log N)$ nodes (one clone per
+level) and creates a new, independent root. Both old and new versions
+remain fully valid and queryable, and the new version costs
+$O(\log N)$ additional time and space over the old one --- not $O(N)$.
+\end{theorembox}
+
+Versions are identified purely by their root: distinct versions have
+distinct roots, and querying is done by walking down from whichever root
+names the desired version, exactly as in an ordinary segment tree.
+
+% FIGURE: pst_pathcopy
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.15cm,y=1.15cm,
+  old/.style={lvert,minimum size=8.5mm,font=\scriptsize\sffamily,fill=lectureink!8},
+  new/.style={lvert,minimum size=8.5mm,font=\scriptsize\sffamily,fill=lectureaccent!30,draw=lectureaccent,thick}]
+\node[old] (R0) at (2,3) {$[0,4)$};
+\node[old] (A)  at (1,1.5) {$[0,2)$};
+\node[old] (B)  at (3,1.5) {$[2,4)$};
+\node[old] (L0) at (0.5,0) {$0$};
+\node[old] (L1) at (1.5,0) {$1$};
+\node[old] (L2) at (2.5,0) {$2$};
+\node[old] (L3) at (3.5,0) {$3$};
+\node[new] (R1) at (6.2,3) {$[0,4)'$};
+\node[new] (B1) at (5.6,1.5) {$[2,4)'$};
+\node[new] (L3n) at (6.4,0) {$3'$};
+\foreach \p/\c in {R0/A,R0/B,A/L0,A/L1,B/L2,B/L3}{ \draw[lthin] (\p) -- (\c); }
+\draw[lthin,lectureaccent,thick] (R1) -- (B1);
+\draw[lthin,lectureaccent,thick] (B1) -- (L3n);
+\draw[lthin,lectureaccent,thick,dashed] (R1) to[bend right=14] (A);
+\draw[lthin,lectureaccent,thick,dashed] (B1) -- (L2);
+\node[llabel,anchor=west] at (7.2,3) {version 1 root};
+\node[llabel,anchor=east] at (1.0,3) {version 0 root};
+\end{tikzpicture}
+\caption{Path copying. Version 0 is the full tree on positions $0,\dots,3$. Setting position 3 creates only the new nodes on the root-to-leaf path (shaded, primed): a new root, a new right child and a new leaf. Every other node, namely the left subtree $[0,2)$ and leaf $2$, is shared with version 0 through the dashed pointers, so the update costs $O(\log n)$ time and memory and version 0 remains intact.}\label{fig:pst_pathcopy}
+\end{figure}
+
+\subsection{Path copying: range updates}
+The same idea persists a \emph{lazy} segment tree. A lazy range update
+proceeds in three passes: push pending lazy values down to children along
+the way to the target range, apply the update operator at the $O(\log N)$
+nodes exactly covering the range, and recombine values back up to the
+root. Only $O(\log N)$ nodes ever change value across all three passes, so
+the same rule applies: whenever a node's value or lazy tag is about to
+change, clone it first (and, when \emph{pushing} a lazy tag down, clone
+the children being pushed into as well, then push into the clones ---
+never into the shared originals).
+
+\subsection{Copying an identical range between versions}
+A capability an ordinary segment tree has no analogue for: given two
+versions, copy one version's data over some range $[l, r]$ into the other,
+producing a third version. Since $[l, r]$ decomposes into $O(\log N)$
+subtree-aligned pieces (the same decomposition an ordinary range query
+uses), this is just $O(\log N)$ pointer relinks --- graft the source
+version's node for each of those pieces directly into the destination
+version's copied path, with no need to touch what's inside those
+subtrees at all.
+
+\section{Worked Applications}
+
+\subsection{A chain of frequency arrays}
+A recurring and very productive pattern: build a \emph{chain} of versions
+$S_0, S_1, \ldots, S_N$ (rather than a branching tree of them) over a
+value domain, where $S_i$ is obtained from $S_{i-1}$ by incrementing the
+count at value $A_i$. Then $S_i$'s prefix sum up to some value $v$ is
+exactly the count of $v' \le v$ among $A_1, \ldots, A_i$ --- the frequency
+array evolves one insertion at a time, and every intermediate state stays
+queryable.
+
+\begin{examplebox}[: range count $\le x$]
+The count of values $\le x$ in $A_l, \ldots, A_r$ is (prefix sum of $S_r$
+up to $x$) $-$ (prefix sum of $S_{l-1}$ up to $x$), a single query against
+each of two versions --- $O(\log N)$ total, after $O(N \log N)$
+preprocessing to build the chain.
+\end{examplebox}
+
+\begin{examplebox}[: range $k$-th smallest]
+The $k$-th smallest value in $A_l, \ldots, A_r$ is the least $v$ such that
+(prefix count of $S_r$ up to $v$) $-$ (prefix count of $S_{l-1}$ up to $v$)
+is at least $k$. Binary searching $v$ with an $O(\log N)$ query at each
+step gives $O(\log^2 N)$, but there is a faster way: since $S_r$ and
+$S_{l-1}$ have \emph{identical shape} (same domain, built by the same
+sequence of splits), descend both trees \emph{simultaneously}. At each
+pair of corresponding nodes, the difference between their left children's
+counts tells you how many of the $k$ smallest candidates lie in the left
+half; branch into left or right accordingly (adjusting $k$ if going
+right), on both trees at once. This is the segment-tree ``binary search on
+the tree'' technique applied to two versions together, and it costs only
+$O(\log N)$.
+\end{examplebox}
+
+\begin{notebox}
+The same two techniques answer range count/order-statistic queries on tree
+paths (not just array ranges): give each vertex $v$ its own persistent
+frequency tree, extending its parent's version by one insertion (its own
+value). A root-to-$v$ query, combined by inclusion–exclusion with a
+root-to-$w$ query and the shared root-to-$\mathrm{lca}(v,w)$ query
+(subtracted twice, since it is double-counted, with $\mathrm{lca}(v,w)$'s
+own value added back in), reduces a path query on the tree to the exact
+same simultaneous-descent trick above. Building all $N$ per-vertex trees
+this way, each extending its parent by a single insertion, costs
+$O(N \log N)$ total.
+\end{notebox}
+
+\subsection{Beyond array and tree-path queries}
+The same-range-copy operation opens up applications with no obvious
+connection to persistence at first glance: some counting or DP problems
+turn out to satisfy a recurrence where one state is built out of two
+\emph{other} states by copying disjoint sub-ranges from each into a fresh
+array, which a persistent (lazy) segment tree implements directly in
+$O(\log N)$ per copy rather than reconstructing the state from scratch.
+Recognizing this pattern is the harder part; working through a full
+example is left to the further-reading problems below.
+
+\section{Complexity}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Operation} & \textbf{Time / extra space} \\
+\midrule
+Build initial version & $O(N)$ \\
+Point update (new version) & $O(\log N)$ \\
+Range update, lazy (new version) & $O(\log N)$ \\
+Range query on any version & $O(\log N)$ \\
+Copy a range between two versions & $O(\log N)$ \\
+Range $k$-th smallest via chained versions & $O(\log N)$ per query, $O(N \log N)$ build \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reference Implementations}
+Both examples below implement two variants: a branching multi-version
+array with point update and range-min query, and a chained frequency-tree
+supporting range count-$\le x$ and range $k$-th-smallest via the
+simultaneous-descent trick.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Starting from version $v_0 = (5,9,4,7)$, updating position $2$ to $2$
+gives $v_1 = (5,2,4,7)$, while updating position $4$ of $v_0$ (not $v_1$!)
+to $1$ gives a separately branching $v_2 = (5,9,4,1)$ --- $v_0$ itself is
+untouched by either update, and all three versions answer range-min
+queries independently, exactly as the reference implementations
+demonstrate.
+
+Separately, for values $(3,1,4,1,5,9,2,6,5,3)$, the range $[3,8]$
+(1-indexed, values $4,1,5,9,2,6$) has $3$ elements $\le 4$ and its $3$rd
+smallest value is $4$ --- both computed purely from the two chained
+versions $S_8$ and $S_2$, cross-checked against brute force over every
+possible $(l, r, x)$ and $(l, r, k)$ in the reference code.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item J. R. Driscoll, N. Sarnak, D. D. Sleator, R. E. Tarjan, ``Making
+        Data Structures Persistent'', STOC 1986, pp.\ 109--121.
+  \item USACO Guide, \emph{Persistent Data Structures}:
+        \url{https://usaco.guide/adv/persistent?lang=cpp}
+\end{itemize}
+
+\end{document}

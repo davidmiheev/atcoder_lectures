@@ -1,0 +1,306 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Bostan--Mori's Algorithm (Advanced)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Polynomials \& Formal Power Series}{Bostan--Mori's Algorithm (Advanced)}{8}
+
+\section{Overview}
+The companion lecture on the $K$-th term of a linearly recurrent sequence
+showed how Bostan--Mori's algorithm finds a single coefficient
+$[x^K]\,P(x)/Q(x)$ in $O(M(d)\log K)$. This lecture extends that
+machinery two ways. First, a variant --- the \emph{MSB-first} Bostan--Mori
+algorithm --- extracts a whole \emph{interval} of coefficients
+$[x^{[L,R]}]\,P(x)/Q(x)$ in about the same time, and this one primitive
+turns out to solve several other problems too: shifting a linearly
+recurrent sequence's generating function, and computing
+$x^K \bmod \Gamma(x)$ (the object at the heart of Fiduccia's algorithm) by
+an entirely different route. Second, when fast (FFT-based) polynomial
+multiplication is available, keeping intermediate polynomials in their
+DFT representation across Bostan--Mori's iterations --- rather than
+converting back and forth every round --- cuts the constant factor from
+$2M(d)\log K$ to about $\tfrac23 M(d)\log K$.
+
+Assumes the companion lecture on the $K$-th term algorithm in full, and
+(for the second half) the definition of the discrete Fourier transform
+and its use for fast polynomial multiplication.
+
+\section{Setup and Notation}
+As before, $A$ is linearly recurrent with characteristic data
+$\Gamma(x)=x^d-c_1x^{d-1}-\cdots-c_d$ and
+$Q(x)=1-c_1x-\cdots-c_dx^d$, and $A(x)=P(x)/Q(x)$ for some $P$ of degree
+$<d$. Ring operations are counted as the unit of work, and $M(d)$ is the
+cost of multiplying two degree-$d$ polynomials.
+
+\begin{definitionbox}[(Interval coefficient extraction)]
+For a formal power series (or Laurent series) $f(x)=\sum_i f_i x^i$
+--- allowing $i<0$, with $f_i:=0$ there by convention --- and integers
+$L\le R$, define
+\[
+  [x^{[L,R]}]f(x) \;:=\; \sum_{i=L}^{R} f_i\, x^{\,i-L},
+\]
+an ordinary polynomial of degree $\le R-L$, \emph{reindexed to start at
+$x^0$}. This reindexing matters: once extracted, the result is treated as
+a fresh polynomial with its own $0$-based coefficients, not as a
+``window'' that remembers the original degree $L$ it came from.
+\end{definitionbox}
+
+\section{Interval Coefficient Extraction}
+
+\subsection{Reducing to a pure inverse}
+\begin{definitionbox}
+Given $P$ of degree $\le d-1$, $Q$ of degree $\le d$ with $Q(0)=1$, and
+$0 \le L \le R$, compute $[x^{[L,R]}]\,P(x)/Q(x)$.
+\end{definitionbox}
+
+Since $P$ has degree $<d$, $[x^{[L,R]}](P(x)/Q(x))$ only ever draws on
+$1/Q(x)$'s coefficients from degree $L-d+1$ up to $R$ --- lower-degree
+terms of $1/Q(x)$ cannot reach degree $L$ once multiplied by $P$'s
+degree-$\ge 0$ terms, and terms above $R$ obviously don't contribute.
+So it suffices to solve the pure-inverse version:
+
+\begin{definitionbox}
+Given $Q$ of degree $\le d$ with $Q(0)=1$, and integers $L \le R$ with
+$R \ge 0$ ($L$ possibly negative), compute $[x^{[L,R]}]\,1/Q(x)$.
+\end{definitionbox}
+
+\subsection{The MSB-first recursion}
+The derivation reuses the even/odd-part identity from the ordinary
+Bostan--Mori algorithm: $Q(x)Q(-x) = V(x^2)$ for some $V$ of degree
+$\le d$. Then
+\[
+  \frac{1}{Q(x)} \;=\; \frac{Q(-x)}{Q(x)Q(-x)} \;=\; Q(-x)\cdot\frac{1}{V(x^2)}.
+\]
+Let $S(x) := [x^{[L-d,\,R]}]\,\dfrac{1}{V(x^2)}$ (an ordinary,
+reindexed polynomial, per the definition above). Since $Q(-x)$ has degree
+$\le d$, one can check directly from the convolution formula for
+$1/Q(x)=Q(-x)\cdot(1/V(x^2))$ that
+\[
+  [x^{[L,R]}]\,\frac{1}{Q(x)} \;=\; [x^{[d,\,R-L+d]}]\bigl(Q(-x)\cdot S(x)\bigr),
+\]
+where the right-hand extraction reads $Q(-x)\cdot S(x)$ as an ordinary
+product of two already-reindexed polynomials (literal $0$-based
+coefficient indices, not a further degree-shifted read --- this is the
+step where an implementation most easily goes wrong).
+
+It remains to find $S(x)$, an interval of $1/V(x^2)$ --- a series with
+only even-degree terms. Since $[x^{2i}](1/V(x^2))=[x^i](1/V(x))$, setting
+\[
+  L' = \left\lceil \tfrac{L-d}{2} \right\rceil, \qquad
+  R' = \left\lfloor \tfrac{R}{2} \right\rfloor
+\]
+(chosen so that $L-d\le 2i\le R \iff L'\le i\le R'$) and
+$W(x):=[x^{[L',R']}]\,1/V(x)$ recovers $S$ termwise: writing
+$j_0 = 2L'-L+d$, $S$'s only nonzero entries are
+$S_{j_0+2t} = W_t$ for $t=0,\ldots,|W|-1$. So finding $S$ reduces to
+finding $W$ --- the \emph{same kind of problem}, on $V$ instead of $Q$,
+with interval length roughly halved.
+
+\begin{theorembox}
+Interval extraction $[x^{[L,R]}]\,1/Q(x)$ reduces, in $O(M(d))$ work per
+level, to the same problem with $R$ replaced by $\lfloor R/2\rfloor$.
+Iterating $O(\log R)$ times bottoms out at $R=0$, where
+$[x^{[L,0]}]\,1/Q(x)$ is immediate: since $Q(0)=1$, only degree $0$ can be
+nonzero (every degree in $[L,-1]$ is negative, hence $0$ by convention),
+so the answer is the single monomial $x^{-L}$ (a $1$ at output position
+$-L$). Overall this costs $O(M(d)\log R + M(R-L+d))$, or with more care
+about multiplying polynomials of very different degrees,
+$O\!\left(M(d)\log R + \tfrac{R-L+1}{d}M(d)\right)$.
+\end{theorembox}
+
+\begin{notebox}
+The multiplication $Q(-x)\cdot S(x)$ in each level only needs $S$'s
+\emph{middle} $R-L+1$ coefficients of the full product (indices $d$
+through $R-L+d$) --- a \emph{middle product}, which can be computed in
+the same asymptotic cost as computing the two factors' degrees would
+suggest, via the transpose principle (see below), rather than computing
+the whole product and discarding the rest.
+\end{notebox}
+
+% FIGURE: bm_msb
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n0) at (0,-0.00) {$Q_0$,\; $[L,R]=[5,13]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n1) at (0,-1.45) {$Q_1$,\; $[L,R]=[2,6]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n2) at (0,-2.90) {$Q_2$,\; $[L,R]=[0,3]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm] (n3) at (0,-4.35) {$Q_3$,\; $[L,R]=[-1,1]$};
+\node[lnode,minimum width=3.4cm,minimum height=7mm,lhi2] (n4) at (0,-5.80) {$Q_4$,\; $[L,R]=[-1,0]$\\[-1pt]\scriptsize base case: $R=0$, answer $x^{1}$};
+\draw[larrow] ([xshift=-1.1cm]n0.south) -- ([xshift=-1.1cm]n1.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n1.north) -- ([xshift=1.1cm]n0.south);
+\draw[larrow] ([xshift=-1.1cm]n1.south) -- ([xshift=-1.1cm]n2.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n2.north) -- ([xshift=1.1cm]n1.south);
+\draw[larrow] ([xshift=-1.1cm]n2.south) -- ([xshift=-1.1cm]n3.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n3.north) -- ([xshift=1.1cm]n2.south);
+\draw[larrow] ([xshift=-1.1cm]n3.south) -- ([xshift=-1.1cm]n4.north);
+\draw[larrow,lectureaccent] ([xshift=1.1cm]n4.north) -- ([xshift=1.1cm]n3.south);
+\node[llabel,anchor=east,align=right] at (-2.0,-2.9) {descend: $Q_{t+1}(x^2)=Q_t(x)Q_t(-x)$,\\ $L'=\lceil (L-d)/2\rceil,\ R'=\lfloor R/2\rfloor$};
+\node[llabel,anchor=west,align=left,text=lectureaccent] at (2.0,-2.9) {unwind: interleave $W$ into $S$,\\ then take the middle product\\ of $Q_t(-x)$ and $S$};
+\end{tikzpicture}
+\caption{The MSB-first recursion for $[x^{[L,R]}]\,1/Q(x)$ with $d=2$ and $[L,R]=[5,13]$. Each level squares away the odd part of the denominator and roughly halves the interval ($L'=\lceil (L-d)/2\rceil$, $R'=\lfloor R/2\rfloor$) until $R=0$; the answer is then rebuilt on the way back up, one middle product per level.}\label{fig:bm_msb}
+\end{figure}
+
+\subsection{This is the transpose of the ordinary algorithm}
+\begin{notebox}
+Write the target answer as $[x^{[L,R]}]\,1/Q(x) = \sum_i a_i x^i$
+(0-indexed, $i=0,\ldots,R-L$), and for a test polynomial $B(x)=\sum_i
+b_i x^i$ of the same degree, note that
+\[
+  [x^R]\,\frac{B(x)}{Q(x)} \;=\; \sum_{i=0}^{R-L} a_i\, b_{R-L-i}.
+\]
+So ``output $[x^{[L,R]}]\,1/Q(x)$'' and ``given $B(x)$, output
+$[x^R]\,B(x)/Q(x)$'' are transpose problems (up to reversing coefficient
+order), and by the transpose principle they can be solved with the same
+asymptotic arithmetic cost --- and an algorithm for either can be
+mechanically converted into one for the other. The second problem is
+exactly ordinary (LSB-first) Bostan--Mori. This is also the origin of the
+names: writing $1/Q(x) = \prod_{k\ge 0} Q_k(x^{2^k})$ (the infinite
+product the doubling identity generates), ordinary Bostan--Mori processes
+this product from $k=0$ upward (LSB-first), while the algorithm above
+processes it from the top down (MSB-first).
+\end{notebox}
+
+\subsection{A byproduct: fast formal power series inverse}
+Taking $[L,R]=[0,d]$ recovers the ordinary power series inverse
+$1/Q(x) \bmod x^{d+1}$ --- usually computed via Newton's method in
+$O(M(d))$. A version of the algorithm above, adapted so that both $L<0$
+intervals reduce to $[0,R]$ intervals and $Q$'s coefficients above degree
+$R$ are simply dropped, halves the working size every level and achieves
+the same $O(M(d))$ bound by this route instead.
+
+\section{Two Applications}
+
+\subsection{Shifting a linearly recurrent sequence}
+\begin{definitionbox}
+Given $P(x)$, $Q(x)$, and $K\ge 0$, find a rational generating function
+for $(A_K, A_{K+1}, A_{K+2}, \ldots)$.
+\end{definitionbox}
+
+The shifted sequence $B_i := A_{K+i}$ satisfies the \emph{same}
+recurrence as $A$ (it's still generated by unrolling the same $c_1,
+\ldots, c_d$), so $B(x) = S(x)/Q(x)$ for some $S$ of degree $<d$. To find
+$S$: compute $[x^{[0,d-1]}]B(x) = [x^{[K,K+d-1]}]\,P(x)/Q(x)$ (an
+interval extraction of the \emph{original} $A(x)=P(x)/Q(x)$), multiply by
+$Q(x)$, and keep the terms of degree $<d$ --- this recovers exactly $S$,
+since $S(x) = B(x)Q(x) \bmod x^d$ by definition of $B=S/Q$. Total cost:
+$O(M(d)\log K)$.
+
+\subsection{\texorpdfstring{$x^K \bmod \Gamma(x)$}{x\^{}K mod Gamma(x)} via Bostan--Mori}
+\begin{definitionbox}
+Given $K \ge 0$, compute $x^K \bmod \Gamma(x)$.
+\end{definitionbox}
+
+Fiduccia's algorithm already solves this by binary exponentiation modulo
+$\Gamma(x)$. Here is a second route, through interval extraction. Let
+$U(x) := [x^{[K-d+1,K]}]\,1/Q(x)$, and let $R(x) = \sum_i r_i x^i$ be the
+target $x^K \bmod \Gamma(x)$, with $\widetilde{R}(x)$ its coefficients
+reversed. Both $U$ and $\widetilde R$ turn out to relate to $A_K$: the
+companion lecture's Fiduccia theorem gives $A_K = [x^{d-1}](A(x)\,
+\widetilde R(x))$, while $A_K = [x^K]P(x)/Q(x) = [x^{d-1}](P(x)\,U(x))$
+follows directly from $A_K=[x^K]P(x)\cdot(1/Q(x))$ and $P$'s degree bound.
+Since $P(x)=A(x)Q(x)$, substituting gives
+$[x^{d-1}](A(x)\widetilde R(x)) = [x^{d-1}](A(x)Q(x)U(x))$ for
+\emph{every} choice of initial values $A_0,\ldots,A_{d-1}$ (as $\widetilde
+R, Q, U$ don't depend on them) --- which forces the polynomial identity
+\[
+  \widetilde R(x) \;=\; Q(x)\,U(x) \bmod x^d .
+\]
+So: compute $U$ by interval extraction, multiply by $Q$, truncate to
+degree $<d$, and reverse the coefficients. Cost: $O(M(d)\log K)$, the
+same as Fiduccia, and (as with the $K$-th-term case) known to be smaller
+by a constant factor in practice.
+
+\section{Constant-Factor Speedup via DFT Representations}
+The remaining idea applies to the \emph{ordinary} (single-coefficient)
+Bostan--Mori algorithm when fast polynomial multiplication is available.
+Each iteration computes $U(x)=P(x)Q(-x)$ and $V(x)=Q(x)Q(-x)$, naively
+two full multiplications, i.e.\ about $2M(d)$ work via $3$ length-$2n$
+DFT/IDFT pairs each (a product of two degree-$d$ polynomials by FFT costs
+roughly $3$ transforms of size $2n\ge 2d{+}1$: two forward, one
+inverse) --- so $6$ transforms per iteration if done naively twice over.
+Keeping everything in DFT form throughout avoids re-transforming what's
+already been transformed:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item $Q(-x)$'s length-$2n$ DFT is just $Q(x)$'s length-$2n$ DFT with
+        indices shifted by $n$ (since evaluating at $-\zeta^i=\zeta^{i+n}$
+        for a primitive $2n$-th root $\zeta$) --- free, no transform
+        needed.
+  \item Pointwise multiplication in DFT space gives $F_{2n}[U]$ and
+        $F_{2n}[V]$ directly from $F_{2n}[P]$, $F_{2n}[Q]$, and the
+        shifted $F_{2n}[Q]$ --- no transform needed.
+  \item Extracting the even (or odd) part of a polynomial from its
+        length-$2n$ DFT, as a length-$n$ DFT of that part, is an $O(n)$
+        butterfly-style combination of paired entries --- no full
+        transform needed.
+  \item Only going back \emph{up} in size --- from a length-$n$ DFT to a
+        length-$2n$ DFT of the same polynomial, needed to prepare next
+        iteration's inputs --- genuinely costs transforms: one length-$n$
+        IDFT (recover the polynomial) and one length-$n$ DFT evaluated at
+        a rotated set of points (get the odd-indexed entries), for each
+        of $P'$ and $Q'$.
+\end{itemize}
+
+Tallying only the genuinely necessary transforms --- $4$ of length $n$
+per iteration, versus $6$ of length $2n$ for the naive two-multiplication
+approach --- brings each iteration's cost down to about
+$\tfrac23 M(d)$, and the whole algorithm to about
+$\tfrac23 M(d)\log K$.
+
+\begin{notebox}
+This is a specific, well-known instance of a broader and very useful
+pattern: when a computation is a pipeline of polynomial operations linked
+by multiplications, look for opportunities to keep intermediate results
+in DFT form and only transform back when a non-multiplicative operation
+(here, taking an even/odd part) genuinely requires it. The same idea
+extends, with more bookkeeping, to the interval-extraction algorithm of
+earlier sections.
+\end{notebox}
+
+\section{Reference Implementations}
+Both examples below implement interval coefficient extraction
+(cross-checked against brute-force power series inversion, including
+negative $L$), the shift application, and $x^K \bmod \Gamma(x)$ via
+Bostan--Mori (cross-checked against Fiduccia's binary exponentiation).
+The DFT-representation speedup of Section 5 is a constant-factor,
+implementation-heavy optimization built on top of an actual FFT/NTT
+engine; it is described above with its complexity analysis but not
+implemented here, consistent with how the source material itself treats
+it as a refinement layered on the core algorithm.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $Q(x)=1-x-x^2$ (the Fibonacci recurrence) and any $P$, both
+$x^K \bmod \Gamma(x)$ computed via interval extraction and via Fiduccia's
+binary exponentiation agree exactly across hundreds of random $(Q,K)$
+pairs with $K$ up to $2000$ in the reference implementations, as does the
+shift application: computing $S(x)$ so that $S(x)/Q(x)$ generates
+$(A_K,A_{K+1},\ldots)$ and unrolling it directly reproduces the same
+values as unrolling the original sequence from index $K$ onward.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item A. Bostan, R. Mori, ``A Simple and Fast Algorithm for Computing
+        the N-th Term of a Linearly Recurrent Sequence'', SOSA 2021,
+        pp.\ 118--132.
+  \item A. Sch\"onhage, ``Variations on computing reciprocals of power
+        series'', Information Processing Letters 74(1--2), 2000,
+        pp.\ 41--46.
+\end{itemize}
+
+\end{document}

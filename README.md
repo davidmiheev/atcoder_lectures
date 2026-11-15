@@ -18,7 +18,10 @@ Every lecture folder under [`lectures/`](lectures/) contains:
 - `notes.tex` / `notes.pdf` — the write-up, typeset with the shared style in
   [`tex/lecturestyle.sty`](tex/lecturestyle.sty)
 - `example.rs` — a self-contained Rust reference implementation
-- `example.py` — a self-contained Python reference implementation
+- `example.py` — a self-contained Python reference implementation (both
+  files put the core algorithm first, then a `PDFEND` comment, then the
+  randomized test harness; the PDF prints only the part between the
+  `PDFBEGIN` and `PDFEND` marker comments)
 - `README.md` — a one-paragraph summary and link to the source AtCoder entry
 
 ## Building
@@ -100,6 +103,8 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 |---|---|
 | [Parking Function](lectures/08-combinatorics/parking_function/) | 4/9 |
 | [Cycle Lemma](lectures/08-combinatorics/cycle_lemma/) | 5/9 |
+| [Hook Length Formula](lectures/08-combinatorics/hook_length_formula/) | 7/9 |
+| [Prüfer Code and Cayley's Formula](lectures/08-combinatorics/pruefer_code/) | 6/9 |
 
 ### 9. Strings
 | Lecture | Difficulty |
@@ -118,6 +123,17 @@ scripts/test_examples.sh  # compiles every example.rs and runs every example.py 
 | [Ackermann & Inverse Ackermann Functions](lectures/11-miscellaneous/ackermann_function/) | 7/9 |
 | [Min-Plus Convolution of Convex Sequences](lectures/11-miscellaneous/min_plus_convolution/) | 4/9 |
 | [Color-Coding](lectures/11-miscellaneous/color_coding/) | 5/9 |
+| [Todd–Coxeter Algorithm](lectures/11-miscellaneous/todd_coxeter/) | 7/9 |
+
+### 12. Supplementary (original, not from AtCoder's index)
+| Lecture | Difficulty |
+|---|---|
+| [The Number Theoretic Transform](lectures/12-supplementary/ntt_implementation/) | 6/9 |
+
+These lectures are not part of AtCoder's Algorithm Lectures table of
+contents; they fill in prerequisite material that other lectures in this
+series assume (e.g. an actual NTT implementation, referenced but not built
+by the advanced Bostan–Mori lecture).
 
 ## Source
 

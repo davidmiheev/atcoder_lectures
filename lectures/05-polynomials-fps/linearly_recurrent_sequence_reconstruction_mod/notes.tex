@@ -1,0 +1,269 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Linear Recurrence Recovery (mod m)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Polynomials \& Formal Power Series}{Linear Recurrence Recovery (mod m)}{9}
+
+\section{Overview}
+Given the first $N$ terms of a sequence over a field, the Berlekamp--Massey
+algorithm finds the shortest linear recurrence they satisfy: it scans the
+terms left to right, and each time the current recurrence mispredicts a
+term, it patches itself using the most recent earlier mismatch, dividing by
+that mismatch's value. That division is the crux of why the algorithm needs
+a field: it must be able to invert any nonzero element it encounters.
+
+Competitive programming frequently works over $\mathbb{Z}/m\mathbb{Z}$ for a
+modulus $m$ that is not prime --- $10^9$, a power of two, a product chosen
+for a specific problem. When $m$ is composite, $\mathbb{Z}/m\mathbb{Z}$ has
+zero divisors: nonzero elements with no inverse (e.g.\ $2$ modulo $4$).
+Berlekamp--Massey's division step can hit exactly such an element and simply
+gets stuck. The \textbf{Reeds--Sloane algorithm} (1985) solves the recovery
+problem over $\mathbb{Z}/m\mathbb{Z}$ for arbitrary $m$, by working one prime
+power at a time and, within a prime power, tracking several candidate
+recurrences simultaneously instead of one.
+
+This is the most involved lecture in the series; budget real time for it.
+
+\section{Problem Statement}
+
+\begin{definitionbox}
+Fix a modulus $m \ge 1$ and a polynomial $S(x) = S_0 + S_1 x + \cdots +
+S_{N-1}x^{N-1}$ over $\mathbb{Z}/m\mathbb{Z}$. A pair $(L, Q(x))$ is
+\emph{admissible} if $Q(0) = 1$, $\deg Q \le L$, and
+\[
+  [x^i]\, Q(x) S(x) = 0 \qquad \text{for all } L \le i < N .
+\]
+The recovery problem asks for an admissible pair with $L$ minimal. Taking
+$L = N$, $Q = 1$ is always admissible (the condition is vacuous), so a
+solution always exists.
+\end{definitionbox}
+
+Writing $P(x) = Q(x)S(x) \bmod x^L$, admissibility is the same as asking that
+$S(x) \equiv P(x)/Q(x) \pmod{x^N}$ as formal power series, where division by
+$Q(x)$ makes sense because $Q(0) = 1$ is a unit --- $Q(x)$ has a formal power
+series inverse over \emph{any} commutative ring with unit, not just a field.
+This is the fact that keeps the problem meaningful even when the coefficient
+ring is not a field.
+
+\subsection{What breaks without a field}
+Two things change when $m$ is composite.
+
+First, as noted above, Berlekamp--Massey's patch step divides by the most
+recent nonzero discrepancy, and a nonzero element of $\mathbb{Z}/m\mathbb{Z}$
+need not be invertible.
+
+Second, the uniqueness guarantee that makes the recovered recurrence
+trustworthy --- over a field, if $2L \le N$ the admissible pair with minimal
+$L$ is unique --- can fail outright over $\mathbb{Z}/m\mathbb{Z}$.
+
+\begin{examplebox}[: non-uniqueness]
+Take $m = 4$ and $S = (2,2,2,2,2,2,2,2)$. Both
+\[
+  Q_1(x) = 1 - x \qquad\text{and}\qquad Q_2(x) = 1 - 3x
+\]
+give an admissible pair with $L = 1$: both encode a first-order recurrence
+($S_i = S_{i-1}$, respectively $S_i = 3S_{i-1}$), and both are satisfied,
+since $3 \cdot 2 \equiv 2 \pmod 4$. So the minimal-$L$ solution is not
+unique, even though $L$ is tiny compared to $N$.
+\end{examplebox}
+
+Fortunately, non-uniqueness of $Q(x)$ does not translate into ambiguity about
+what the recurrence \emph{predicts}. The quantity that matters for
+extrapolation is the power series $P(x)/Q(x)$, and that turns out to be
+unique whenever $2L \le N$, by an argument that only needs $Q(0)$ to be a
+unit --- not that the ring is a field.
+
+\begin{theorembox}[(Uniqueness of the extrapolation, over any commutative ring)]
+Let $R$ be a commutative ring with unit and $L$ a nonnegative integer with
+$2L \le N$. If $(P_1, Q_1)$ and $(P_2, Q_2)$ both satisfy $\deg P_i \le L-1$,
+$\deg Q_i \le L$, $Q_i(0) = 1$, and $S(x) \equiv P_i(x)/Q_i(x) \pmod{x^N}$,
+then $P_1(x)/Q_1(x) = P_2(x)/Q_2(x)$ as formal power series.
+
+\emph{Proof.} Clearing denominators in $P_1/Q_1 \equiv P_2/Q_2 \pmod {x^N}$
+gives $P_1 Q_2 \equiv P_2 Q_1 \pmod{x^N}$. Both sides have degree at most
+$2L - 1 < N$, so a congruence modulo $x^N$ between them is an exact equality
+of polynomials: $P_1 Q_2 = P_2 Q_1$. Multiplying both sides by the formal
+power series $(Q_1 Q_2)^{-1}$ (which exists since $Q_1(0) = Q_2(0) = 1$)
+gives $P_1/Q_1 = P_2/Q_2$. \qed
+\end{theorembox}
+
+So even though the $m=4$ example has two different minimal recurrences, they
+predict the same continuation (both say ``the next term is $2$''), and that
+is all that is needed for the typical competitive-programming use of this
+machinery: guess a recurrence from a prefix, then use it to jump to a huge
+index $K$.
+
+\section{Reducing to Prime Powers}
+Factor $m = \prod_{j} p_j^{e_j}$. The plan is to solve the recovery problem
+modulo each $p_j^{e_j}$ independently and recombine.
+
+\begin{theorembox}[(CRT reduction)]
+Let $(L, Q(x))$ be a minimal solution mod $m$, and let $(L_j, Q_j(x))$ be a
+minimal solution mod $p_j^{e_j}$ for each $j$. Then $L = \max_j L_j$, and a
+minimal solution mod $m$ is obtained by CRT-combining the $Q_j(x)$
+coefficient-by-coefficient.
+
+\emph{Proof sketch.} Reducing the mod-$m$ solution $(L,Q)$ modulo each
+$p_j^{e_j}$ gives an admissible pair there (admissibility only involves
+congruences, which survive reduction), so $L_j \le L$ for every $j$. Now CRT
+the per-prime-power solutions together into a single $\tilde Q(x)$ of degree
+$\max_j L_j$: this reduces correctly modulo each $p_j^{e_j}$, hence is
+admissible modulo $m$ (admissibility mod a product of coprime moduli is
+equivalent to admissibility mod each factor). So $L \le \max_j L_j$ too,
+giving equality. \qed
+\end{theorembox}
+
+This turns the general problem into: \emph{solve the recovery problem modulo
+a single prime power $p^e$.} That is where Reeds--Sloane's real content
+lives.
+
+% FIGURE: rec_crt
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm and 1.0cm]
+\node[lnode,minimum width=3.1cm] (in) {sequence $A_0,A_1,\dots$ \\ and modulus $m$};
+\node[lnode,minimum width=2.4cm,right=of in] (fac) {factor\\ $m=\prod p_j^{e_j}$};
+\node[lnode,minimum width=3.4cm,lhi,above right=0.2cm and 1.0cm of fac] (a) {Reeds--Sloane\\ modulo $p_1^{e_1}$};
+\node[lnode,minimum width=3.4cm,lhi,below right=0.2cm and 1.0cm of fac] (b) {Reeds--Sloane\\ modulo $p_2^{e_2}$};
+\node[lnode,minimum width=3.0cm,right=3.1cm of fac,yshift=0pt] (crt) {CRT, coefficient\\ by coefficient};
+\node[lnode,minimum width=3.4cm,lhi2,right=of crt] (out) {recurrence mod $m$\\ of length $\max_j L_j$};
+\draw[larrow] (in) -- (fac);
+\draw[larrow] (fac) -- (a); \draw[larrow] (fac) -- (b);
+\draw[larrow] (a) -- (crt); \draw[larrow] (b) -- (crt);
+\draw[larrow] (crt) -- (out);
+\end{tikzpicture}
+\caption{Recovering a recurrence modulo a composite $m$. The modulus is factored, a minimal recurrence is found modulo each prime power by the Reeds--Sloane algorithm (which avoids dividing by non-units), and the results are glued by the Chinese remainder theorem; the length is the maximum of the per-prime-power lengths.}\label{fig:rec_crt}
+\end{figure}
+
+\section{The Prime-Power Case}
+
+Fix $m = p^e$. The obstruction identified earlier was division: Berlekamp--
+Massey's patch step needs to divide by a discrepancy, and a discrepancy in
+$\mathbb{Z}/p^e\mathbb{Z}$ might be a nonzero multiple of $p$, which has no
+inverse.
+
+The fix is to stop insisting on a single running candidate recurrence.
+Instead, maintain $e$ of them in parallel, indexed by ``valuation level''
+$j = 0, 1, \ldots, e-1$: slot $j$ holds the best recurrence found so far
+among those with constant term \emph{exactly} $p^{j}$ (rather than $1$).
+Every nonzero element of $\mathbb{Z}/p^e\mathbb{Z}$ decomposes uniquely as
+$t \cdot p^{u}$ with $t$ a unit and $0 \le u < e$ (its $p$-adic valuation
+$u$ and unit part $t$), so a discrepancy that cannot be inverted directly
+can still be matched, exactly, against the constant term of \emph{some}
+slot --- namely slot $k = e - 1 - u$. That match is what makes a valid
+cancellation possible: dividing a unit by a unit is always fine.
+
+\subsection{State}
+For each slot $j = 0, \ldots, e-1$, after processing $n$ terms of $S$, we
+maintain:
+\begin{itemize}[leftmargin=1.5em]
+  \item the current candidate $Q_j(x)$, with $[x^0]Q_j(x) = p^{j}$,
+        $\deg Q_j \le L_j$, minimal $L_j$ such that $[x^i]Q_j(x)S(x) = 0$
+        for $L_j \le i < n$;
+  \item auxiliary data $(B_j(x), L_{B,j}, n_{B,j}, t_{B,j})$ recording the
+        state of slot $j$ the last time $L_j$ increased --- this is exactly
+        the ``most recent mismatch'' that ordinary Berlekamp--Massey keeps a
+        single copy of, except here each slot keeps its own.
+\end{itemize}
+Initially $Q_j(x) = p^{j}$ (a constant), $L_j = 0$, and no auxiliary data
+exists for any slot.
+
+\subsection{One step}
+At step $n$ (processing $S_n$), for every slot $j$ compute the discrepancy
+$\Delta_j = [x^n]\,Q_j(x)S(x)$ under the \emph{current} $Q_j$. If
+$\Delta_j = 0$, slot $j$ needs no change. Otherwise write
+$\Delta_j = t_j\, p^{u_j}$ (unit times prime power), and let
+$k = e - 1 - u_j$.
+
+\begin{itemize}[leftmargin=1.5em]
+\item If slot $k$ has no auxiliary data yet, there is nothing to cancel
+      with: leave $Q_j(x)$ unchanged and set $L_j \leftarrow n+1$ (the
+      recurrence is provisionally declared to need the whole prefix).
+\item Otherwise, let $c = t_j \cdot t_{B,k}^{-1}$ --- valid since $t_{B,k}$
+      is a unit by construction --- and update
+      \[
+        Q_j(x) \;\leftarrow\; Q_j(x) \;-\; c\, x^{\,n - n_{B,k}}\, B_k(x),
+        \qquad
+        L_j \;\leftarrow\; \max\bigl(L_j,\; L_{B,k} + n - n_{B,k}\bigr).
+      \]
+      This is structurally identical to the Berlekamp--Massey patch, with
+      the donor $B_k$ drawn from a different slot's history rather than the
+      same slot's own.
+\end{itemize}
+
+Finally, for every slot $j$ whose $L_j$ increased this step, snapshot the
+\emph{old} state of slot $k = e-1-u_j$ (the donor used above, before this
+step's updates) as the new auxiliary data for slot $j$:
+\[
+  B_j \leftarrow Q_k,\quad L_{B,j} \leftarrow L_k,\quad
+  n_{B,j} \leftarrow n,\quad t_{B,j} \leftarrow t_k .
+\]
+Note the asymmetry: cancellation for slot $j$ borrows a \emph{donor}
+indexed by $k = e-1-u_j$, but the auxiliary data saved \emph{into} slot $j$
+records $k$'s own unit $t_k$, not $j$'s. This is what makes the recursion
+close up on itself: an inductive argument (parallel to Berlekamp--Massey's
+own minimality proof, done separately at each valuation level) shows the
+pairing $j \leftrightarrow k$ is exactly self-consistent, so slot $j$'s
+saved data always has the unit-multiple relationship needed for some later
+slot to use it validly.
+
+After all $N$ terms are processed, slot $0$ holds the answer: it is the one
+whose constant term is $p^0 = 1$, matching the original problem.
+
+\begin{notebox}
+When $e = 1$ (i.e.\ $m$ is itself prime), there is only one slot, $j = 0$,
+and $k = e - 1 - u_j$ is forced to equal $0$ as well: the algorithm
+degenerates exactly to ordinary Berlekamp--Massey, matching against its own
+history. The machinery above is genuinely only needed once $e \ge 2$.
+\end{notebox}
+
+\section{Complexity}
+Given the factorization $m = \prod_j p_j^{e_j}$ with $E = \sum_j e_j$, a
+direct implementation (recomputing each slot's discrepancy from scratch as a
+length-$O(N)$ dot product) runs in
+\[
+  O\!\left(N^2 E + N E \log m\right)
+\]
+time: the $N^2 E$ term is the discrepancy computations across all slots and
+all steps, and the $\log m$ factor accounts for the modular inverses.
+
+\section{Reference Implementations}
+Both examples below implement the full pipeline: factor $m$, run the
+prime-power algorithm on each factor, and recombine with CRT.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Examples}
+\begin{examplebox}
+Modulo $12 = 4 \times 3$, the Fibonacci-style sequence
+$S_i = S_{i-1} + S_{i-2}$ (with $S_0 = S_1 = 1$) is recovered from ten terms
+as $L = 2$, $Q(x) = 1 - x - x^2$ (i.e.\ coefficients $[1, 11, 11]$, since
+$-1 \equiv 11 \pmod{12}$) --- exactly the expected characteristic
+polynomial, obtained here purely from prefix data over a non-prime modulus.
+
+For $S = (2,2,\ldots,2) \bmod 4$, the algorithm returns $Q(x) = 1 - x$ (one
+of the two valid minimal recurrences from the non-uniqueness example above);
+extrapolating with it continues to predict $2$ at every future position, as
+guaranteed by the uniqueness-of-extrapolation theorem.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item J. A. Reeds, N. J. A. Sloane, ``Shift-Register Synthesis (Modulo
+        $m$)'', \emph{SIAM Journal on Computing} 14(3), 1985, pp.\ 505--513.
+\end{itemize}
+
+\end{document}

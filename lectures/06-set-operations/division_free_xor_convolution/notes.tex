@@ -1,0 +1,232 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{XOR Convolution (Division-Free)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Set Operations \& Functions}{XOR Convolution (Division-Free)}{8}
+
+\section{Overview}
+The XOR convolution of two length-$2^N$ arrays is classically computed
+in $O(N\cdot 2^N)$ time via the Walsh--Hadamard transform. That
+algorithm divides by $2$ (or a power of $2$) at some point, which is
+fine when the coefficient ring has a multiplicative inverse for $2$, but
+XOR convolution itself is defined using only ring operations (addition,
+subtraction, multiplication) --- so it is natural to ask whether a
+division-free algorithm exists at all. This lecture develops one,
+running in $O(N^2\cdot 2^N)$, originally posed as
+\href{https://uoj.ac/contest/103/problem/1015}{UOJ Long Round 3,
+Problem D}. The technique needed is rarely essential in practice (the
+two most common competitive-programming rings, $\mathbb{Z}$ and
+$\mathbb{Z}/m\mathbb{Z}$, both admit workarounds using the ordinary
+Walsh--Hadamard approach --- see \S3), but it is a good illustration of
+how a constraint as simple as ``no division'' can force a genuinely
+different algorithmic idea onto a classical problem. Assumes XOR
+convolution via the Walsh--Hadamard transform, and subset convolution.
+
+\section{Setup}
+Fix a ring $R$ with addition and multiplication satisfying: $R$ under
+addition is an abelian group; $R$ under multiplication is a monoid; and
+the distributive law holds (see the Algebraic Structure Terminology
+lecture's definition of a ring). Multiplication need not be commutative
+for anything in this lecture. Every ring operation is treated as
+$O(1)$. If a ring feels too abstract, it is safe to read $R=\mathbb{Z}$
+and think of the constraint as simply ``no division allowed.''
+
+Subsets of $\{0,\ldots,N-1\}$ are identified with integers in
+$[0,2^N)$ as usual, and $R^{2^N}$ denotes length-$2^N$ arrays of $R$.
+
+\begin{definitionbox}[Problem 1]
+Given $A,B \in R^{2^N}$, compute $C \in R^{2^N}$ defined by
+\[
+  C_U = \sum_{S \oplus T = U} A_SB_T.
+\]
+\end{definitionbox}
+
+\begin{notebox}
+When $2$ has a multiplicative inverse in $R$, the Walsh--Hadamard
+transform solves this in $O(N\cdot2^N)$, but that solution divides by
+$2$ (or $2^N$) somewhere and so does not directly apply otherwise. Two
+of the most common rings in competitive programming turn out to have
+workarounds even so: over $\mathbb{Z}$, although $2^N$ has no inverse in
+$\mathbb{Z}$, ``given $2^Nx$, recover $x$'' is still solvable exactly
+(divide the integer, don't invert the ring element), so the
+Walsh--Hadamard approach still applies; and over $\mathbb{Z}/m\mathbb{Z}$,
+one can lift to $\mathbb{Z}$, convolve there, and reduce mod $m$ at the
+end (using a wide enough integer type, or a handful of prime moduli and
+CRT, for large $m$). The genuinely hard case --- and the reason a
+division-free algorithm is worth having at all --- is a ring where
+\emph{no} such workaround exists, such as $\mathbb{Z}/2^k\mathbb{Z}$,
+where $2$ is a zero divisor and no amount of cleverness recovers a
+division by $2$.
+\end{notebox}
+
+\section{From XOR Convolution to a Polynomial Identity}
+Introduce commuting indeterminates $x_0,\ldots,x_{N-1}$ over $R$, and
+for $S\subseteq\{0,\ldots,N-1\}$ write $x^S = \prod_{i\in S}x_i$.
+Associate to $A\in R^{2^N}$ the multilinear polynomial
+$A(x) = \sum_S A_Sx^S$ (and likewise for $B,C$).
+
+\begin{theorembox}
+$C$ is the XOR convolution of $A$ and $B$ if and only if
+\[
+  A(x)B(x) \equiv C(x) \pmod{x_0^2-1,\ldots,x_{N-1}^2-1}.
+\]
+\end{theorembox}
+This follows directly from the definition of XOR: expanding $A(x)B(x)$
+produces a term $A_SB_Tx^{S}x^{T}$ for every pair $(S,T)$, and
+$x^Sx^T \equiv x^{S\oplus T}$ modulo $\{x_i^2-1\}$ precisely because
+$x_i^2\equiv 1$ cancels the exponent of $x_i$ whenever $i$ appears in
+both $S$ and $T$ (matching $\oplus$'s ``cancel on overlap'' behavior),
+while leaving it untouched when $i$ appears in exactly one of them. So
+computing $C(x)$ means: multiply $A(x)B(x)$ as polynomials, then reduce
+every $x_i^2$ to $1$.
+
+% FIGURE: xor_pipeline
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm and 1.9cm]
+\node[lnode,minimum width=2.5cm] (xin) {$A(x),\,B(x)$\\ \scriptsize in the $x$-basis};
+\node[lnode,minimum width=2.5cm,lhi,right=of xin] (yin) {$A_1(y),\,B_1(y)$\\ \scriptsize $x_i=y_i-1$};
+\node[lnode,minimum width=2.5cm,lhi,right=of yin] (yout) {$C_1(y)$\\ \scriptsize mod $y_i^2-2y_i$};
+\node[lnode,minimum width=2.5cm,right=of yout] (xout) {$C(x)$\\ \scriptsize $y_i=x_i+1$};
+\draw[larrow] (xin) -- (yin) node[midway,above,llabel] {$x\to y$};
+\draw[larrow] (yin) -- (yout) node[midway,above,llabel] {ranked OR};
+\draw[larrow] (yout) -- (xout) node[midway,above,llabel] {$y\to x$};
+\draw[larrow,lectureink!45,dashed,rounded corners=6pt] (xin.south) -- ++(0,-1.0) -| (xout.south);
+\node[llabel,below=1.1cm of yin.south east,xshift=0.2cm] {Walsh--Hadamard (needs division by $2$)};
+\end{tikzpicture}
+\caption{The division-free pipeline. A direct route (dashed) is the Walsh--Hadamard transform, which divides by $2$. Changing variables to $y_i=x_i+1$ turns the relation $x_i^2=1$ into $y_i^2=2y_i$, whose products are computed by a ranked OR-convolution (the subset-convolution machinery) using only additions, subtractions and multiplications; a second basis change returns to $x$. Each stage costs $O(N^2 2^N)$ or less.}\label{fig:xor_pipeline}
+\end{figure}
+
+\section{A Change of Basis}
+Substitute $y_i = x_i+1$ (equivalently $x_i=y_i-1$). Since
+$x_i^2-1 = (y_i-1)^2-1 = y_i^2-2y_i$, solving the original problem
+reduces to:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Find $A_1 \in R^{2^N}$ with $A(x)=A_1(y)$.
+  \item Find $B_1 \in R^{2^N}$ with $B(x)=B_1(y)$.
+  \item Find $C_1 \in R^{2^N}$ with
+        $C_1(y) \equiv A_1(y)B_1(y) \pmod{y_0^2-2y_0,\ldots,y_{N-1}^2-2y_{N-1}}$.
+  \item Find $C \in R^{2^N}$ with $C_1(y)=C(x)$.
+\end{enumerate}
+Steps 1, 2, 4 are easy: for a single variable, $a_0+a_1x_i =
+a_0+a_1(y_i-1) = (a_0-a_1)+a_1y_i$, so converting the $x$-basis
+coefficients to the $y$-basis is, independently for each variable $i$,
+the map $(a_0,a_1)\mapsto(a_0-a_1,a_1)$ on the pair of coefficients
+differing only in whether $x_i$ divides the monomial. Doing this for
+$i=0,\ldots,N-1$ in turn costs $O(N\cdot 2^N)$ (equivalently: it is the
+Kronecker product of $N$ copies of a fixed $2\times2$ matrix). Step 4 is
+the same idea in reverse: $b_0+b_1y_i = (b_0+b_1)+b_1x_i$, i.e.\
+$(b_0,b_1)\mapsto(b_0+b_1,b_1)$.
+
+\begin{notebox}
+Steps 1 and 2 are the \emph{superset M\"obius transform}, and step 4 is
+the \emph{superset zeta transform}, from the Zeta \& M\"obius Transform
+lecture --- applied here to a different pair of ``basis vectors''
+($\{1,x_i\}$ vs.\ $\{1,y_i\}$) than the usual subset-indicator framing,
+but the same per-bit mechanism.
+\end{notebox}
+
+Step 3 --- multiplying modulo $y_i^2-2y_i$ rather than $y_i^2-1$ --- is
+the one genuinely new ingredient, tackled next.
+
+\section{Multiplication Modulo \texorpdfstring{$y_i^2-2y_i$}{y\_i\^{}2 - 2y\_i}}
+\begin{definitionbox}[Problem 2]
+Given $A,B\in R^{2^N}$, compute $C\in R^{2^N}$ defined by
+\[
+  C_U = \sum_{S\cup T=U} A_SB_T\cdot 2^{|S|+|T|-|U|}.
+\]
+\end{definitionbox}
+Without the $2^{|S|+|T|-|U|}$ factor, this is exactly OR-convolution,
+solvable via subset zeta/M\"obius transforms. The factor requires
+tracking $|S|+|T|$ alongside the OR-convolution itself --- the same
+obstacle subset convolution faces when it needs $|S|+|T|=|U|$ tracked
+exactly rather than discarded. Indeed, subset convolution is exactly
+Problem 2's ``$|S|+|T|=|U|$ terms only'' special case:
+$C_U = \sum_{S\cup T=U,\,|S|+|T|=|U|}A_SB_T$.
+
+\begin{theorembox}[Ranked OR-convolution, i.e.\ subset convolution's technique]
+Form polynomials $\hat A_S(t) = A_S\,t^{|S|}$, $\hat B_T(t)=B_T\,t^{|T|}$
+(coefficients in $R$, one indeterminate $t$ tracking set size), and
+compute their OR-convolution
+$\hat C_U(t) = \sum_{S\cup T=U}\hat A_S(t)\hat B_T(t)$ --- a polynomial
+in $t$ of degree $\le 2N$ for each $U$. This is computable in
+$O(N^2\cdot 2^N)$: take the subset zeta transform of each of the $N+1$
+coefficient-of-$t^k$ slices of $\hat A$ and of $\hat B$ (each transform
+$O(N\cdot2^N)$, so $O(N^2\cdot2^N)$ total); at each $U$, multiply the two
+resulting degree-$\le N$ polynomials in $t$ pointwise ($O(N^2)$ per $U$,
+so $O(N^2\cdot2^N)$ total); then take the subset M\"obius transform of
+each of the resulting $2N+1$ coefficient-of-$t^r$ slices
+($O(N^2\cdot2^N)$ total) to recover $\hat C_U(t)$ exactly.
+\end{theorembox}
+This is precisely the standard subset-convolution algorithm, just kept
+as a full polynomial in $t$ rather than reading off only the
+$t^{|U|}$ coefficient at the end.
+
+\begin{theorembox}
+Problem 2 is solved by computing $\hat C_U(t)$ as above and setting
+\[
+  C_U = \sum_{r=|U|}^{2N} [t^r]\hat C_U(t)\cdot 2^{\,r-|U|}.
+\]
+Since $r=|S|+|T|\ge|S\cup T|=|U|$ whenever $[t^r]\hat C_U(t)\ne0$, the
+exponent $r-|U|$ is always a nonnegative integer, so this uses only
+repeated multiplication by $2$ --- no division. Total time
+$O(N^2\cdot2^N)$.
+\end{theorembox}
+
+Combining this with the $O(N\cdot2^N)$ basis-change steps from \S4
+solves Problem 1 (XOR convolution) in $O(N^2\cdot2^N)$ time, using only
+ring operations throughout.
+
+\section{Reference Implementations}
+The examples below implement every piece separately and cross-check
+them: the $x\leftrightarrow y$ basis change is checked to round-trip
+exactly; the ranked OR-convolution routine (Problem 2) is checked
+against an $O(4^N)$ brute-force evaluation of its defining sum; and the
+full division-free XOR convolution pipeline is checked against an
+$O(4^N)$ brute-force XOR convolution. All arithmetic is carried out
+modulo $2^{20}$ specifically \emph{because} that is a ring in which $2$
+is a zero divisor ($2\cdot2^{19}\equiv 0$) and therefore has no
+multiplicative inverse --- so a Walsh--Hadamard-transform-based solution
+could not be used here at all, while this lecture's algorithm works
+unmodified, which is exactly the point of the lecture.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Over $\mathbb{Z}/2^{20}\mathbb{Z}$: the $x\leftrightarrow y$ basis change
+round-trips exactly across 100 random arrays (sizes up to $2^8$); the
+ranked OR-convolution routine matches a direct $O(4^N)$ evaluation of
+$\sum_{S\cup T=U}A_SB_T2^{|S|+|T|-|U|}$ across 100 random trials (sizes
+up to $2^6$); and the full pipeline matches a direct $O(4^N)$ XOR
+convolution across 100 further random trials, confirming the algorithm
+correctly computes XOR convolution in a ring where the classical
+Walsh--Hadamard approach is simply unavailable.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item Library Checker, ``Bitwise Xor Convolution'':
+        \url{https://judge.yosupo.jp/problem/bitwise_xor_convolution}
+  \item UOJ Long Round 3, Problem D (the contest problem motivating this
+        lecture):
+        \url{https://uoj.ac/contest/103/problem/1015}
+  \item Bj\"orklund, Husfeldt, Kaski, Koivisto, ``Fourier meets M\"obius:
+        fast subset convolution,'' STOC 2007:
+        \url{https://doi.org/10.1145/1250790.1250801}
+\end{itemize}
+
+\end{document}

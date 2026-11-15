@@ -1,0 +1,244 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Wavelet Matrix (Basics)}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Data Structures}{Wavelet Matrix (Basics)}{6}
+
+\section{Overview}
+Fix a static array $A = (A_0, \ldots, A_{N-1})$ of integers in
+$[0, 2^H)$. A \emph{wavelet matrix} answers, for any query range
+$[L, R)$, questions about the multiset $\{A_L, \ldots, A_{R-1}\}$ that a
+binary trie built just from those elements could answer --- in
+$O(H)$ time, without ever building that trie. This lecture covers two such
+questions:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item the $k$-th smallest value among $A_L, \ldots, A_{R-1}$ (0-indexed);
+  \item the number of elements of $A_L, \ldots, A_{R-1}$ lying in $[a, b)$.
+\end{itemize}
+
+The construction generalizes well past these two queries once its
+mechanics are clear; a follow-up lecture on further applications is out of
+scope here.
+
+\section{Binary Tries, Briefly}
+A height-$H$ binary trie over a multiset of integers in $[0, 2^H)$ is the
+binary tree obtained by classifying each integer by its bits, most
+significant first. A node at height $h$ (the root has height $H$, leaves
+height $0$) corresponds to an interval $[l, r)$ with $r - l = 2^h$; its left
+child holds the elements whose next bit (the $(h-1)$-th) is $0$, its right
+child those whose bit is $1$.
+
+\begin{definitionbox}
+If every node stores only the \emph{count} of elements below it, two queries
+become easy in $O(H)$ time by walking root to leaf:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{$k$-th smallest} (0-indexed): at each internal node, let $x$
+        be the left child's count. If $k < x$, descend left; otherwise
+        descend right with $k \leftarrow k - x$.
+  \item \textbf{count $< a$}: track the node's integer interval $[l, r)$ as
+        you descend, with $m = (l+r)/2$ splitting it. If $a \le m$, all
+        qualifying elements are in the left child, so descend left.
+        Otherwise every element in the left child is $< a$: add the left
+        child's count to a running answer and descend right. A range count
+        on $[a, b)$ is then (count $< b$) $-$ (count $< a$).
+\end{itemize}
+\end{definitionbox}
+
+Building one trie for each of $O(N)$ possible query ranges is obviously too
+slow. The wavelet matrix's contribution is to let \emph{one} structure,
+built once in $O(NH)$, answer the trie query above for \emph{any} range
+$[L, R)$ on demand.
+
+\section{From Wavelet Tree to Wavelet Matrix}
+
+\subsection{The key stability observation}
+Suppose each trie node stores its elements \emph{in their original index
+order} rather than unordered. Then restricting the whole array to a range
+$[L, R)$ restricts every node's stored elements to some contiguous
+sub-range of what it would otherwise hold --- because a node's content is a
+stable sub-selection of its parent's content (elements keep their relative
+order as they're partitioned by bit), a contiguous range of indices at the
+root stays contiguous after any prefix of bit-tests. This is the whole idea
+behind a \emph{wavelet tree}: a binary trie augmented, at every internal
+node, with enough information (a prefix-sum of which child each element
+went to) to compute that node's sub-range for any $[L, R)$ given the
+parent's sub-range.
+
+\subsection{Flattening it}
+A wavelet tree stores this per-node information node by node. A
+\emph{wavelet matrix} rearranges the same information level by level
+instead: at height $h$, concatenate every node's ``did this element go
+left or right'' bit sequence, in left-to-right node order, into one array
+of length $N$. Because sibling nodes' element blocks are contiguous and
+appear in a fixed left-then-right order at each level, this reshuffling
+loses nothing --- the position of the interval boundaries between nodes at
+a given height is itself recoverable from the data, exactly the way a node's
+integer interval in a plain trie is recoverable from the path taken to
+reach it.
+
+The payoff is a much simpler physical layout: $H$ bit-arrays of length $N$,
+each with a rank (prefix-sum) table, and nothing else.
+
+\subsection{The core operation}
+Represent a trie node by a triple $(h, [l, r))$: it is the node at height
+$h$, and the elements currently assigned to it occupy positions $[l, r)$ in
+the height-$h$ bit-array (equivalently, of the array as reordered after
+$H - h$ levels of partitioning). Let $\mathrm{dat}_h[i]$ be the number of
+$1$-bits among the first $i$ entries of the height-$h$ bit-array (its rank
+table). Then the two children of $(h+1, [l, r))$ are computable in $O(1)$:
+letting
+\[
+  a_1 = \mathrm{dat}_h[l],\quad a_0 = l - a_1, \qquad
+  b_1 = \mathrm{dat}_h[r],\quad b_0 = r - b_1, \qquad
+  c_0 = N - \mathrm{dat}_h[N],
+\]
+the left child is $(h, [a_0, b_0))$ and the right child is
+$(h, [c_0 + a_1,\, c_0 + b_1))$.
+
+\begin{notebox}
+Why this formula: $a_0$ (resp.\ $b_0$) counts how many of the first $l$
+(resp.\ $r$) elements at this level went left, so $[a_0, b_0)$ is exactly
+where our slice's ``went-left'' elements land among all the went-left
+elements globally --- and all went-left elements are stored first at height
+$h$ (positions $[0, c_0)$, with $c_0$ the total left-count). The
+went-right elements come right after, at $[c_0, N)$, so the same
+counting argument applied to $a_1, b_1$ (now counting within the
+went-right elements) gives the offset $c_0 + a_1$.
+\end{notebox}
+
+% FIGURE: wm_levels
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.05cm,y=1.25cm]
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,0) {\textcolor{lecturewarn}{\textbf{1}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,0) {\textcolor{lecturewarn}{\textbf{0}}11};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,0) {\textcolor{lecturewarn}{\textbf{1}}10};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,0) {\textcolor{lecturewarn}{\textbf{0}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,0) {\textcolor{lecturewarn}{\textbf{1}}01};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,0) {\textcolor{lecturewarn}{\textbf{0}}00};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,0) {\textcolor{lecturewarn}{\textbf{1}}11};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,0) {\textcolor{lecturewarn}{\textbf{0}}10};
+\node[llabel,anchor=east] at (-0.7,0) {input};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-1) {0\textcolor{lecturewarn}{\textbf{1}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-1) {0\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-1) {0\textcolor{lecturewarn}{\textbf{0}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-1) {0\textcolor{lecturewarn}{\textbf{1}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-1) {1\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-1) {1\textcolor{lecturewarn}{\textbf{1}}0};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-1) {1\textcolor{lecturewarn}{\textbf{0}}1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-1) {1\textcolor{lecturewarn}{\textbf{1}}1};
+\node[llabel,anchor=east] at (-0.7,-1) {after bit 2};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-2) {00\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-2) {00\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-2) {10\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-2) {10\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-2) {01\textcolor{lecturewarn}{\textbf{1}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-2) {01\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-2) {11\textcolor{lecturewarn}{\textbf{0}}};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-2) {11\textcolor{lecturewarn}{\textbf{1}}};
+\node[llabel,anchor=east] at (-0.7,-2) {after bit 1};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (0,-3) {000};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (1,-3) {010};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (2,-3) {110};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (3,-3) {001};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (4,-3) {101};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (5,-3) {101};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (6,-3) {011};
+\node[lcell,minimum width=0.95cm,font=\small\ttfamily] at (7,-3) {111};
+\node[llabel,anchor=east] at (-0.7,-3) {after bit 0};
+\draw[larrow] (7.8,-0.20) -- (7.8,-0.80) node[midway,right,llabel,align=left] {split on bit 2,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (3.5,-0.65) -- (3.5,-1.35);
+\draw[larrow] (7.8,-1.20) -- (7.8,-1.80) node[midway,right,llabel,align=left] {split on bit 1,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (3.5,-1.65) -- (3.5,-2.35);
+\draw[larrow] (7.8,-2.20) -- (7.8,-2.80) node[midway,right,llabel,align=left] {split on bit 0,\\ zeros first};
+\draw[lecturewarn,dashed,thick] (2.5,-2.65) -- (2.5,-3.35);
+\end{tikzpicture}
+\caption{Building a wavelet matrix for $a=(5,3,6,1,5,0,7,2)$ with $H=3$ bits. At each level the highlighted bit (most significant first) is read off every element and the array is stably partitioned with the zeros first; the dashed line marks the boundary $c_0$ between the two groups. Because every pass partitions the whole array, the final order is by bit-reversed value (here $0,2,6,1,5,5,3,7$), not sorted order.}\label{fig:wm_levels}
+\end{figure}
+
+\section{Build and Query Algorithms}
+
+\subsection{Build}
+Process heights $h = H-1$ down to $0$. At each height, with the array in
+its current order, read off the bit at position $h$ of every element,
+stably partition the array into ``bit $0$'' elements followed by ``bit
+$1$'' elements, and record the bit sequence's prefix sums as
+$\mathrm{dat}_h$ before moving on. Note that each pass partitions the
+\emph{whole} array, not each trie node separately, so the passes are those
+of a radix sort that handles the most significant bit \emph{first}; the
+final array is therefore ordered by the bit-reversed values rather than
+sorted (see Figure~\ref{fig:wm_levels}). The total work is $O(NH)$.
+
+\subsection{$k$-th smallest}
+Starting from the root $(H, [L, R))$, at each step compute the current
+node's two children via the formula above; if $k$ is less than the left
+child's size, descend left, otherwise subtract the left size from $k$ and
+descend right (recording a $1$ bit at this height in the answer). After $H$
+steps the accumulated bits are the answer, found in $O(H)$ time.
+
+\subsection{Range count in $[a, b)$}
+Define $\mathrm{countLess}(l, r, x)$, the number of elements of the current
+slice below $x$: walk from the root, and at each height compare $x$'s bit
+to the branch just as in the plain-trie version --- if $x$'s bit is $1$,
+every element that went left at this level is $< x$ regardless of lower
+bits, so add the left child's size to the running total and continue into
+the right child (comparing the remaining bits); if $x$'s bit is $0$,
+nothing is added and the walk continues into the left child only. The
+range-count answer is $\mathrm{countLess}(L, R, b) - \mathrm{countLess}(L,
+R, a)$, again $O(H)$ total.
+
+\begin{theorembox}
+Both queries above run in $O(H)$ time after $O(NH)$-time, $O(NH)$-space
+preprocessing.
+\end{theorembox}
+
+\section{A Note on rank}
+Both algorithms lean on $\mathrm{dat}_h[i]$: a rank query, ``how many $1$s
+in the first $i$ bits.'' The examples below use a plain prefix-sum array
+per level, which is simple and already achieves the stated complexity.
+Competitive-programming implementations more often pack each level's bits
+into 64-bit words, store one running count per word (rather than per bit),
+and answer a rank query by adding a hardware \texttt{popcount} of the
+remaining partial word --- the same asymptotic $O(1)$ per query, with a
+much smaller constant and a fraction of the memory. Taken further, with a
+genuinely succinct rank/select structure on each bit-array, the whole
+wavelet matrix can be stored in close to the information-theoretic minimum
+$NH(1+o(1))$ bits; that refinement is rarely the bottleneck in contest
+settings and is not covered here.
+
+\section{Reference Implementations}
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Let $A = (3,1,2,1,1,0,3,2,2)$, so $H = 2$. For the range $[2, 7)$ (values
+$2,1,1,0,3$), the sorted order is $0,1,1,2,3$, so the $0$-th smallest is
+$0$ and the $4$-th smallest is $3$ --- matching the reference
+implementations, which also cross-check every $(l, r, k)$ and $(l, r, a,
+b)$ combination against a brute-force scan over the whole array.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item F. Claude, G. Navarro, A. Ordóñez Pereira, ``The wavelet matrix: An
+        efficient wavelet tree for large alphabets'', \emph{Information
+        Systems} 47, 2015, pp.\ 15--32.
+  \item USACO Guide, \emph{Wavelet Tree}: \url{https://usaco.guide/adv/wavelet}
+\end{itemize}
+
+\end{document}

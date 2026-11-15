@@ -1,0 +1,183 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Parking Function}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Combinatorics}{Parking Function}{4}
+
+\section{Overview}
+A \emph{parking function} is a combinatorial object with a memorable
+story: $n$ cars, each with a preferred parking spot among $n$ numbered
+spots, try to park one at a time, each driver taking the first free spot
+at or after their preference (wrapping is not allowed --- if no such spot
+exists, parking fails outright). The sequence of preferences is a
+\emph{parking function} exactly when every car succeeds. The count of
+such sequences has a strikingly clean closed form, $(n+1)^{n-1}$, proved
+here by a clever trick: extend the parking lot into a circle.
+
+\section{Definition}
+\begin{definitionbox}
+Fix $n \ge 1$ and a sequence $a = (a_1, \ldots, a_n)$ with each
+$a_i \in \{1, \ldots, n\}$. Process cars $i = 1, \ldots, n$ in order: car
+$i$ scans spots $a_i, a_i+1, \ldots, n$ and parks in the first one still
+free, or the whole process fails if none is free. $a$ is a \emph{parking
+function} if every car parks successfully.
+\end{definitionbox}
+
+\begin{examplebox}
+For $n=5$, $(3,2,2,4,1)$ is a parking function: cars take spots
+$3,2,4,5,1$ respectively (car $3$ wants spot $2$ but finds it taken, so
+takes spot $4$; and so on). By contrast $(3,4,3,4,1)$ fails: by the time
+the fourth car (wanting spot $4$) arrives, spots $1,3,4$ are already
+taken by earlier cars, and no free spot $\ge 4$ remains.
+\end{examplebox}
+
+% FIGURE: pf_street
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.45cm,y=1.0cm]
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p1) at (1,0) {car 2};
+\node[llabel] at (1,-0.75) {spot 1};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p2) at (2,0) {car 1};
+\node[llabel] at (2,-0.75) {spot 2};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p3) at (3,0) {car 3};
+\node[llabel] at (3,-0.75) {spot 3};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p4) at (4,0) {car 4};
+\node[llabel] at (4,-0.75) {spot 4};
+\node[lcell,minimum width=1.3cm,minimum height=0.9cm,lhi] (p5) at (5,0) {car 5};
+\node[llabel] at (5,-0.75) {spot 5};
+\node[llabel,text=lectureaccent] at (2,1.0) {};
+\node[llabel,text=lectureaccent] at (1,1.0) {};
+\draw[larrow,lecturewarn,bend left=45] ([yshift=0.0cm]p2.north) to node[above,llabel] {car 3} (p3.north);
+\draw[larrow,lecturewarn,bend left=45] ([yshift=0.0cm]p1.north) to node[above,llabel] {car 4} (p4.north);
+\node[llabel,text=lectureaccent] at (5,1.0) {};
+\node[llabel,anchor=west,align=left] at (0.2,-1.55) {preferences $(a_1,\dots,a_5)=(2,1,2,1,5)$: cars 1, 2, 5 park at their preferred spot;\\ car 3 prefers 2 (taken) and moves on to 3; car 4 prefers 1 and drives on to 4.};
+\end{tikzpicture}
+\caption{Cars park one at a time; each takes its preferred spot or, if that is taken, the first free spot after it. Brown arcs show the cars that had to move past their preference. All five cars park, so $(2,1,2,1,5)$ is a parking function: its sorted entries $(1,1,2,2,5)$ satisfy $b_i\le i$.}\label{fig:pf_street}
+\end{figure}
+
+\section{Equivalent Characterizations}
+\begin{theorembox}
+For $a = (a_1,\ldots,a_n)$ with values in $\{1,\ldots,n\}$, the following
+are equivalent:
+\begin{enumerate}[leftmargin=1.5em]
+  \item $a$ is a parking function.
+  \item For every $k=1,\ldots,n$, at least $k$ of the $a_i$ satisfy
+        $a_i \le k$.
+  \item Sorting $a$ into $b_1 \le \cdots \le b_n$, every $b_k \le k$.
+  \item There is a permutation $p$ of $\{1,\ldots,n\}$ with $a_i \le p_i$
+        for every $i$ (take $p_i$ to be the spot car $i$ actually parks
+        in).
+\end{enumerate}
+
+\emph{Proof sketch.} (2)$\Leftrightarrow$(3) is immediate (re-sorting).
+(1)$\Rightarrow$(4): let $p_i$ be where car $i$ parks; it never parks
+before its preference, so $a_i \le p_i$, and no two cars share a spot, so
+$p$ is a permutation. (4)$\Rightarrow$(2): among the $k$ indices $i$ with
+$p_i \in \{1,\ldots,k\}$, each has $a_i \le p_i \le k$, giving at least
+$k$ such indices. (2)$\Rightarrow$(1) by induction on $n$: condition (2)
+guarantees some $a_{i_0}=1$; if any later $a_i=1$ too, changing it to $2$
+preserves both parking-function-ness (spot $1$ is already taken by car
+$i_0$ when car $i$ arrives, so its behavior doesn't change) and condition
+(2) (only the $k=1$ count could change, and it doesn't, by choice of
+$i_0$ as the first index with $a_i=1$); so WLOG $i_0$ is the only index
+with value $1$. Deleting $a_{i_0}$ and subtracting $1$ from every
+remaining entry yields a length-$(n{-}1)$ sequence that is a parking
+function (in the smaller sense) exactly when the original is, and
+satisfies condition (2) exactly when the original does --- so induction
+applies. \qed
+\end{theorembox}
+
+\begin{notebox}
+Condition (4) is a perfect matching statement, and the whole equivalence
+can also be derived from Hall's marriage theorem; the parking procedure
+itself is essentially a greedy algorithm for finding such a matching.
+\end{notebox}
+
+\section{Counting Parking Functions}
+\begin{theorembox}
+The number of parking functions of length $n$ is $(n+1)^{n-1}$.
+
+\emph{Proof.} Extend the lot to a \emph{circle} of $n+1$ spots numbered
+$0, \ldots, n$, and allow preferences $a_i \in \{0, \ldots, n\}$: car $i$
+now scans spots $a_i, a_i{+}1, \ldots, n, 0, 1, \ldots, a_i{-}1$ ---
+every spot, circularly --- so with only $n$ cars and $n+1$ spots, parking
+\emph{never} fails, and exactly one spot is left empty at the end.
+
+There are $(n+1)^n$ sequences $a \in \{0,\ldots,n\}^n$ in total. By the
+rotational symmetry of the circle (relabeling every spot by a fixed
+rotation just relabels which sequences leave which spot empty, without
+changing how many leave \emph{some} spot empty), the number of sequences
+leaving spot $s$ empty is the same for every $s \in \{0,\ldots,n\}$,
+hence equals $(n+1)^n / (n+1) = (n+1)^{n-1}$.
+
+It remains to identify ``sequences leaving spot $0$ empty'' with ordinary
+parking functions. If some $a_i = 0$, car $i$ finds spot $0$ free at its
+turn (nothing fills spot $0$ before any car explicitly aiming for it, as
+the circular scan reaches $0$ only after wrapping past $n$) and takes it
+immediately, so spot $0$ ends up occupied. So spot $0$ can only remain
+empty when every $a_i \in \{1,\ldots,n\}$ --- and for such $a$, the
+circular process, restricted to spots $\{1,\ldots,n\}$, behaves exactly
+like the ordinary (non-circular) parking process: a car only ever reaches
+spot $0$ via wraparound, which happens exactly when it would have failed
+to park in $\{1,\ldots,n\}$ under the ordinary rules. So spot $0$ stays
+empty exactly when every car parks within $\{1,\ldots,n\}$ under the
+ordinary process --- i.e.\ exactly when $a$ is an ordinary parking
+function. This identifies the two counts, giving $(n+1)^{n-1}$. \qed
+\end{theorembox}
+
+\subsection{A generalization}
+The same circular argument extends to sequences shorter than the lot.
+
+\begin{theorembox}
+For $1 \le m \le n$, the number of length-$m$ sequences
+$a=(a_1,\ldots,a_m)$ with values in $\{1,\ldots,n\}$ such that, for every
+$k=1,\ldots,n$, at least $m-n+k$ of the $a_i$ satisfy $a_i \le k$, is
+\[
+  (n+1-m)\,(n+1)^{m-1}.
+\]
+(The proof mirrors the one above, with $m$ cars circulating among $n+1$
+spots; each of the $n+1-m$ ways to leave $n+1-m$ spots simultaneously
+untouched contributes equally by the same symmetry argument.)
+\end{theorembox}
+
+\section{Reference Implementations}
+Both examples below implement the direct simulation, the threshold
+condition, and the circular extension, cross-checking all three against
+each other (and against Proposition 5's generalized count) by brute
+force, plus reproducing the lecture's own worked examples exactly.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Among the four sequences $(4,1,5,1,3)$, $(5,3,1,4,3)$, $(4,1,6,5,4,1)$,
+$(3,6,1,5,3,1)$, exactly the first and the last are parking functions ---
+confirmed both by direct simulation and by the threshold condition in
+both reference implementations. For $n=1,2,3,4,5$, brute force confirms
+$1, 3, 16, 125, 1296$ parking functions respectively, matching
+$(n+1)^{n-1}$.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item A. G. Konheim, B. Weiss, ``An Occupancy Discipline and
+        Applications'', SIAM Journal on Applied Mathematics 14(6), 1966,
+        pp.\ 1266--1274.
+  \item R. P. Stanley, \emph{Parking functions}:
+        \url{https://math.mit.edu/~rstan/transparencies/parking.pdf}
+\end{itemize}
+
+\end{document}

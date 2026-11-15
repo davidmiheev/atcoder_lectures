@@ -11,8 +11,8 @@
 \begin{document}
 \thispagestyle{fancy}
 
-% #1 category, #2 title, #3 difficulty 1-9, #4 AtCoder slug (used in the source URL)
-\lecturetitleband{CATEGORY NAME}{LECTURE TITLE}{N}{slug}
+% #1 category, #2 title, #3 difficulty 1-9
+\lecturetitleband{CATEGORY NAME}{LECTURE TITLE}{N}
 
 \section{Overview}
 Short original overview of the problem this technique solves.
@@ -32,13 +32,28 @@ State and (briefly) justify the main correctness/complexity claim.
 \section{Complexity}
 Time and space complexity discussion.
 
+% Illustrations: use TikZ inside a [H] figure, with the shared styles
+% (lnode, lcell, lhi, lhi2, larrow, lthin, llabel, lvert) from lecturestyle.sty.
+%
+% \begin{figure}[H]
+% \centering
+% \begin{tikzpicture}
+%   \node[lnode] (a) {start}; \node[lnode,lhi,right=of a] (b) {end};
+%   \draw[larrow] (a) -- (b);
+% \end{tikzpicture}
+% \caption{What the picture shows and why it matters.}\label{fig:example}
+% \end{figure}
+
+% Code: example.rs / example.py must contain `PDFBEGIN` and `PDFEND` marker
+% comments; only the lines between them are printed by \corelisting.
 \section{Reference Implementations}
 
+\codenote
 \subsection{Rust}
-\lstinputlisting[language=Rust]{example.rs}
+\corelisting{Rust}{example.rs}
 
 \subsection{Python}
-\lstinputlisting[language=Python]{example.py}
+\corelisting{Python}{example.py}
 
 \section{Worked Example}
 \begin{examplebox}

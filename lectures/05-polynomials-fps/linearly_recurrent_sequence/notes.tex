@@ -1,0 +1,365 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Linearly Recurrent Sequences}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Polynomials \& Formal Power Series}{Linearly Recurrent Sequences}{6}
+
+\section{Overview}
+A sequence is \emph{linearly recurrent} if it eventually satisfies a
+recurrence of the form $A_i = c_1 A_{i-1} + \cdots + c_d A_{i-d}$ with
+\emph{constant} coefficients $c_1,\ldots,c_d$ --- the Fibonacci sequence
+being the standard example. This class turns out to have two other
+characterizations that are often more useful than the recurrence itself:
+a linearly recurrent sequence's generating function is always a rational
+function, and the sequence is always expressible as a linear combination
+of the entries of $M^i$ for a fixed matrix $M$. This lecture develops
+both characterizations, uses them to show the class is closed under sum,
+convolution, and termwise product, and works through many examples of
+recognizing a sequence as linearly recurrent. Two follow-on problems ---
+computing a distant term quickly, and recovering an unknown recurrence
+from a prefix of the sequence --- are left to later lectures. Assumes
+formal power series (definition, multiplicative inverse), matrix
+multiplication and exponentiation, and (for one proof) the
+Cayley--Hamilton theorem.
+
+\section{Definition}
+Throughout, a commutative ring with unity $R$ is fixed, and every
+sequence element, polynomial coefficient, and matrix entry is taken from
+$R$; competitive programming typically means $R=\mathbb{Z}$,
+$\mathbb{Q}$, $\mathbb{Z}/n\mathbb{Z}$, or $\mathbb{F}_p$.
+
+\begin{definitionbox}
+A sequence $A=(A_0,A_1,A_2,\ldots)$ is \emph{linearly recurrent} if there
+is a positive integer $d$ and $c_1,\ldots,c_d \in R$ such that
+$A_i = c_1A_{i-1} + c_2A_{i-2} + \cdots + c_dA_{i-d}$ for all $i \ge d$.
+Such a relation is a \emph{constant-coefficient linear recurrence}, and
+$d$ is its \emph{order}.
+\end{definitionbox}
+
+\begin{notebox}
+The literature is not consistent on terminology: this class is variously
+called linearly recurrent, C-recursive, constant-recursive, or C-finite,
+and the coefficients are sometimes allowed to be eventually-constant
+rather than constant from the start (which does not change which
+sequences qualify, though it can change the minimal order of the
+recurrence they satisfy). The recurrence for a given sequence is also
+never unique --- $A_i=r^i$ satisfies $A_i=rA_{i-1}$, but also
+$A_i=r^2A_{i-2}$ and $A_i=(r-1)A_{i-1}+rA_{i-2}$, among others.
+\end{notebox}
+
+\begin{examplebox}
+Three standard examples: a geometric sequence $A_i=r^i$ satisfies
+$A_i=rA_{i-1}$; the Fibonacci sequence
+$F=(0,1,1,2,3,5,8,13,21,\ldots)$ satisfies $F_i=F_{i-1}+F_{i-2}$; and any
+sequence with period $p$ (i.e.\ $A_i=A_{i-p}$ for $i \ge p$) is linearly
+recurrent of order $p$.
+\end{examplebox}
+
+\section{Relation to Generating Functions}
+\begin{theorembox}
+For a sequence $A=(A_0,A_1,\ldots)$ with generating function
+$A(x)=\sum_{i\ge 0}A_ix^i$ and a positive integer $d$, the following are
+equivalent:
+\begin{enumerate}[leftmargin=1.7em]
+  \item $A$ satisfies a constant-coefficient linear recurrence of order
+        $d$.
+  \item There exist polynomials $P(x),Q(x)$ with $A(x)=P(x)/Q(x)$,
+        $\deg P < d$, $\deg Q \le d$, and $[x^0]Q(x)=1$.
+\end{enumerate}
+\end{theorembox}
+\begin{proof}
+(1 $\Rightarrow$ 2): Let $Q(x) = 1 - c_1x - \cdots - c_dx^d$ from the
+recurrence. For $i \ge d$, the coefficient $[x^i]\bigl(A(x)Q(x)\bigr)$
+equals $A_i - (c_1A_{i-1}+\cdots+c_dA_{i-d})$, which is $0$ by the
+recurrence. So $A(x)Q(x)$ is a polynomial $P(x)$ of degree $<d$, and
+$A(x)=P(x)/Q(x)$.
+
+(2 $\Rightarrow$ 1): With $Q(x)=1-c_1x-\cdots-c_dx^d$, the hypothesis
+$A(x)Q(x)=P(x)$ has degree $<d$, so $[x^i]\bigl(A(x)Q(x)\bigr)=0$ for
+$i \ge d$ --- which is exactly the statement that $A$ satisfies
+$A_i=c_1A_{i-1}+\cdots+c_dA_{i-d}$ for $i \ge d$.
+\end{proof}
+
+\begin{examplebox}
+For the Fibonacci sequence, $F_i - F_{i-1} - F_{i-2} = 0$ for $i \ge 2$
+gives $[x^i]\bigl((1-x-x^2)F(x)\bigr) = 0$ for $i \ge 2$; computing
+$(1-x-x^2)F(x)$ through the linear term gives exactly $x$, so
+\[
+  F(x) = \frac{x}{1-x-x^2}.
+\]
+Conversely, given $A(x) = \dfrac{1+2x}{1-2x-3x^2}$: clearing the
+denominator shows $A_i = 2A_{i-1}+3A_{i-2}$ for $i\ge 2$, and comparing
+the constant and linear coefficients of $(1-2x-3x^2)A(x)=1+2x$ gives
+$A_0=1$, $A_1=4$. The recurrence then gives
+$A_0,\ldots,A_5 = 1,4,11,34,101,304$ (reproduced exactly by the
+reference code below as a cross-check).
+\end{examplebox}
+
+% FIGURE: lrs_triangle
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\node[lnode,minimum width=6.6cm,lhi] (R) at (0,0) {recurrence\\ $A_i=c_1A_{i-1}+\dots+c_dA_{i-d}$ for $i\ge d$};
+\node[lnode,minimum width=5.2cm] (G) at (-3.9,-3.0) {rational generating function\\ $A(x)=P(x)/Q(x)$,\\ $\deg P<d$, $Q(0)=1$};
+\node[lnode,minimum width=5.2cm] (M) at (3.9,-3.0) {matrix power\\ $A_i=\sum_{p,q}w_{p,q}(M^i)_{p,q}$\\ for a $d\times d$ matrix $M$};
+\draw[larrow,<->] (R) -- (G) node[midway,above left,llabel,align=right] {$Q=1-\sum_k c_kx^k$\\[-1pt] $P=(AQ)\bmod x^d$};
+\draw[larrow,<->] (R) -- (M) node[midway,above right,llabel,align=left] {companion matrix $M$;\\[-1pt] Cayley--Hamilton};
+\draw[larrow,<->,lectureink!50] (G) -- (M);
+\end{tikzpicture}
+\caption{Three equivalent descriptions of a linearly recurrent sequence. Each arrow is a theorem proved in this lecture; closure under sums, convolutions and termwise products is easiest to see in the generating-function and matrix views respectively.}\label{fig:lrs_triangle}
+\end{figure}
+
+\section{Recognizing Linearly Recurrent Sequences}
+The rational-generating-function criterion makes it easy to build new
+linearly recurrent sequences from old ones.
+
+\begin{examplebox}
+\textbf{Prefix sums.} If $A$ is linearly recurrent with
+$A(x)=P(x)/Q(x)$, its prefix sums $B_i=\sum_{j=0}^i A_j$ have generating
+function $B(x)=A(x)/(1-x) = P(x)/\bigl((1-x)Q(x)\bigr)$, again rational
+--- so $B$ is linearly recurrent. For $A=F$ (Fibonacci),
+$B(x) = x/\bigl((1-x)(1-x-x^2)\bigr) = x/(1-2x+x^3)$, giving
+$B_i = 2B_{i-1}-B_{i-3}$.
+
+\textbf{Adding a linearly recurrent forcing term.} If $A_i =
+2A_{i-1}+3A_{i-2}+F_i$ for $i\ge 2$ (mixing in the Fibonacci sequence),
+then $[x^i]\bigl((1-2x-3x^2)A(x)-F(x)\bigr)=0$ for $i \ge 2$, so
+$(1-2x-3x^2)A(x)-F(x)$ is a polynomial of degree $\le 1$; substituting
+$F(x)=x/(1-x-x^2)$ and clearing denominators shows $A(x)$'s denominator
+divides $(1-x-x^2)(1-2x-3x^2)$, a degree-4 polynomial, so $A$ is linearly
+recurrent of order $\le 4$: concretely
+$A_i = 3A_{i-1}+2A_{i-2}-5A_{i-3}-3A_{i-4}$.
+
+\textbf{Interleaving.} Given the Fibonacci sequence $F$, define
+$A = (F_0, 1, F_1, 2, F_2, 4, F_3, 8, \ldots)$ (even positions from $F$,
+odd positions a geometric sequence). Writing $B(x),C(x)$ for the
+generating functions of the even- and odd-indexed subsequences,
+$A(x) = B(x^2) + xC(x^2)$; substituting the (rational) generating
+functions of $F$ and of $2^i$ gives a rational $A(x)$, so $A$ is linearly
+recurrent. Interleaving linearly recurrent sequences at a fixed period
+always produces a linearly recurrent sequence this way.
+\end{examplebox}
+
+\section{Relation to Matrix Powers}
+\begin{theorembox}
+For a sequence $A=(A_0,A_1,\ldots)$ and positive integer $d$, the
+following are equivalent:
+\begin{enumerate}[leftmargin=1.7em]
+  \item $A$ satisfies a constant-coefficient linear recurrence of order
+        $d$.
+  \item There is a $d\times d$ matrix $M$ such that $A_i$ is a linear
+        combination of the entries of $M^i$: constants $w_{p,q}$
+        ($0\le p,q<d$) with $A_i = \sum_{p,q} w_{p,q}(M^i)_{p,q}$.
+\end{enumerate}
+\end{theorembox}
+\begin{proof}
+(1 $\Rightarrow$ 2): With the recurrence
+$A_i=c_1A_{i-1}+\cdots+c_dA_{i-d}$ ($i\ge d$), let $V_i =
+(A_i,A_{i+1},\ldots,A_{i+d-1})^T$. The recurrence gives $V_{i+1}=MV_i$
+for the \emph{companion matrix}
+\[
+  M = \begin{pmatrix}
+    0&1&0&\cdots&0&0\\
+    0&0&1&\cdots&0&0\\
+    \vdots&&&\ddots&&\vdots\\
+    0&0&0&\cdots&0&1\\
+    c_d&c_{d-1}&c_{d-2}&\cdots&c_2&c_1
+  \end{pmatrix},
+\]
+so $V_i = M^iV_0$ for all $i\ge 0$. Comparing $0$-th entries,
+$A_i = \sum_{0\le j<d} A_j\cdot(M^i)_{0,j}$, a linear combination of
+$M^i$'s entries.
+
+(2 $\Rightarrow$ 1): By Cayley--Hamilton, $M^d = c_1M^{d-1}+\cdots+c_dI$
+for some constants $c_1,\ldots,c_d$ (the negated, reordered coefficients
+of $M$'s characteristic polynomial); multiplying by $M^{i-d}$ gives
+$M^i = c_1M^{i-1}+\cdots+c_dM^{i-d}$ for $i\ge d$, entrywise. Since $A_i$
+is a fixed linear combination of the entries of $M^i$, it inherits the
+same recurrence: $A_i = c_1A_{i-1}+\cdots+c_dA_{i-d}$.
+\end{proof}
+
+\begin{notebox}
+The matrix $M$ built from a recurrence's coefficients in the proof above
+is called the recurrence's \emph{companion matrix}; it (or its
+transpose, depending on convention) is a standard tool in the theory of
+linear recurrences and in the Frobenius normal form of a matrix.
+\end{notebox}
+
+\begin{examplebox}
+For $A_i = 5A_{i-1}+2A_{i-2}$, $A_0=A_1=1$ (which happens to be the
+$(0,0)$ entry of $M^i$ for $M=\begin{pmatrix}1&2\\3&4\end{pmatrix}$, by
+Cayley--Hamilton on $M^2-5M-2I=O$): the sequence begins
+$1,1,7,37,199,\ldots$. Chained or simultaneous recurrences reduce to the
+same framework: if $A_i=2A_{i-1}+3B_{i-1}$ and $B_i=4A_{i-1}+5B_{i-1}$,
+the vector $V_i=(A_i,B_i)^T$ satisfies $V_i = MV_{i-1}$ for
+$M=\begin{pmatrix}2&3\\4&5\end{pmatrix}$, so both $A_i$ and $B_i$ are
+linear combinations of $(M^i)$'s entries --- and this extends
+straightforwardly to recurrences with a polynomial-in-$i$ or
+another-linearly-recurrent-sequence forcing term, by folding extra state
+(such as $i$, or $F_i$ and $F_{i+1}$) into the vector. This
+matrix-power view is also how many DP state-transition problems (e.g.\
+counting strings avoiding a forbidden substring, or counting walks in a
+fixed graph) are recognized as linearly recurrent: the transition matrix
+\emph{is} a companion-like matrix for the resulting count sequence.
+\end{examplebox}
+
+\section{Polynomial and Geometric Sequences}
+\begin{theorembox}
+Let $f(x)$ be a polynomial of degree $\le k$ and $A_i=f(i)$. Then the
+generating function of $A$ has the form
+$A(x) = P(x)/(1-x)^{k+1}$ for some polynomial $P(x)$ of degree $\le k$;
+in particular $A$ is linearly recurrent of order $\le k+1$.
+\end{theorembox}
+\begin{proof}[Proof sketch]
+Define $P_0(x)=f(x)$ and $P_{j+1}(x)=P_j(x)-P_j(x-1)$; each step drops
+the degree by $1$, so $P_{k+1}(x)=0$. Induction on $j$ shows
+$[x^i]\bigl(A(x)(1-x)^j\bigr) = P_j(i)$ for $i \ge j$ (the $j{=}0$ case is
+the definition of $A$; the step uses
+$[x^i]\bigl((1-x)\cdot A(x)(1-x)^j\bigr) = P_j(i)-P_j(i-1)=P_{j+1}(i)$).
+Taking $j=k+1$: $[x^i]\bigl(A(x)(1-x)^{k+1}\bigr)=P_{k+1}(i)=0$ for
+$i \ge k+1$, so $A(x)(1-x)^{k+1}$ is a polynomial of degree $\le k$.
+\end{proof}
+
+\begin{examplebox}
+For $f(x)=x^k$, $k=0,1,2,3$:
+\[
+  \sum_i i^0x^i = \frac{1}{1-x}, \quad
+  \sum_i i^1x^i = \frac{x}{(1-x)^2}, \quad
+  \sum_i i^2x^i = \frac{x+x^2}{(1-x)^3}, \quad
+  \sum_i i^3x^i = \frac{x+4x^2+x^3}{(1-x)^4}.
+\]
+The numerator polynomials here are (a version of) the \emph{Eulerian
+polynomials}.
+\end{examplebox}
+
+\begin{theorembox}
+Let $r$ be a constant and $f(x)$ a polynomial of degree $\le k$, and
+$A_i = r^if(i)$. Then $A(x)=P(x)/(1-rx)^{k+1}$ for some polynomial
+$P(x)$ of degree $\le k$; in particular $A$ is linearly recurrent of
+order $\le k+1$.
+\end{theorembox}
+\begin{proof}
+If $A_i=r^iB_i$, then $A(x)=B(rx)$. Apply the previous theorem to $B$
+and substitute.
+\end{proof}
+
+\begin{examplebox}
+For $A_i=(1+2i)\cdot 3^i$: the previous theorem gives
+$A(x) = P(x)/(1-3x)^2 = P(x)/(1-6x+9x^2)$ for some degree-$\le 1$
+$P(x)$, so $A_i = 6A_{i-1}-9A_{i-2}$ for $i\ge 2$. (Computing directly,
+$A(x) = (1+3x)/(1-3x)^2$.)
+\end{examplebox}
+
+\begin{notebox}
+Restricting to $R=\mathbb{C}$ and using partial fraction decomposition
+of a rational generating function shows the converse of the last two
+theorems, and more: every complex linearly recurrent sequence is
+(eventually) a finite sum $A_i = \sum_j f_j(i)r_j^i$ of
+polynomial-times-geometric terms, for some nonzero complex numbers $r_j$
+and polynomials $f_j$. For the Fibonacci sequence, with
+$a=\tfrac{1+\sqrt5}{2}$, $b=\tfrac{1-\sqrt5}{2}$ (so
+$1-x-x^2=(1-ax)(1-bx)$), partial fractions give
+$F(x) = \tfrac{1}{a-b}\bigl(\tfrac{1}{1-ax}-\tfrac{1}{1-bx}\bigr)$, i.e.\
+the closed form
+$F_i = \tfrac{1}{\sqrt5}\bigl(a^i - b^i\bigr)$. This lecture states this
+fact but omits its proof (it needs the fundamental theorem of algebra
+and partial fraction decomposition of rational functions over
+$\mathbb{C}$), since it is not needed for anything else here.
+\end{notebox}
+
+\section{Closure Properties}
+\begin{theorembox}
+If $A$ and $B$ are linearly recurrent and $p,q$ are constants, then
+$C_i=pA_i+qB_i$ is linearly recurrent.
+\end{theorembox}
+\begin{proof}
+$C(x) = pA(x)+qB(x)$ is a sum of rational functions, hence rational.
+\end{proof}
+
+\begin{theorembox}
+If $A$ and $B$ are linearly recurrent, then their convolution
+$C_i = \sum_{j=0}^i A_jB_{i-j}$ is linearly recurrent.
+\end{theorembox}
+\begin{proof}
+$C(x) = A(x)B(x)$, a product of rational functions, hence rational.
+(Taking $B_j \equiv 1$ recovers the prefix-sum closure from \S4.)
+\end{proof}
+
+\begin{theorembox}
+If $A$ and $B$ are linearly recurrent of orders $d,e$ respectively, then
+their termwise product $C_i=A_iB_i$ is linearly recurrent (of order
+$\le de$).
+\end{theorembox}
+\begin{proof}[Proof sketch]
+Let $V_i$ list the $de$ products $A_{i+j}B_{i+k}$ ($0\le j<d$,
+$0\le k<e$). Each entry of $V_{i+1}$ is $A_{i+j'}B_{i+k'}$ for
+$1\le j'\le d$, $1\le k'\le e$; whenever $j'=d$ or $k'=e$ occurs, the
+recurrences for $A$ or $B$ rewrite it as a combination of
+$A_i,\ldots,A_{i+d-1}$ and $B_i,\ldots,B_{i+e-1}$ --- i.e.\ of $V_i$'s
+own entries. So $V_{i+1}=MV_i$ for a fixed $de\times de$ matrix $M$, and
+$C_i$ (one entry of $V_i$) is linearly recurrent by the matrix-power
+characterization of \S5.
+\end{proof}
+
+\begin{notebox}
+Readers familiar with the Kronecker product $\otimes$ can shortcut this
+proof: if $A_i$ is a linear combination of $(X^i)$'s entries and $B_i$ of
+$(Y^i)$'s, then with $Z=X\otimes Y$, $Z^i=(X^i)\otimes(Y^i)$, so every
+product of an entry of $X^i$ with an entry of $Y^i$ --- in particular
+$A_iB_i$ --- is a linear combination of $Z^i$'s entries.
+\end{notebox}
+
+\section{Reference Implementations}
+The examples below implement the two characterizations directly: they
+generate a sequence from a constant-coefficient recurrence, build the
+corresponding companion matrix, and confirm matrix powers reproduce the
+sequence exactly (Theorem 18) --- including a check against the
+lecture's own worked example values for $A_i=2A_{i-1}+3A_{i-2}$. They
+then verify every closure claim (sum, convolution, termwise product,
+polynomial sequences, polynomial-times-geometric sequences, and periodic
+sequences) with a single reusable technique: fit a candidate recurrence
+of the claimed order to a prefix of the sequence by solving a linear
+system (Gaussian elimination mod a prime), then confirm the fitted
+recurrence correctly extrapolates dozens of further terms it was never
+shown --- exactly what ``the sequence is linearly recurrent of that
+order'' means operationally.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+Both reference implementations reproduce the lecture's own computed
+values $A_0,\ldots,A_5=1,4,11,34,101,304$ for $A_i=2A_{i-1}+3A_{i-2}$,
+confirm the companion-matrix characterization exactly for 30 terms of
+both the Fibonacci sequence and this example, and --- for the sum,
+convolution, and termwise product of two order-2 sequences, for
+$A_i=i^3$, for $A_i=i^3\cdot 3^i$, and for a period-5 sequence --- fit a
+recurrence of the claimed order from an initial window and confirm it
+correctly predicts 50+ further terms in every case.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder ABC360 E, ``Random Swaps of Balls'' (recurrence
+        set-up practice):
+        \url{https://atcoder.jp/contests/abc360/tasks/abc360_e}
+  \item AtCoder ABC204 F, ``Hanjo 2'' (recurrence set-up practice):
+        \url{https://atcoder.jp/contests/abc204/tasks/abc204_f}
+  \item Wikipedia, ``Constant-recursive sequence'':
+        \url{https://en.wikipedia.org/wiki/Constant-recursive_sequence}
+\end{itemize}
+
+\end{document}

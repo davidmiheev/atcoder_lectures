@@ -9,7 +9,7 @@ find "$root/lectures" -mindepth 2 -maxdepth 2 -type d | sort | while read -r dir
   tex="$dir/notes.tex"
   [ -f "$tex" ] || continue
   echo "==> Building $tex"
-  if ! (cd "$dir" && latexmk -pdf -interaction=nonstopmode -halt-on-error notes.tex >build.log 2>&1); then
+  if ! (cd "$dir" && latexmk -xelatex -interaction=nonstopmode -halt-on-error notes.tex >build.log 2>&1); then
     echo "FAILED: $tex (see $dir/build.log)"
     fail=1
   else

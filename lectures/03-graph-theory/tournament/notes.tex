@@ -1,0 +1,277 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Tournaments}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Graph Theory}{Tournaments}{5}
+
+\section{Overview}
+A \emph{tournament} is a simple directed graph in which every pair of
+distinct vertices $u, v$ has exactly one of the edges $u \to v$ or
+$v \to u$. The name comes from the natural reading: $N$ competitors play a
+round robin, and an edge $u \to v$ means ``$u$ beat $v$.'' The definition
+is minimal, but it forces surprisingly strong structure: strongly
+connected components come in a strict linear order that can be read off
+from in-degrees alone, and every tournament --- no matter how tangled ---
+has a Hamiltonian path, with a Hamiltonian cycle guaranteed whenever it is
+strongly connected. Assumes familiarity with in/out-degree, strongly
+connected components, and DAGs.
+
+\section{Transitive Tournaments}
+The most orderly tournaments are the ones with no upsets at all.
+
+\begin{definitionbox}
+A tournament $T$ on $N$ vertices is \emph{transitive} if its vertices can
+be arranged $v_1, \ldots, v_N$ so that $v_i \to v_j$ whenever $i < j$.
+\end{definitionbox}
+
+\begin{theorembox}
+For a tournament $T$, the following are equivalent: (1) $T$ is transitive;
+(2) $T$ is a DAG; (3) $T$ has no directed $3$-cycle; (4) $u \to v$ and
+$v \to w$ together imply $u \to w$, for all distinct $u, v, w$.
+
+\emph{Proof sketch.} (1)$\Rightarrow$(2): a walk visiting strictly
+increasing indices can never return to its start. (2)$\Rightarrow$(3) is
+immediate. (3)$\Rightarrow$(4): if $u \to v \to w$ but not $u \to w$, then
+$w \to u$ (tournament property), giving the forbidden $3$-cycle
+$u\to v\to w\to u$. (4)$\Rightarrow$(1): let $N^+(v)$ be $v$'s
+out-neighborhood; transitivity gives $N^+(v) \cup \{v\} \subseteq N^+(u)$
+whenever $u \to v$, so sorting vertices by $|N^+(v)|$ descending produces
+exactly the order required by the definition (a smaller out-neighborhood
+can never point at a larger one without violating that containment). \qed
+\end{theorembox}
+
+\begin{notebox}
+A non-transitive tournament always contains a $3$-cycle $a\to b\to
+c\to a$ --- the tournament analogue of rock–paper–scissors, sometimes
+called an ``intransitive triple.''
+\end{notebox}
+
+\section{Strongly Connected Components}
+
+\subsection{SCCs form a total order}
+\begin{theorembox}
+If tournament $T$ has strongly connected components $C_1, \ldots, C_K$,
+they can be indexed so that $i < j$ implies $u \to v$ for every
+$u \in C_i, v \in C_j$.
+
+\emph{Proof.} Pick one representative $c_i$ from each $C_i$. The induced
+subgraph on $\{c_1, \ldots, c_K\}$ is a tournament that is also a DAG
+(distinct SCCs cannot have a cycle between representatives, or they would
+merge), hence transitive: relabel so $c_i \to c_j$ for $i<j$. For
+$u \in C_i, v \in C_j$ with $i<j$, a walk $u \rightsquigarrow c_i \to c_j
+\rightsquigarrow v$ exists, so $v \to u$ is impossible (it would merge the
+components); by the tournament property, $u \to v$. \qed
+\end{theorembox}
+
+\subsection{Cuts and components}
+\begin{definitionbox}
+For a vertex set $S$, let $\delta^-(S)$ be the set of edges entering $S$
+from outside: $\{v \to w : v \notin S, w \in S\}$.
+\end{definitionbox}
+
+\begin{theorembox}
+For a tournament with SCCs $C_1, \ldots, C_K$ indexed as above, a vertex
+set $S$ satisfies $\delta^-(S) = \emptyset$ if and only if
+$S = C_1 \cup \cdots \cup C_k$ for some $k$.
+
+\emph{Proof sketch.} The ``if'' direction is immediate from the total
+order above. For ``only if'': take the largest $k$ with $S \cap C_k \ne
+\emptyset$; every vertex of $C_1, \ldots, C_k$ has a walk into $S$ (via
+$C_k$), so $\delta^-(S) = \emptyset$ forces it into $S$, giving
+$C_1\cup\cdots\cup C_k \subseteq S$; the reverse inclusion holds by choice
+of $k$. \qed
+\end{theorembox}
+
+\subsection{In-degree determines the decomposition}
+Combining the two results above with a counting argument gives something
+genuinely special to tournaments: the SCC decomposition needs no edge
+traversal at all, just in-degrees.
+
+\begin{theorembox}
+Order the vertices so in-degree is non-decreasing:
+$\deg^-(v_1) \le \cdots \le \deg^-(v_N)$. Then $S = \{v_1, \ldots, v_k\}$
+satisfies $\delta^-(S) = \emptyset$ if and only if
+$\sum_{v \in S} \deg^-(v) = \binom{k}{2}$.
+
+\emph{Proof.} The sum $\sum_{v\in S}\deg^-(v)$ counts edges ending in $S$,
+split into those with both endpoints in $S$ (exactly $\binom{k}{2}$ of
+them, since $S$'s induced subgraph is itself a tournament on $k$
+vertices) and those entering from outside (exactly $|\delta^-(S)|$). So
+the sum equals $\binom{k}{2}$ exactly when $\delta^-(S) = \emptyset$. \qed
+\end{theorembox}
+
+Since the SCC-order theorem guarantees every SCC boundary is a prefix
+boundary once vertices are sorted by in-degree, this pins down the entire
+decomposition: sort by in-degree, then cut wherever the running sum hits
+$\binom{k}{2}$. A vertex's in-degree, on its own, is all that is needed.
+
+\begin{notebox}
+This does not beat a general-graph SCC algorithm asymptotically once the
+$O(N^2)$ cost of reading a fully-specified tournament is counted, but it
+is a strikingly simple $O(N \log N)$ procedure (dominated by the sort)
+once in-degrees are known, and the technique --- sort by some natural
+statistic, then locate a cut where a running sum matches a closed-form
+target --- is a useful pattern in its own right.
+\end{notebox}
+
+% FIGURE: tour_scc
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[lvert,minimum size=7.5mm] (v0) at (0,0.9) {$v_0$};
+\node[lvert,minimum size=7.5mm] (v1) at (1.5,0.9) {$v_1$};
+\node[lvert,minimum size=7.5mm] (v2) at (0.75,-0.4) {$v_2$};
+\node[lvert,minimum size=7.5mm] (v3) at (4.4,0.25) {$v_3$};
+\node[lvert,minimum size=7.5mm] (v4) at (7.2,0.25) {$v_4$};
+\draw[larrow] (v0) -- (v1);
+\draw[larrow] (v1) -- (v2);
+\draw[larrow] (v2) -- (v0);
+\begin{scope}[on background layer]
+\node[draw=lectureaccent,dashed,rounded corners=8pt,fit=(v0)(v1)(v2),inner sep=7pt] (C1) {};
+\end{scope}
+\node[llabel,above=2pt of C1] {component 1 (a 3-cycle)};
+\draw[larrow,lectureaccent] (C1.east) -- (v3.west);
+\draw[larrow,lectureaccent] (v3) -- (v4);
+\draw[larrow,lectureaccent,bend left=26] (C1.north east) to (v4.north west);
+\node[llabel,below=15pt of v3] {component 2};
+\node[llabel,below=15pt of v4] {component 3};
+\node[llabel,text=lecturewarn,left=1pt of v0] {in=1};
+\node[llabel,text=lecturewarn,right=1pt of v1] {in=1};
+\node[llabel,text=lecturewarn,right=1pt of v2] {in=1};
+\node[llabel,text=lecturewarn,below=1pt of v3] {in=3};
+\node[llabel,text=lecturewarn,below=1pt of v4] {in=4};
+\end{tikzpicture}
+
+\medskip
+\small\sffamily
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+$k$ (vertices sorted by in-degree) & 1 & 2 & 3 & 4 & 5\\
+running sum of in-degrees & 1 & 2 & 3 & 6 & 10\\
+$\binom{k}{2}$ & 0 & 1 & 3 & 6 & 10\\
+equal? (cut here) & & & \textbf{yes} & \textbf{yes} & \textbf{yes}\\
+\bottomrule
+\end{tabular}
+\caption{The component structure of a tournament on five vertices, and how in-degrees recover it. Sorted in-degrees are $1,1,1,3,4$; the running sum equals $\binom{k}{2}$ exactly at $k=3,4,5$, so the components are $\{v_0,v_1,v_2\},\{v_3\},\{v_4\}$. Every edge between two components points from the earlier to the later one.}\label{fig:tour_scc}
+\end{figure}
+
+\section{Hamiltonian Paths}
+\begin{theorembox}[(R\'edei)]
+Every tournament on $N \ge 1$ vertices has a Hamiltonian path.
+
+\emph{Proof (induction on $N$).} A single vertex is trivially a
+Hamiltonian path. Given a Hamiltonian path $v_1, \ldots, v_N$ on the first
+$N$ vertices, insert vertex $N+1$: if $(N{+}1) \to v_1$, prepend it; if
+$v_N \to (N{+}1)$, append it; otherwise (since $v_1 \to (N{+}1)$ and
+$(N{+}1) \to v_N$ both fail to hold at the two ends... more precisely,
+neither extreme case applies) there is some $i$ with $v_i \to (N{+}1)$ and
+$(N{+}1) \to v_{i+1}$ --- take the largest $i$ with $v_i \to (N{+}1)$ ---
+and inserting $N{+}1$ between $v_i$ and $v_{i+1}$ extends the path. \qed
+\end{theorembox}
+
+The proof is directly an algorithm: insert vertices one at a time,
+finding the insertion point by scanning (or binary-searching, if the
+tournament happens to be transitive and comparisons are cheap) for the
+boundary between ``beats the new vertex'' and ``loses to it.'' A naive
+array-based insertion gives $O(N^2)$ overall; a proper insertable sequence
+structure brings this to $O(N \log N)$.
+
+\subsection{Connection to comparison sorting}
+If a tournament happens to be transitive, finding its Hamiltonian path is
+exactly sorting its vertices by the relation ``$u < v$ iff $u \to v$''
+--- and the algorithm above, read that way, is literally insertion sort.
+This generalizes: running \emph{any} comparison sort (quicksort,
+mergesort, \ldots) using tournament edges as the comparator, even on a
+\emph{non}-transitive tournament, still produces a valid Hamiltonian path.
+The reason is that every comparison sort, by the time it finishes,
+directly compares every pair of elements that end up adjacent in its
+output --- so consecutive output elements are ordered consistently with
+whatever comparator was used, tournament edge direction included. Basing
+the construction on quicksort with a random pivot gives expected
+$O(N \log N)$; basing it on mergesort gives a deterministic
+$O(N \log N)$ without randomization.
+
+\section{Hamiltonian Cycles}
+A Hamiltonian path is not always a cycle --- but for strongly connected
+tournaments with at least $3$ vertices, one always exists.
+
+\begin{theorembox}[(Camion)]
+Every strongly connected tournament on $N \ge 3$ vertices has a
+Hamiltonian cycle.
+
+\emph{Proof idea.} Start from a Hamiltonian path $v_1, \ldots, v_N$.
+Strong connectivity guarantees some $v_k \to v_1$, giving a ``prefix
+cycle'' on $v_1, \ldots, v_k$. Grow $k$ one step at a time: if
+$v_{k+1} \to v_1$, extend directly. Otherwise, if some $v_p$
+($p \le k$) satisfies $v_{k+1} \to v_p$ (take the least such $p$, which
+must be $\ge 2$), then $v_{p-1} \to v_{k+1}$ also holds, so splicing
+$v_{k+1}$ into the cycle between $v_{p-1}$ and $v_p$ grows it by one.
+Otherwise every $v_p$ ($p \le k$) beats $v_{k+1}$; strong connectivity
+then guarantees some later $v_q$ with an edge back into the cycle, and
+splicing the whole segment $v_{k+1}, \ldots, v_q$ in at the right point
+grows the cycle to length $q$. Repeating until $k = N$ completes the
+cycle. \qed
+\end{theorembox}
+
+Implemented carefully (scanning candidates in a fixed order so each pair
+of vertices is compared $O(1)$ times overall), this construction runs in
+$O(N^2)$.
+
+\section{2-Kings}
+A different kind of guarantee, about reachability rather than a
+Hamiltonian structure:
+
+\begin{theorembox}[(Landau)]
+Every nonempty tournament has a vertex $v$ (a \emph{$2$-king}) within
+distance $2$ of every other vertex: for every $x \ne v$, either
+$v \to x$, or $v \to y \to x$ for some $y$.
+
+\emph{Proof.} Take $v$ with maximum out-degree, and suppose some $x$
+violates the condition. Since no length-$2$ path $v \to y \to x$ exists,
+every $y$ with $v \to y$ must have $x \to y$ (else $y$ would witness the
+path) --- so $N^+(v) \subseteq N^+(x)$. Since the condition also fails
+directly ($v \not\to x$), the tournament property gives $x \to v$, so
+$N^+(v) \cup \{v\} \subseteq N^+(x)$, making $x$'s out-degree strictly
+larger than $v$'s --- contradicting maximality. \qed
+\end{theorembox}
+
+\section{Reference Implementations}
+Both examples below implement transitivity testing, the in-degree-only
+SCC decomposition (cross-checked against a reachability-based reference
+implementation), R\'edei's Hamiltonian path, Camion's Hamiltonian cycle,
+and Landau's $2$-king, each validated over hundreds of random tournaments.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+The rock–paper–scissors tournament (Rock beats Scissors, Scissors beats
+Paper, Paper beats Rock) is the smallest non-transitive tournament: it is
+a single $3$-cycle, so it forms one strongly connected component
+containing all three vertices --- exactly what both reference
+implementations report.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item Wikipedia, \emph{Tournament (graph theory)}:
+        \url{https://en.wikipedia.org/wiki/Tournament_(graph_theory)}
+  \item Y. Manoussakis, ``A linear-time algorithm for finding Hamiltonian
+        cycles in tournaments'', Discrete Applied Mathematics 36, 1992,
+        pp.\ 199--201.
+\end{itemize}
+
+\end{document}

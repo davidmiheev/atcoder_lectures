@@ -1,0 +1,182 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{Min-Plus Convolution of Convex Sequences}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitleband{Miscellaneous}{Min-Plus Convolution of Convex Sequences}{4}
+
+\section{Overview}
+For sequences $A=(A_0,\ldots,A_N)$ and $B=(B_0,\ldots,B_M)$, their
+\emph{min-plus convolution} is $C_k = \min_{i+j=k}(A_i+B_j)$. Computed
+directly, this costs $O(NM)$, and doing much better in general is
+believed to be hard. But when both $A$ and $B$ are \emph{convex}, the
+whole computation collapses to $O(N+M)$ --- and, reinterpreted through a
+simple optimization story, the reason why becomes almost obvious.
+
+\section{Convex Sequences}
+\begin{definitionbox}
+A sequence $A=(A_0,\ldots,A_N)$ is \emph{convex below} (or just
+\emph{convex}) if $A_{i+1}-A_i \le A_{i+2}-A_{i+1}$ for every valid $i$
+--- its successive differences are nondecreasing. The reverse inequality
+makes it \emph{convex above} (or \emph{concave}). Plotting $(i, A_i)$,
+convexity below is exactly a nondecreasing slope as you move right.
+\end{definitionbox}
+
+\begin{examplebox}
+$(0,0,0,1,2,4)$ is convex below (differences $0,0,1,1,2$, nondecreasing).
+$(4,3,2,1,0)$ is both convex below and convex above (constant
+difference $-1$). $(3,1,3,0,2)$ is neither.
+\end{examplebox}
+
+\section{The Main Theorem}
+\begin{theorembox}
+If $A=(A_0,\ldots,A_N)$ and $B=(B_0,\ldots,B_M)$ are both convex below,
+their min-plus convolution $C$ can be computed in $O(N+M)$ time, and $C$
+is itself convex below.
+
+\emph{Proof.} Adding a constant to every $A_i$ (or every $B_j$) just adds
+that constant to every $C_k$, so assume $A_0=B_0=0$. Let $a_i = A_{i+1} -
+A_i$ and $b_j = B_{j+1}-B_j$ be the difference sequences; convexity says
+both are nondecreasing.
+
+Reinterpret: put $N$ items of costs $a_0,\ldots,a_{N-1}$ in bag $A$, and
+$M$ items of costs $b_0,\ldots,b_{M-1}$ in bag $B$. Because the item
+costs in each bag are sorted, the cheapest way to pick exactly $i$ items
+from bag $A$ is to take the $i$ cheapest, with total cost exactly $A_i$
+(this is where convexity is used --- without sorted costs, ``the cheapest
+$i$ items'' and ``$A_i$'' need not coincide). Likewise $B_j$ is the
+cheapest cost of $j$ items from bag $B$.
+
+Then $A_i + B_j$ is the cheapest cost of picking $i$ items from $A$ and
+$j$ from $B$, and $C_k=\min_{i+j=k}(A_i+B_j)$ is the cheapest cost of
+picking $k$ items total from the combined pool of $N+M$ items --- which
+is achieved, exactly as in the single-bag case, by taking the $k$
+globally cheapest items. So $C_k$ is the $k$-th prefix sum of the
+merged, sorted difference sequence $a_0,\ldots,a_{N-1},b_0,\ldots,b_{M-1}$.
+Since $a$ and $b$ are each already sorted, merging them costs only
+$O(N+M)$ (an ordinary two-pointer merge, as in merge sort), and so does
+the resulting prefix sum. Undoing the initial normalization just adds
+back $A_0+B_0$.
+
+$C$'s difference sequence is, by construction, this merged (hence
+sorted) sequence, so $C$ is itself convex below. \qed
+\end{theorembox}
+
+\begin{notebox}
+The same argument, run on convex-above sequences with a max-plus
+convolution, works identically (pick the $k$ \emph{most expensive} items
+instead).
+\end{notebox}
+
+% FIGURE: mp_merge
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.05cm,y=1.0cm]
+\node[llabel,anchor=east] at (-0.7,3.0) {slopes of $a$};
+\node[lcell,lhi,minimum width=0.95cm] at (0,3.0) {$-3$};
+\node[lcell,lhi,minimum width=0.95cm] at (1,3.0) {$-1$};
+\node[lcell,lhi,minimum width=0.95cm] at (2,3.0) {$2$};
+\node[llabel,anchor=east] at (-0.7,2.0) {slopes of $b$};
+\node[lcell,lhi2,minimum width=0.95cm] at (0,2.0) {$-2$};
+\node[lcell,lhi2,minimum width=0.95cm] at (1,2.0) {$0$};
+\node[lcell,lhi2,minimum width=0.95cm] at (2,2.0) {$1$};
+\node[lcell,lhi2,minimum width=0.95cm] at (3,2.0) {$4$};
+\draw[larrow] (7.9,2.5) -- (7.9,1.6) node[midway,right,llabel] {merge into one sorted list};
+\node[llabel,anchor=east] at (-0.7,1.1) {merged slopes};
+\node[lcell,lhi,minimum width=0.95cm] at (0,1.1) {$-3$};
+\node[lcell,lhi2,minimum width=0.95cm] at (1,1.1) {$-2$};
+\node[lcell,lhi,minimum width=0.95cm] at (2,1.1) {$-1$};
+\node[lcell,lhi2,minimum width=0.95cm] at (3,1.1) {$0$};
+\node[lcell,lhi2,minimum width=0.95cm] at (4,1.1) {$1$};
+\node[lcell,lhi,minimum width=0.95cm] at (5,1.1) {$2$};
+\node[lcell,lhi2,minimum width=0.95cm] at (6,1.1) {$4$};
+\draw[larrow] (7.9,0.7) -- (7.9,-0.2) node[midway,right,llabel] {prefix sums, starting from $a_0+b_0=7$};
+\node[llabel,anchor=east] at (-0.7,-0.6) {$c=a\oplus b$};
+\node[lcell,minimum width=0.95cm,lgray] at (0,-0.6) {$7$};
+\node[lcell,minimum width=0.95cm,lgray] at (1,-0.6) {$4$};
+\node[lcell,minimum width=0.95cm,lgray] at (2,-0.6) {$2$};
+\node[lcell,minimum width=0.95cm,lgray] at (3,-0.6) {$1$};
+\node[lcell,minimum width=0.95cm,lgray] at (4,-0.6) {$1$};
+\node[lcell,minimum width=0.95cm,lgray] at (5,-0.6) {$2$};
+\node[lcell,minimum width=0.95cm,lgray] at (6,-0.6) {$4$};
+\node[lcell,minimum width=0.95cm,lgray] at (7,-0.6) {$8$};
+\end{tikzpicture}
+\caption{Min-plus convolution of convex sequences is a merge. For $a$ with slopes $(-3,-1,2)$ and $b$ with slopes $(-2,0,1,4)$, merging the two sorted slope lists and taking prefix sums from $a_0+b_0=7$ yields $c=(7,4,2,1,1,2,4,8)$, which equals $\min_{i+j=k}(a_i+b_j)$ for every $k$.}\label{fig:mp_merge}
+\end{figure}
+
+\section{A DP Speedup Application}
+Convex min-plus convolution shows up disguised inside ordinary dynamic
+programs, and recognizing it can turn an $O(N^2)$ solution into an
+$O(N \log N)$ one.
+
+\begin{definitionbox}
+Given $A=(A_1,\ldots,A_N)$, for every $k=0,\ldots,N$ find the minimum
+possible sum of exactly $k$ chosen elements of $A$.
+\end{definitionbox}
+
+The direct answer is immediate: sort $A$ and take prefix sums, in
+$O(N\log N)$. But a natural DP formulation is also tempting: let
+$\mathrm{dp}[i]$ be the answer using only the first $i$ processed
+elements, updated one element $x$ at a time by
+$\mathrm{dp}'[i]=\min(\mathrm{dp}[i], \mathrm{dp}[i-1]+x)$ (skip or take
+$x$). Implemented as a growing array, this costs $\Theta(N^2)$ overall.
+
+The connection: each such update is exactly a min-plus convolution of the
+current $\mathrm{dp}$ table with the two-element sequence $(0, x)$, which
+is trivially convex. Since a convex sequence convolved with a convex
+sequence stays convex, $\mathrm{dp}$ is convex at every step --- and by
+the theorem, updating it means merging a single value $x$ into
+$\mathrm{dp}$'s (sorted) difference sequence. Doing this $N$ times, for
+$x = A_1,\ldots,A_N$ in turn, is nothing more than inserting all of $A$'s
+values one at a time into a sorted sequence: exactly sorting $A$. The
+$O(N^2)$-looking DP and the $O(N\log N)$ greedy algorithm are, under this
+lens, the same algorithm.
+
+\begin{notebox}
+This particular problem is simple enough that the connection mostly
+confirms what greedy intuition already suggested. The real payoff shows
+up in less obvious DPs where a min-plus convolution with a convex
+sequence is buried inside a larger recurrence (tree DPs merging convex
+child tables are a common source) --- recognizing convexity there is what
+unlocks a fast solution.
+\end{notebox}
+
+\section{Reference Implementations}
+Both examples below implement the naive $O(NM)$ definition and the
+$O(N+M)$ convex-specific algorithm, verify them against both of the
+lecture's own worked examples and against each other on random convex
+sequences, confirm the result stays convex, and work through the DP
+speedup application above.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+For $A=(2,0,0,1,2)$ and $B=(0,0,1,3)$ (both convex, with difference
+sequences $(-2,0,1,1)$ and $(0,1,2)$ respectively), merging the
+differences gives $(-2,0,0,1,1,1,2)$, and accumulating from $A_0+B_0=2$
+gives $C=(2,0,0,0,1,2,3,5)$ --- matching both the lecture's own stated
+result and the naive $O(NM)$ computation exactly, as confirmed by both
+reference implementations.
+\end{examplebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item AtCoder Algorithm Lectures index (source of this curriculum):
+        \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item M. Cygan, M. Mucha, K. W\k{e}grzycki, M. W{\l}odarczyk, ``On
+        Problems Equivalent to (min,+)-Convolution'', ACM Transactions
+        on Algorithms 15(1), 2019, pp.\ 1--25.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,374 @@
+\documentclass[11pt]{article}
+\usepackage{../../../tex/lecturestyle}
+
+\title{The Number Theoretic Transform}
+\author{}
+\date{}
+
+\begin{document}
+\thispagestyle{fancy}
+
+\lecturetitlebandsupplement{Supplementary}{The Number Theoretic Transform}{6}
+
+\section{Overview}
+This lecture is a \textbf{supplement}, not part of AtCoder's Algorithm
+Lectures index: several lectures elsewhere in this collection (the
+$K$-th term and advanced Bostan--Mori lectures, in particular) refer to
+fast, $O(d \log d)$ polynomial multiplication modulo a prime without
+building the transform behind it. This fills that gap with a
+from-scratch implementation of the \textbf{Number Theoretic Transform
+(NTT)}: a Discrete Fourier Transform carried out entirely inside
+$\mathbb{Z}/p\mathbb{Z}$ for a well-chosen prime $p$, giving the same
+fast-convolution trick as the classical (complex-valued) FFT but with
+exact integer arithmetic and no floating-point rounding error --- which
+is why it is the standard choice for polynomial multiplication modulo a
+prime in competitive programming.
+
+\section{Roots of Unity, Modulo a Prime}
+The FFT-based convolution trick needs a primitive $n$-th root of unity:
+a value $\omega$ with $\omega^n = 1$ and no smaller positive power equal
+to $1$. Over $\mathbb{C}$ this is $e^{2\pi i/n}$; modulo a prime $p$, an
+analogous element exists exactly when $n \mid p - 1$.
+
+\begin{definitionbox}
+If $p$ is prime and $g$ is a primitive root modulo $p$ (a generator of
+the multiplicative group $(\mathbb{Z}/p\mathbb{Z})^\times$, of order
+$p-1$), then for any $n$ dividing $p-1$,
+\[
+  \omega_n \;=\; g^{(p-1)/n} \bmod p
+\]
+is a primitive $n$-th root of unity modulo $p$: $\omega_n^n \equiv 1$,
+and no smaller positive power is $\equiv 1$, since $g$ has order exactly
+$p-1$.
+\end{definitionbox}
+
+Competitive programming almost always uses
+$p = 998244353 = 119 \cdot 2^{23} + 1$, whose primitive root is $3$: since
+$p - 1$ is divisible by $2^{23}$, this supports NTTs of any length up to
+$2^{23}$ (over eight million points), comfortably larger than any
+polynomial size that shows up in a contest. The examples below use this
+prime throughout.
+
+\section{The Transform}
+\begin{definitionbox}
+For a length-$n$ array $a = (a_0,\ldots,a_{n-1})$ ($n$ a power of $2$,
+for the iterative algorithm below), its NTT is
+\[
+  \hat a_k \;=\; \sum_{j=0}^{n-1} a_j\, \omega_n^{jk} \pmod p, \qquad
+  k = 0,\ldots,n-1.
+\]
+The inverse transform recovers $a$ from $\hat a$ using $\omega_n^{-1}$
+in place of $\omega_n$, then dividing every entry by $n$ (i.e.\
+multiplying by $n^{-1} \bmod p$, via Fermat's little theorem since $p$ is
+prime).
+\end{definitionbox}
+
+\begin{theorembox}[(Convolution theorem)]
+For polynomials $A(x), B(x)$ of degree $< n/2$ (so their product has
+degree $< n$, fitting in a length-$n$ transform), if
+$\hat a, \hat b$ are their length-$n$ NTTs, then the length-$n$ NTT of
+their coefficientwise product $\hat a \cdot \hat b$ (pointwise
+multiplication) is the NTT of $A(x)B(x)$'s coefficients. Equivalently:
+transform both, multiply pointwise, inverse-transform, and the result is
+the product polynomial.
+\end{theorembox}
+
+\subsection{Computing it in $O(n \log n)$}
+A direct evaluation of the sum defining $\hat a_k$ for every $k$ costs
+$O(n^2)$. The standard Cooley--Tukey trick halves the work recursively:
+splitting $a$ into its even- and odd-indexed halves $a^{\text{even}}$,
+$a^{\text{odd}}$ (each transformed at length $n/2$), the length-$n$
+transform is recovered via
+\[
+  \hat a_k = \hat a^{\text{even}}_{k \bmod n/2}
+    + \omega_n^{k}\, \hat a^{\text{odd}}_{k \bmod n/2},
+\]
+using each half-length output twice (for $k$ and $k+n/2$, where the
+$\omega_n^{k+n/2} = -\omega_n^k$ sign flip is the only difference) ---
+the same halving idea, and indeed the same underlying identity, behind
+Bostan--Mori's even/odd-part recursion elsewhere in this collection.
+Unrolled iteratively rather than recursively, this becomes: permute the
+input into \emph{bit-reversed order} (index $i$ moves to the position
+whose binary representation is $i$'s reversed), then repeatedly combine
+adjacent blocks of doubling size with an $O(1)$-per-pair ``butterfly''
+update, for $O(\log n)$ passes of $O(n)$ work each --- $O(n \log n)$
+total, and in-place.
+
+% FIGURE: ntt_butterfly
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.7cm,y=0.78cm]
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_0) at (0,0) {$a_0$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_1) at (0,-1) {$a_4$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_2) at (0,-2) {$a_2$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_3) at (0,-3) {$a_6$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_4) at (0,-4) {$a_1$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_5) at (0,-5) {$a_5$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_6) at (0,-6) {$a_3$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily] (p0_7) at (0,-7) {$a_7$};
+\fill[lectureink!70] (1,0) circle (2pt);
+\fill[lectureink!70] (1,-1) circle (2pt);
+\fill[lectureink!70] (1,-2) circle (2pt);
+\fill[lectureink!70] (1,-3) circle (2pt);
+\fill[lectureink!70] (1,-4) circle (2pt);
+\fill[lectureink!70] (1,-5) circle (2pt);
+\fill[lectureink!70] (1,-6) circle (2pt);
+\fill[lectureink!70] (1,-7) circle (2pt);
+\fill[lectureink!70] (2,0) circle (2pt);
+\fill[lectureink!70] (2,-1) circle (2pt);
+\fill[lectureink!70] (2,-2) circle (2pt);
+\fill[lectureink!70] (2,-3) circle (2pt);
+\fill[lectureink!70] (2,-4) circle (2pt);
+\fill[lectureink!70] (2,-5) circle (2pt);
+\fill[lectureink!70] (2,-6) circle (2pt);
+\fill[lectureink!70] (2,-7) circle (2pt);
+\fill[lectureink!70] (3,0) circle (2pt);
+\fill[lectureink!70] (3,-1) circle (2pt);
+\fill[lectureink!70] (3,-2) circle (2pt);
+\fill[lectureink!70] (3,-3) circle (2pt);
+\fill[lectureink!70] (3,-4) circle (2pt);
+\fill[lectureink!70] (3,-5) circle (2pt);
+\fill[lectureink!70] (3,-6) circle (2pt);
+\fill[lectureink!70] (3,-7) circle (2pt);
+\draw[lectureaccent,thick] (0.30,0) -- (1,-1);
+\draw[lectureaccent,thick] (0.30,-1) -- (1,0);
+\draw[lectureaccent,thick] (0.30,0) -- (1,0);
+\draw[lectureaccent,thick] (0.30,-1) -- (1,-1);
+\draw[lectureaccent,thick] (0.30,-2) -- (1,-3);
+\draw[lectureaccent,thick] (0.30,-3) -- (1,-2);
+\draw[lectureaccent,thick] (0.30,-2) -- (1,-2);
+\draw[lectureaccent,thick] (0.30,-3) -- (1,-3);
+\draw[lectureaccent,thick] (0.30,-4) -- (1,-5);
+\draw[lectureaccent,thick] (0.30,-5) -- (1,-4);
+\draw[lectureaccent,thick] (0.30,-4) -- (1,-4);
+\draw[lectureaccent,thick] (0.30,-5) -- (1,-5);
+\draw[lectureaccent,thick] (0.30,-6) -- (1,-7);
+\draw[lectureaccent,thick] (0.30,-7) -- (1,-6);
+\draw[lectureaccent,thick] (0.30,-6) -- (1,-6);
+\draw[lectureaccent,thick] (0.30,-7) -- (1,-7);
+\draw[lecturewarn,thick] (1.00,0) -- (2,-2);
+\draw[lecturewarn,thick] (1.00,-2) -- (2,0);
+\draw[lecturewarn,thick] (1.00,0) -- (2,0);
+\draw[lecturewarn,thick] (1.00,-2) -- (2,-2);
+\draw[lecturewarn,thick] (1.00,-1) -- (2,-3);
+\draw[lecturewarn,thick] (1.00,-3) -- (2,-1);
+\draw[lecturewarn,thick] (1.00,-1) -- (2,-1);
+\draw[lecturewarn,thick] (1.00,-3) -- (2,-3);
+\draw[lecturewarn,thick] (1.00,-4) -- (2,-6);
+\draw[lecturewarn,thick] (1.00,-6) -- (2,-4);
+\draw[lecturewarn,thick] (1.00,-4) -- (2,-4);
+\draw[lecturewarn,thick] (1.00,-6) -- (2,-6);
+\draw[lecturewarn,thick] (1.00,-5) -- (2,-7);
+\draw[lecturewarn,thick] (1.00,-7) -- (2,-5);
+\draw[lecturewarn,thick] (1.00,-5) -- (2,-5);
+\draw[lecturewarn,thick] (1.00,-7) -- (2,-7);
+\draw[green!45!black,thick] (2.00,0) -- (3,-4);
+\draw[green!45!black,thick] (2.00,-4) -- (3,0);
+\draw[green!45!black,thick] (2.00,0) -- (3,0);
+\draw[green!45!black,thick] (2.00,-4) -- (3,-4);
+\draw[green!45!black,thick] (2.00,-1) -- (3,-5);
+\draw[green!45!black,thick] (2.00,-5) -- (3,-1);
+\draw[green!45!black,thick] (2.00,-1) -- (3,-1);
+\draw[green!45!black,thick] (2.00,-5) -- (3,-5);
+\draw[green!45!black,thick] (2.00,-2) -- (3,-6);
+\draw[green!45!black,thick] (2.00,-6) -- (3,-2);
+\draw[green!45!black,thick] (2.00,-2) -- (3,-2);
+\draw[green!45!black,thick] (2.00,-6) -- (3,-6);
+\draw[green!45!black,thick] (2.00,-3) -- (3,-7);
+\draw[green!45!black,thick] (2.00,-7) -- (3,-3);
+\draw[green!45!black,thick] (2.00,-3) -- (3,-3);
+\draw[green!45!black,thick] (2.00,-7) -- (3,-7);
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,0) {$\hat a_0$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-1) {$\hat a_1$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-2) {$\hat a_2$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-3) {$\hat a_3$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-4) {$\hat a_4$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-5) {$\hat a_5$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-6) {$\hat a_6$};
+\node[lcell,minimum width=0.9cm,minimum height=0.55cm,font=\footnotesize\sffamily,lhi] at (3.75,-7) {$\hat a_7$};
+\node[llabel,align=center] at (0.5,1.2) {stage 1\\ length 2};
+\node[llabel,align=center] at (1.5,1.2) {stage 2\\ length 4};
+\node[llabel,align=center] at (2.5,1.2) {stage 3\\ length 8};
+\node[llabel,align=center] at (0,-7.9) {bit-reversed\\ input};
+\end{tikzpicture}
+\caption{The iterative Cooley--Tukey NTT for $n=8$: after the bit-reversal permutation, three stages of butterflies combine entries at distance $1$, $2$, and $4$. Each butterfly maps a pair $(u,v)$ to $(u+\omega v,\;u-\omega v)$ for the appropriate power $\omega$ of the root of unity, so the transform takes $\log_2 n$ stages of $n/2$ butterflies.}\label{fig:ntt_butterfly}
+\end{figure}
+
+\section{NTT versus FFT}
+The NTT is not a different algorithm from the fast Fourier transform: it is the same algorithm run in a different field. Both evaluate the same
+matrix--vector product $\hat a_k=\sum_j a_j\omega^{jk}$, both use the bit-reversal permutation and the same $\log_2 n$ layers of butterflies, and both rest on the
+same facts (the convolution theorem, and inversion by $\omega^{-1}$ followed by division by $n$). Everything that differs comes from what the numbers are.
+
+\begin{table}[H]
+\centering
+\small\sffamily\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{3.2cm}p{5.6cm}p{5.6cm}@{}}
+\toprule
+ & \textbf{Complex FFT} & \textbf{NTT modulo a prime $p$} \\
+\midrule
+Numbers & complex floating-point (two doubles) & integers in $\{0,\dots,p-1\}$ \\
+Primitive $n$-th root $\omega$ & $e^{2\pi i/n}$, exists for every $n$ & $g^{(p-1)/n}$, exists only if $n\mid p-1$ \\
+Longest transform ($p=998244353$) & any length (radix-2 needs a power of two, other lengths via padding or mixed radix) & $2^{23}$ \\
+Roots are & computed with $\cos,\sin$, correct only to rounding error & exact integers \\
+Result & approximate; must be rounded & exact, but only modulo $p$ \\
+Storage per element & 16 bytes (complex double) & 4 bytes (32-bit residue) \\
+\bottomrule
+\end{tabular}
+\caption{The two transforms side by side.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[lectureink!35] (0.00,0) circle (1.55);
+\draw[lectureink!15] (-1.85,0) -- (1.85,0) (0.00,-1.85) -- (0.00,1.85);
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily,lhi] at (1.550,0.000) {$\omega^{0}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (1.096,1.096) {$\omega^{1}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (0.000,1.550) {$\omega^{2}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (-1.096,1.096) {$\omega^{3}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily,lhi] at (-1.550,0.000) {$\omega^{4}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (-1.096,-1.096) {$\omega^{5}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (-0.000,-1.550) {$\omega^{6}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (1.096,-1.096) {$\omega^{7}$};
+\node[llabel] at (0.00,-2.75) {over $\mathbb{C}$: $\omega=e^{2\pi i/8}$};
+\draw[lectureink!35] (7.60,0) circle (1.55);
+\draw[lectureink!15] (5.75,0) -- (9.45,0) (7.60,-1.85) -- (7.60,1.85);
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily,lhi] at (9.150,0.000) {$1$};
+\node[llabel,text=lectureink!55] at (9.850,0.000) {$\omega^{0}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (8.696,1.096) {$9$};
+\node[llabel,text=lectureink!55] at (9.191,1.591) {$\omega^{1}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (7.600,1.550) {$13$};
+\node[llabel,text=lectureink!55] at (7.600,2.250) {$\omega^{2}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (6.504,1.096) {$15$};
+\node[llabel,text=lectureink!55] at (6.009,1.591) {$\omega^{3}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily,lhi] at (6.050,0.000) {$16$};
+\node[llabel,text=lectureink!55] at (5.350,0.000) {$\omega^{4}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (6.504,-1.096) {$8$};
+\node[llabel,text=lectureink!55] at (6.009,-1.591) {$\omega^{5}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (7.600,-1.550) {$4$};
+\node[llabel,text=lectureink!55] at (7.600,-2.250) {$\omega^{6}$};
+\node[lvert,minimum size=7.5mm,font=\footnotesize\sffamily] at (8.696,-1.096) {$2$};
+\node[llabel,text=lectureink!55] at (9.191,-1.591) {$\omega^{7}$};
+\node[llabel] at (7.60,-2.75) {in $\mathbb{Z}/17\mathbb{Z}$: $\omega=3^{16/8}=9$};
+\end{tikzpicture}
+\caption{The eight 8th roots of unity in two fields, drawn at the same positions. In both, $\omega^4=-1$ (highlighted: $\omega^0=1$ and $\omega^4=-1$, which is $16$ modulo $17$) and $\omega^{k+4}=-\omega^k$ (for instance $\omega^5=8=-9$ and $\omega^6=4=-13$ modulo $17$); this is the sign flip that lets each butterfly reuse one product twice. The powers of $9$ modulo $17$ are $1,9,13,15,16,8,4,2$, checked by the reference code.}\label{fig:ntt_roots}
+\end{figure}
+
+\subsection{Exactness: when is rounding an FFT safe?}
+A convolution of integer sequences has integer coefficients, so one can try to compute it with the complex FFT and round each output to the nearest integer.
+This works only while the accumulated floating-point error stays below $\tfrac12$. A double carries 53 bits of mantissa, the true coefficients can be as large
+as $nB^2$ for length-$n$ inputs with entries below $B$, and the error of the transform grows with both $n$ and the size of the entries.
+The experiment in the reference code multiplies two length-$1024$ sequences with random entries in $[0,B)$:
+
+\begin{table}[H]
+\centering
+\small\sffamily\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}lcl@{}}
+\toprule
+$B$ & largest distance to nearest integer & wrong after rounding \\
+\midrule
+$2^{8}$ & $\approx 10^{-9}$ & none \\
+$2^{14}$ & $\approx 10^{-5}$ & none \\
+$2^{18}$ & $\approx 10^{-3}$ & none \\
+$2^{22}$ & $\approx 10^{-1}$ & about half \\
+$2^{30}$ & $0$ & essentially all \\
+\bottomrule
+\end{tabular}
+\caption{Plain FFT convolution of two random length-$1024$ integer sequences (measured by the reference code, identical in Rust and Python).}
+\label{tab:fft-error}
+\end{table}
+
+The error grows roughly like $B^2$, which is why the first three rows are safe and the fourth is not. The last row shows a trap: the distance to the nearest integer is exactly $0$,
+yet every coefficient is wrong, because the true values exceed $2^{53}$ and every double of that size is already an integer, so there is no fractional part left to warn you.
+A small distance to an integer is evidence of correctness only while the values stay below $2^{53}$ with a comfortable margin.
+
+The NTT has no such failure mode: its arithmetic is exact, and the only limit is that the true coefficient is known only modulo $p$. If every true coefficient is below $p$
+(for example a product of 0/1 sequences of length up to $10^6$, whose coefficients are at most $10^6$), the NTT result \emph{is} the integer result.
+
+\subsection{Arbitrary moduli}
+Problems often ask for a product modulo a number $m$ that is not NTT-friendly, with entries up to $m\approx10^9$. The true coefficients then reach $n\,m^2$, far beyond both $p$ and $2^{53}$.
+There are two standard remedies.
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Several NTT primes and the Chinese remainder theorem.} Multiply modulo three NTT-friendly primes whose product exceeds $n(m-1)^2$ (for $m\le10^9$ and $n\le2^{20}$,
+        the primes $998244353$, $469762049$ and $167772161$ suffice) and combine the three residues with CRT; this costs nine transforms. It is not implemented in the reference code.
+  \item \textbf{FFT with splitting.} Write every entry as $x=x_1\cdot2^{15}+x_0$ with $x_0,x_1<2^{15}$. Then
+        $AB=A_1B_1\,2^{30}+(A_0B_1+A_1B_0)\,2^{15}+A_0B_0$, and each of the three partial products has coefficients below $2\cdot n\cdot2^{30}$, which is safe for doubles at the sizes tested here (length $1024$); for inputs of about $10^6$ entries the margin shrinks and careful implementations compute the twiddle factors more accurately or use smaller pieces.
+        The reference code implements this with 4 forward and 3 inverse transforms (7 in total, against 3 for the NTT) and confirms that it agrees with the NTT result on
+        random full-range input, whereas plain FFT followed by reduction modulo $p$ gives wrong residues for essentially every coefficient. Packing two real sequences
+        into one complex transform brings the splitting method down to about 4 transforms; that optimisation is not shown.
+\end{itemize}
+
+\subsection{Cost}
+Per butterfly the NTT performs one modular multiplication (a 64-bit product followed by a reduction, which fast implementations replace by Montgomery or Barrett reduction to avoid a division)
+and one modular addition and subtraction. The FFT performs one complex multiplication (four real multiplications and two additions) and two complex additions. These are comparable amounts of work,
+and which transform is faster in practice depends on the implementation and the hardware (floating-point vector units favour the FFT, integer multiply-high instructions favour the NTT);
+neither wins everywhere, so this lecture makes no speed claim. Two structural differences are not matters of implementation:
+the NTT keeps four times less data in memory (4 bytes per element instead of 16), and the FFT can transform two real sequences at once by packing them into the real and imaginary parts of one complex sequence,
+which has no counterpart in the NTT.
+
+\subsection{Which should I use?}
+\begin{table}[H]
+\centering
+\small\sffamily\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{6.6cm}p{8.4cm}@{}}
+\toprule
+\textbf{Situation} & \textbf{Choice} \\
+\midrule
+Answer required modulo an NTT-friendly prime such as $998244353$ & NTT: exact, one transform pair per product \\
+Exact integer result, every true coefficient below $p$ & NTT: the residue is the answer \\
+Answer modulo an arbitrary $m$, or exact integers larger than $p$ & several NTT primes with CRT, or FFT with splitting \\
+Real or complex data, or an approximate answer is acceptable & FFT: there is no modulus to respect \\
+Length not a power of two, or longer than $2^{23}$ & FFT, or an NTT with a different prime whose $p-1$ has a large enough power of two \\
+\bottomrule
+\end{tabular}
+\caption{A rough guide; none of these rules is absolute.}
+\end{table}
+
+\section{Reference Implementations}
+Both examples below implement the iterative, in-place NTT (forward and
+inverse) and use it for polynomial multiplication, cross-checked against
+the naive $O(nm)$ definition on hundreds of random polynomial pairs, and
+verified to round-trip (forward transform then inverse transform recovers
+the original array) across various sizes. The listing also contains a
+complex-valued \texttt{fft}, a floating-point product \texttt{multiply\_via\_fft}, and the
+15-bit-splitting product \texttt{multiply\_mod\_via\_fft\_split} used in the comparison above; the
+experiment behind Table~\ref{tab:fft-error} is in the test harness of the full files.
+
+\codenote
+\subsection{Rust}
+\corelisting{Rust}{example.rs}
+
+\subsection{Python}
+\corelisting{Python}{example.py}
+
+\section{Worked Example}
+\begin{examplebox}
+$(1+2x+3x^2)(4+5x+6x^2) = 4+13x+28x^2+27x^3+18x^4$ by hand (multiply out
+and collect terms); both reference implementations compute exactly this
+via NTT-based multiplication, matching the naive convolution.
+\end{examplebox}
+
+\begin{notebox}
+Competitive-programming NTT implementations (including the AtCoder
+Library's \texttt{butterfly}/\texttt{butterfly\_inv}, mentioned in this
+collection's advanced Bostan--Mori lecture) often store the transformed
+array in bit-reversed order rather than natural index order, since the
+bit-reversal permutation this lecture applies at the start can instead be
+folded into how later stages are addressed, saving a pass. The
+implementations here use natural order throughout for clarity; adapting
+code that assumes one convention to work with the other requires
+tracking this carefully.
+\end{notebox}
+
+\section{Further Reading}
+\begin{itemize}[leftmargin=1.5em]
+  \item This lecture is an original supplement to this repository's
+        AtCoder Algorithm Lectures-based series, not itself part of that
+        index: \url{https://info.atcoder.jp/entry/algorithm_lectures/index}
+  \item AtCoder Library documentation (the \texttt{convolution} module):
+        \url{https://atcoder.github.io/ac-library/production/document_en/convolution.html}
+  \item cp-algorithms, \emph{Number-theoretic transform (NTT)}:
+        \url{https://cp-algorithms.com/algebra/fft.html}
+\end{itemize}
+
+\end{document}
